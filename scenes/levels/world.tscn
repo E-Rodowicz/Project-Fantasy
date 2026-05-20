@@ -1,0 +1,52 @@
+[gd_scene format=4 uid="uid://3e78dgkpxish"]
+
+[ext_resource type="PackedScene" uid="uid://cro7mkhrgjj7u" path="res://scenes/entities/player/player.tscn" id="1_tsias"]
+[ext_resource type="Texture2D" uid="uid://bm8efun1xgjce" path="res://assets/sprites/stone_wall_test.png" id="2_7k8c1"]
+[ext_resource type="PackedScene" uid="uid://csowg64ha1rbf" path="res://scenes/items/barrel.tscn" id="3_lfyvx"]
+[ext_resource type="PackedScene" uid="uid://273ex68u0f8v" path="res://scenes/entities/npc/npc.tscn" id="4_w2p53"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfyvx"]
+texture = ExtResource("2_7k8c1")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSet" id="TileSet_w2p53"]
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_lfyvx")
+
+[node name="world" type="Node2D" unique_id=2073005942]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=408497630]
+texture_filter = 1
+tile_map_data = PackedByteArray("AAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAACAAMAAAAAAAAAAAADAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAABAAQAAAAAAAAAAAAAAAQAAAAAAAAAAAD//wQAAAAAAAAAAAD+/wQAAAAAAAAAAAD9/wQAAAAAAAAAAAD9/wUAAAAAAAAAAAD8/wUAAAAAAAAAAAD7/wUAAAAAAAAAAAD7/wQAAAAAAAAAAAD6/wQAAAAAAAAAAAD5/wQAAAAAAAAAAAD4/wQAAAAAAAAAAAD4/wMAAAAAAAAAAAD4/wIAAAAAAAAAAAD4/wEAAAAAAAAAAAD3/wEAAAAAAAAAAAD3/wAAAAAAAAAAAAD3////AAAAAAAAAAD2////AAAAAAAAAAD2//7/AAAAAAAAAAD2//3/AAAAAAAAAAADAAAAAAAAAAAAAAADAP//AAAAAAAAAAAEAP//AAAAAAAAAAAEAP7/AAAAAAAAAAADAP7/AAAAAAAAAAADAP3/AAAAAAAAAAACAP7/AAAAAAAAAAACAP//AAAAAAAAAAABAP7/AAAAAAAAAAACAAAAAAAAAAAAAAACAPz/AAAAAAAAAAABAPz/AAAAAAAAAAABAPv/AAAAAAAAAAAAAPv/AAAAAAAAAAD///v/AAAAAAAAAAD///r/AAAAAAAAAAD+//r/AAAAAAAAAAD9//r/AAAAAAAAAAD8//r/AAAAAAAAAAD7//r/AAAAAAAAAAD6//r/AAAAAAAAAAD5//r/AAAAAAAAAAD4//r/AAAAAAAAAAD4//v/AAAAAAAAAAD3//v/AAAAAAAAAAD2//v/AAAAAAAAAAD2//z/AAAAAAAAAAAFAP7/AAAAAAAAAAAGAP7/AAAAAAAAAAAHAP7/AAAAAAAAAAAIAP7/AAAAAAAAAAAJAP7/AAAAAAAAAAAJAP3/AAAAAAAAAAAKAP3/AAAAAAAAAAAFAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAHAAMAAAAAAAAAAAAHAAIAAAAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAAKAAEAAAAAAAAAAAALAAEAAAAAAAAAAAAMAAEAAAAAAAAAAAANAAAAAAAAAAAAAAANAP//AAAAAAAAAAANAP7/AAAAAAAAAAANAP3/AAAAAAAAAAAOAPz/AAAAAAAAAAAOAPv/AAAAAAAAAAANAPv/AAAAAAAAAAANAPr/AAAAAAAAAAAMAPr/AAAAAAAAAAAKAPz/AAAAAAAAAAAKAPv/AAAAAAAAAAAJAPv/AAAAAAAAAAAIAPv/AAAAAAAAAAAHAPv/AAAAAAAAAAAGAPv/AAAAAAAAAAAFAPv/AAAAAAAAAAAFAPr/AAAAAAAAAAAMAPn/AAAAAAAAAAALAPn/AAAAAAAAAAALAPj/AAAAAAAAAAAKAPj/AAAAAAAAAAAKAPf/AAAAAAAAAAAJAPf/AAAAAAAAAAAIAPf/AAAAAAAAAAAHAPf/AAAAAAAAAAAGAPf/AAAAAAAAAAAGAPb/AAAAAAAAAAAFAPb/AAAAAAAAAAAEAPb/AAAAAAAAAAADAPb/AAAAAAAAAAACAPb/AAAAAAAAAAABAPb/AAAAAAAAAAABAPf/AAAAAAAAAAAAAPf/AAAAAAAAAAAAAPj/AAAAAAAAAAD+//j/AAAAAAAAAAD9//j/AAAAAAAAAAD8//j/AAAAAAAAAAD7//j/AAAAAAAAAAD///j/AAAAAAAAAAD4//j/AAAAAAAAAAD3//j/AAAAAAAAAAD2//j/AAAAAAAAAAD1//j/AAAAAAAAAAD0//j/AAAAAAAAAAD0//n/AAAAAAAAAAD0//r/AAAAAAAAAADz//r/AAAAAAAAAADz//v/AAAAAAAAAADz//z/AAAAAAAAAADz//3/AAAAAAAAAAD0//3/AAAAAAAAAAD0//7/AAAAAAAAAAD1//7/AAAAAAAAAAA=")
+tile_set = SubResource("TileSet_w2p53")
+
+[node name="player" parent="." unique_id=988403666 instance=ExtResource("1_tsias")]
+position = Vector2(-8, -8)
+
+[node name="barrel" parent="." unique_id=1627460681 instance=ExtResource("3_lfyvx")]
+position = Vector2(-120, 8)
+inventory = ["golden_ring", "golden_ring", "golden_ring", "golden_ring", "golden_ring"]
+
+[node name="barrel2" parent="." unique_id=1308932687 instance=ExtResource("3_lfyvx")]
+position = Vector2(24, -8)
+inventory = ["iron_sword"]
+
+[node name="npc" parent="." unique_id=1124180761 instance=ExtResource("4_w2p53")]
+position = Vector2(-24, -72)
+collision_layer = 2
+
+[node name="barrel3" parent="." unique_id=1398905105 instance=ExtResource("3_lfyvx")]
+position = Vector2(8, 8)
+inventory = ["golden_ring", "iron_sword"]
+
+[node name="barrel4" parent="." unique_id=82756697 instance=ExtResource("3_lfyvx")]
+position = Vector2(-40, -56)
+inventory = ["iron_sword"]
+
+[node name="barrel5" parent="." unique_id=709926022 instance=ExtResource("3_lfyvx")]
+position = Vector2(8, -24)
+inventory = ["health_potion"]
+
+[node name="npc2" parent="." unique_id=849203659 instance=ExtResource("4_w2p53")]
+position = Vector2(-40, -72)

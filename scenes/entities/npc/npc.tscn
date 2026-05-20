@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://273ex68u0f8v"]
+
+[ext_resource type="Script" uid="uid://bbvhjl1h6pjc5" path="res://scenes/entities/npc/npc.gd" id="1_p5uw1"]
+[ext_resource type="Texture2D" uid="uid://ct0571wt87bdf" path="res://assets/sprites/npc_test.png" id="2_xjnpb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_67e1k"]
+size = Vector2(8, 8)
+
+[node name="npc" type="StaticBody2D" unique_id=1124180761]
+collision_layer = 3
+script = ExtResource("1_p5uw1")
+
+[node name="npc_collision" type="CollisionShape2D" parent="." unique_id=1726298419]
+shape = SubResource("RectangleShape2D_67e1k")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=570671626]
+texture_filter = 1
+texture = ExtResource("2_xjnpb")

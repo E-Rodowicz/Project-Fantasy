@@ -1,0 +1,215 @@
+[gd_scene format=3 uid="uid://cro7mkhrgjj7u"]
+
+[ext_resource type="Texture2D" uid="uid://dqc5o2g4ldlh4" path="res://assets/sprites/player_test.png" id="1_1hmtu"]
+[ext_resource type="Texture2D" uid="uid://dahxtat8db0gf" path="res://assets/sprites/arrow_move-Sheet.png" id="2_635qg"]
+
+[sub_resource type="GDScript" id="GDScript_1hmtu"]
+script/source = "extends CharacterBody2D
+
+# Declares the constant of a tile in 2D, and declares its size (Vector2, 16x16)
+const tile_size: Vector2 = Vector2(16, 16)
+# Holds the animation.
+var sprite_node_pos_tween: Tween
+# Checks if precision mode is on.
+var precision_mode: bool = false
+# A var to store the direction of where the player is pointing while in precision mode.
+var pointer_dir: Vector2 = Vector2.ZERO
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+const INPUT_GRACE: float = 0.1  # seconds of leeway
+var key_timers: Dictionary = {
+	\"ui_up\": 0.0,
+	\"ui_down\": 0.0,
+	\"ui_left\": 0.0,
+	\"ui_right\": 0.0
+}
+
+# This built-in funcion does a check every frame (there's 60fps by default, so theres 60 checks per
+# second).
+func _physics_process(_delta: float) -> void:
+	_update_key_timers(delta)
+	precision_mode = Input.is_action_pressed(\"precision\")
+	#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	if precision_mode:
+		_handle_precision_mode()
+	else:
+		pointer_dir = Vector2.ZERO
+		_handle_movement()
+	#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	_update_arrow()
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+func _update_key_timers(delta: float):
+	for action in key_timers:
+		if Input.is_action_pressed(action):
+			# Key is held - keep timer full
+			key_timers[action] = INPUT_GRACE
+		else:
+			# Key released - count down
+			key_timers[action] = max(0.0, key_timers[action] - delta)
+
+func _is_held(action: String) -> bool:
+	return key_timers[action] > 0.0
+
+func _handle_movement():
+	if !sprite_node_pos_tween or !sprite_node_pos_tween.is_valid():
+		var dir = Vector2.ZERO
+		if _is_held(\"ui_up\"): dir.y -= 1
+		if _is_held(\"ui_down\"): dir.y += 1
+		if _is_held(\"ui_left\"): dir.x -= 1
+		if _is_held(\"ui_right\"): dir.x += 1
+		if dir != Vector2.ZERO:
+			_move(dir)
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+func _handle_precision_mode():
+	# Read pointing direction
+	var new_dir = Vector2.ZERO
+	if Input.is_action_pressed(\"ui_up\"): new_dir.y -= 1
+	if Input.is_action_pressed(\"ui_down\"): new_dir.y += 1
+	if Input.is_action_pressed(\"ui_left\"): new_dir.x -= 1
+	if Input.is_action_pressed(\"ui_right\"): new_dir.x += 1
+	
+	# Only update pointer if a direction is held
+	# otherwise keep pointing where you last pointed
+	if new_dir != Vector2.ZERO:
+		pointer_dir = new_dir
+	
+	# E to interact
+	if Input.is_action_just_pressed(\"interact\") and pointer_dir != Vector2.ZERO:
+		var target = global_position + pointer_dir * tile_size
+		_try_interact(target)
+	
+	# Space to move there
+	if Input.is_action_just_pressed(\"precise_move\") and pointer_dir != Vector2.ZERO:
+		if !sprite_node_pos_tween or !sprite_node_pos_tween.is_valid():
+			_move(pointer_dir)
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+func _update_arrow():
+	if precision_mode and pointer_dir != Vector2.ZERO:
+		$player_arrow_sprite.visible = true
+		# Position arrow on the pointed tile
+		$player_arrow_sprite.global_position = global_position + pointer_dir * tile_size
+		# Rotate arrow to face the direction
+		$player_arrow_sprite.rotation = atan2(pointer_dir.y, pointer_dir.x)
+	else:
+		$player_arrow_sprite.visible = false
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+func _try_interact(target_pos: Vector2):
+	# For now just a placeholder - we'll build this out
+	# when you have NPCs/objects to interact with
+	print(\"Interacting with tile at: \", target_pos)
+
+# This checks if we can move to a certain space or if its blocked. Returns true or false.
+func _can_move_to(target_pos: Vector2) -> bool:
+	# Gets the current world and uses the physics engine of Godot to ask if there are collisions.
+	# Such collision as walls, for example. If they are in the correct layer (which is further down)
+	var space_state = get_world_2d().direct_space_state
+	# A \"point query\" which checks a single point in the world to see if there is a collision.
+	# It asks the questions \"is anything solid in this exact coordinate?\". The .new() creates an
+	# instance of the class PhysicsPointQueryParameters2D, which then requires you to fill out
+	# its quetsions for position, collision and exclude.
+	var query = PhysicsPointQueryParameters2D.new()
+	# This sets the currect target_pos (Vector2) position to the query, so it checks the current
+	# Vector2 position and sees if its \"passable\".
+	query.position = target_pos
+	# Sets the layer that is being checked to layer 1. Collision masks in godot use bitwise layers.
+	# This means that Layer 1 = 1, layer 2 = 2, layer 3 = 4, layer 4 = 8. To check multiple layers,
+	# you must add them together. So if the value below is 1, it is layer 1. If it is 3, it is 
+	# layers 1 and 2. If it is 5, it is layers 1 and 3, etc. Instead of adding, you can also use the
+	# bitwise values seperately: query.collision_mask = 1 | 2 | 4 . These are layers 1, 2 and 3.
+	query.collision_mask = 1
+	# This excludes the player from collision checking himself (Its what get_rid() does). More can
+	# be added, as it is a list [], so if anything else needs to be excluded it can be passed onto
+	# here.
+	query.exclude = [get_rid()]
+	# Runs the query and returns a list of everything that was found. If nothing is found and the
+	# list is empty, it returns true. Otherwise, false. Obviously.
+	return space_state.intersect_point(query).is_empty()
+
+# Movement function - what makes the player actually move. Above this all we had were inputs.
+func _move(dir: Vector2):
+	# Calculates the destination position. global_position is where the player is. dir * tile_size
+	# multilplies the direction by 16, so 1,0 becomes 16,0, moving one tile wherever. This gives us
+	# the position the player wants to move to. BTW, global_position takes
+	# the value of where the node currently is, in this case where the player is (Which is two
+	# values as its 2D, something like (80, 96). Note: global_position is technically a Vector2.
+	var target = global_position + dir * tile_size
+	# Calls _can_move_to to see if the player can move in that direction. If _can_move_to returns
+	# false, it exits out of the _move function, cancelling the movement. 
+	if not _can_move_to(target):
+		return
+		
+	# This \"if\" checks if this movement is diagonal. Only cardinal moves have one axis active at a
+	# time. (1,0) and (0,-1) are cardinal moves. All diagonals have both axis active at a time, as
+	# they require two inputs, hence why this \"if\" then activates and does whatever is inside it.
+	if dir.x != 0 and dir.y != 0:
+		# Calculates the two tiles along the diagonal path, both the horizontal tiles next to the
+		# player (left or right) and the vertical tiles above or below the player.
+		var h_tile = global_position + Vector2(dir.x, 0) * tile_size
+		var v_tile = global_position + Vector2(0, dir.y) * tile_size
+		# Checks both tiles, horizontal and vertical. If both tiles are in the vertical and
+		# horizontal potisions, it exits the _move function. This stops player movement if two tiles
+		# are \"touching tips\", essentially, while letting all other diagonal movement through.
+		if not _can_move_to(h_tile) and not _can_move_to(v_tile):
+			return
+	# This teleports the player to the destination tile, instantly. Note: This does NOT move the
+	# sprite.
+	global_position += dir * tile_size
+	# As the sprite is a child of the player body, and the player body moves in the line above,
+	# usually all its children move with it. This moves the sprite back to the previous position,
+	# cancelling the sprites movement in the previous line. This get it ready to be animated by
+	# the tween.
+	$player_sprite.global_position -= dir * tile_size
+
+	# This checks if a tween for the sprite exists. If yes, it is killed so that two tween dont
+	# fight over the sprite position at the same time. Note: A tween is basically a timer that
+	# smoothly changes a value from A to B over a set duration. Think of keyframes in animation.
+	if sprite_node_pos_tween:
+		sprite_node_pos_tween.kill()
+	# Creates a new tween and attaches it to this node.
+	sprite_node_pos_tween = create_tween()
+	# This is important, as it updates the tween with the physics engine instead of the fps. Drops
+	# in fps wont affect the movement or collision.
+	sprite_node_pos_tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	# .length returns the mathematical length of the direction vector. So, a cardinal move is 
+	# exactly 1.0, meaning that the duration is 0.14 second. For diagonals, the length is √2 ≈ 1.414
+	# meaning that the duration is extended to around 0.198 seconds. This slows down diagonal
+	# movement so that the speed of tile-per-second stays consistent with cardinal movement when
+	# moving diagonally. 
+	var duration = 0.14 * dir.length()
+	# tween_property takes the Sprite2D, takes the propery to change (\"global_position\" =
+	# bear in mind that the \"global_position\" of the 2d sprite is used as it is a seperate
+	# value from its \"position\", which is the local position connected to its parents. All
+	# child nodes connect to a parent node have both local and global positions. In this case,
+	# the 2DSprites \"global_position\" is used as it is relative to the parent node of player,
+	# and could cause offset issues. The \"global_position\" is always the true world coordinate) and
+	# moves it to the global_position (Note: no \"\"). global_position is where the player is (not the
+	# sprite) already snapped to, which is the destination. Duration is the duration, which is
+	# 0.14 for cardinal moves and 0.198 for diagonal moves. set_trans sets the transition,
+	# which uses Tween.TRANS_SINE, which in turn makes the movement smooth (maths...). SINE
+	# basically applies a curve; it makes it move slow at the start, quickly in the middle, then
+	# slower as the sprite tween is finishing its movement.
+	sprite_node_pos_tween.tween_property($player_sprite, \"global_position\", global_position, duration).set_trans(Tween.TRANS_SINE)
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1hmtu"]
+size = Vector2(8, 8)
+
+[node name="player" type="CharacterBody2D" unique_id=988403666]
+script = SubResource("GDScript_1hmtu")
+
+[node name="player_sprite" type="Sprite2D" parent="." unique_id=1406068136]
+texture_filter = 1
+texture = ExtResource("1_1hmtu")
+
+[node name="player_arrow_sprite" type="Sprite2D" parent="." unique_id=498275268]
+visible = false
+texture_filter = 1
+texture = ExtResource("2_635qg")
+hframes = 16
+
+[node name="player_collision" type="CollisionShape2D" parent="." unique_id=640181797]
+shape = SubResource("RectangleShape2D_1hmtu")
+
+[node name="player_camera" type="Camera2D" parent="." unique_id=825218871]
+zoom = Vector2(4, 4)
+position_smoothing_enabled = true
+position_smoothing_speed = 2.4

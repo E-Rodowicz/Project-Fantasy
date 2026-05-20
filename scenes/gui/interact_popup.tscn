@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://b504or0xpuigw"]
+
+[ext_resource type="Texture2D" uid="uid://dlkm67r2x4neq" path="res://assets/sprites/interact_choice.png" id="1_nqg6q"]
+[ext_resource type="Script" uid="uid://dl1rr6p5yyj6k" path="res://scenes/gui/interact_popup.gd" id="1_vp30f"]
+
+[node name="InteractPopup" type="CanvasLayer" unique_id=1582158997]
+script = ExtResource("1_vp30f")
+
+[node name="NinePatchRect" type="NinePatchRect" parent="." unique_id=154245389]
+texture_filter = 1
+offset_left = 640.0
+offset_top = 384.0
+offset_right = 896.0
+offset_bottom = 640.0
+texture = ExtResource("1_nqg6q")
+
+[node name="title_label" type="Label" parent="NinePatchRect" unique_id=1265498038]
+layout_mode = 0
+offset_left = 49.0
+offset_top = 48.0
+offset_right = 203.0
+offset_bottom = 72.0
+text = "Test"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="choices_container" type="VBoxContainer" parent="NinePatchRect" unique_id=1046226490]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 88.0
+offset_right = 216.0
+offset_bottom = 216.0

@@ -1,0 +1,253 @@
+[gd_scene format=3 uid="uid://cb567dyh2k6n5"]
+
+[ext_resource type="Script" uid="uid://hf65m15815" path="res://scenes/gui/inventory_screen.gd" id="1_jxufs"]
+
+[node name="Control" type="Control" unique_id=987082035]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_jxufs")
+
+[node name="equipment_panel" type="NinePatchRect" parent="." unique_id=1856977899]
+layout_mode = 0
+offset_right = 640.0
+offset_bottom = 696.0
+
+[node name="slot_head" type="Button" parent="equipment_panel" unique_id=544114739]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 16.0
+offset_right = 352.0
+offset_bottom = 80.0
+
+[node name="slot_amulet" type="Button" parent="equipment_panel" unique_id=1137951571]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 104.0
+offset_right = 352.0
+offset_bottom = 168.0
+
+[node name="slot_left_shoulder" type="Button" parent="equipment_panel" unique_id=883560048]
+layout_mode = 0
+offset_left = 112.0
+offset_top = 88.0
+offset_right = 176.0
+offset_bottom = 152.0
+
+[node name="slot_right_shoulder" type="Button" parent="equipment_panel" unique_id=1324847694]
+layout_mode = 0
+offset_left = 464.0
+offset_top = 88.0
+offset_right = 528.0
+offset_bottom = 152.0
+
+[node name="slot_left_arm" type="Button" parent="equipment_panel" unique_id=431177937]
+layout_mode = 0
+offset_left = 136.0
+offset_top = 208.0
+offset_right = 200.0
+offset_bottom = 272.0
+
+[node name="slot_right_arm" type="Button" parent="equipment_panel" unique_id=846969672]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 208.0
+offset_right = 504.0
+offset_bottom = 272.0
+
+[node name="slot_left_hand" type="Button" parent="equipment_panel" unique_id=1159273014]
+layout_mode = 0
+offset_left = 128.0
+offset_top = 304.0
+offset_right = 192.0
+offset_bottom = 368.0
+
+[node name="slot_right_hand" type="Button" parent="equipment_panel" unique_id=886336961]
+layout_mode = 0
+offset_left = 448.0
+offset_top = 304.0
+offset_right = 512.0
+offset_bottom = 368.0
+
+[node name="slot_left_weapon" type="Button" parent="equipment_panel" unique_id=846768508]
+layout_mode = 0
+offset_left = 72.0
+offset_top = 376.0
+offset_right = 168.0
+offset_bottom = 472.0
+
+[node name="slot_right_weapon" type="Button" parent="equipment_panel" unique_id=674293865]
+layout_mode = 0
+offset_left = 472.0
+offset_top = 376.0
+offset_right = 568.0
+offset_bottom = 472.0
+
+[node name="slot_left_ring" type="Button" parent="equipment_panel" unique_id=660599252]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 304.0
+offset_right = 112.0
+offset_bottom = 368.0
+
+[node name="slot_right_ring" type="Button" parent="equipment_panel" unique_id=202570581]
+layout_mode = 0
+offset_left = 528.0
+offset_top = 304.0
+offset_right = 592.0
+offset_bottom = 368.0
+
+[node name="slot_cape" type="Button" parent="equipment_panel" unique_id=1048521232]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 280.0
+offset_right = 352.0
+offset_bottom = 344.0
+
+[node name="slot_chest" type="Button" parent="equipment_panel" unique_id=1377097436]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 184.0
+offset_right = 352.0
+offset_bottom = 248.0
+
+[node name="slot_left_thigh" type="Button" parent="equipment_panel" unique_id=1489514375]
+layout_mode = 0
+offset_left = 192.0
+offset_top = 400.0
+offset_right = 256.0
+offset_bottom = 464.0
+
+[node name="slot_right_thigh" type="Button" parent="equipment_panel" unique_id=443220086]
+layout_mode = 0
+offset_left = 384.0
+offset_top = 400.0
+offset_right = 448.0
+offset_bottom = 464.0
+
+[node name="slot_left_calf" type="Button" parent="equipment_panel" unique_id=1260572400]
+layout_mode = 0
+offset_left = 176.0
+offset_top = 496.0
+offset_right = 240.0
+offset_bottom = 560.0
+
+[node name="slot_right_calf" type="Button" parent="equipment_panel" unique_id=1321659137]
+layout_mode = 0
+offset_left = 400.0
+offset_top = 496.0
+offset_right = 464.0
+offset_bottom = 560.0
+
+[node name="slot_left_boot" type="Button" parent="equipment_panel" unique_id=2004045621]
+layout_mode = 0
+offset_left = 152.0
+offset_top = 616.0
+offset_right = 216.0
+offset_bottom = 680.0
+
+[node name="slot_right_boot" type="Button" parent="equipment_panel" unique_id=2143958320]
+layout_mode = 0
+offset_left = 424.0
+offset_top = 616.0
+offset_right = 488.0
+offset_bottom = 680.0
+
+[node name="slot_items" type="NinePatchRect" parent="." unique_id=1670811961]
+visible = false
+z_index = 1
+layout_mode = 0
+offset_left = 640.0
+offset_top = 384.0
+offset_right = 832.0
+offset_bottom = 696.0
+
+[node name="slot_items_list" type="VBoxContainer" parent="slot_items" unique_id=1958824358]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="item_info" type="NinePatchRect" parent="." unique_id=2134426043]
+z_index = 1
+texture_filter = 1
+layout_mode = 0
+offset_left = 640.0
+offset_right = 1024.0
+offset_bottom = 384.0
+
+[node name="info_name" type="Label" parent="item_info" unique_id=224290888]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 320.0
+offset_bottom = 48.0
+
+[node name="info_type" type="Label" parent="item_info" unique_id=1162537745]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 320.0
+offset_bottom = 79.0
+
+[node name="info_weight" type="Label" parent="item_info" unique_id=1571614543]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 88.0
+offset_right = 288.0
+offset_bottom = 128.0
+
+[node name="info_desc" type="Label" parent="item_info" unique_id=1101751086]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 160.0
+offset_right = 320.0
+offset_bottom = 200.0
+
+[node name="types_panel" type="NinePatchRect" parent="." unique_id=223852555]
+z_index = 1
+texture_filter = 1
+layout_mode = 0
+offset_left = 832.0
+offset_top = 384.0
+offset_right = 1024.0
+offset_bottom = 696.0
+
+[node name="types_list" type="VBoxContainer" parent="types_panel" unique_id=177949136]
+layout_mode = 0
+offset_right = 192.0
+offset_bottom = 312.0
+
+[node name="type_all" type="Label" parent="types_panel/types_list" unique_id=967539566]
+layout_mode = 2
+text = "ALL"
+
+[node name="type_weapons" type="Label" parent="types_panel/types_list" unique_id=1381105456]
+layout_mode = 2
+text = "WEAPONS"
+
+[node name="type_armour" type="Label" parent="types_panel/types_list" unique_id=11233822]
+layout_mode = 2
+text = "ARMOUR"
+
+[node name="type_consumables" type="Label" parent="types_panel/types_list" unique_id=366318353]
+layout_mode = 2
+text = "CONSUMEABLES"
+
+[node name="type_materials" type="Label" parent="types_panel/types_list" unique_id=1386653724]
+layout_mode = 2
+text = "MATERIALS"
+
+[node name="type_misc" type="Label" parent="types_panel/types_list" unique_id=909410862]
+layout_mode = 2
+text = "MISC"
+
+[node name="item_list" type="NinePatchRect" parent="." unique_id=2007741044]
+visible = false
+layout_mode = 0
+offset_left = 1024.0
+offset_right = 1664.0
+offset_bottom = 696.0
+
+[node name="item_list_container" type="VBoxContainer" parent="item_list" unique_id=675086469]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0

@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://dc5753t0y3doo"]
+
+[ext_resource type="Texture2D" uid="uid://c2emam4xap1k0" path="res://assets/sprites/dialogue_box.png" id="1_eqmgk"]
+[ext_resource type="Script" uid="uid://bvdsv7p35qmuy" path="res://scenes/gui/dialogue_box.gd" id="1_ir67u"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_6p8fv"]
+font_size = 25
+
+[node name="dialogue_box" type="CanvasLayer" unique_id=1520735425]
+process_mode = 3
+script = ExtResource("1_ir67u")
+
+[node name="NinePatchRect" type="NinePatchRect" parent="." unique_id=19771718]
+texture_filter = 1
+offset_left = 64.0
+offset_top = 640.0
+offset_right = 1856.0
+offset_bottom = 1024.0
+texture = ExtResource("1_eqmgk")
+
+[node name="speaker_label" type="Label" parent="NinePatchRect" unique_id=1441698440]
+texture_filter = 1
+layout_mode = 0
+offset_left = 152.0
+offset_top = 8.0
+offset_right = 464.0
+offset_bottom = 48.0
+text = "Testson McTest"
+label_settings = SubResource("LabelSettings_6p8fv")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="NinePatchRect" unique_id=728120586]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 56.0
+offset_top = 72.0
+offset_right = -56.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="text_label" type="RichTextLabel" parent="NinePatchRect/VBoxContainer" unique_id=72422224]
+texture_filter = 1
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "fgfgfgdf"
+fit_content = true
+
+[node name="choices_container" type="VBoxContainer" parent="NinePatchRect/VBoxContainer" unique_id=674635510]
+visible = false
+texture_filter = 1
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 16

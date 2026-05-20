@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://du85iwr1blo0n"]
+
+[ext_resource type="Script" uid="uid://dpetwhd1phsgp" path="res://scenes/gui/loot_screen.gd" id="1_0atbu"]
+[ext_resource type="Texture2D" uid="uid://dlyc1u41s8t3a" path="res://assets/sprites/loot_screen_1.1.png" id="2_dkpux"]
+
+[node name="loot_screen" type="CanvasLayer" unique_id=2051335193]
+script = ExtResource("1_0atbu")
+
+[node name="fullscreen_background" type="NinePatchRect" parent="." unique_id=2113116448]
+texture_filter = 1
+offset_left = 320.0
+offset_top = 215.0
+offset_right = 1600.0
+offset_bottom = 855.0
+texture = ExtResource("2_dkpux")
+
+[node name="item_grid" type="NinePatchRect" parent="fullscreen_background" unique_id=5072068]
+layout_mode = 0
+offset_right = 816.0
+offset_bottom = 640.0
+
+[node name="container_name" type="Label" parent="fullscreen_background/item_grid" unique_id=471346710]
+layout_mode = 0
+offset_left = 262.0
+offset_top = 56.0
+offset_right = 574.0
+offset_bottom = 80.0
+text = "Test"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="GridContainer" type="GridContainer" parent="fullscreen_background/item_grid" unique_id=444327795]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 105.0
+offset_right = 784.0
+offset_bottom = 585.0
+columns = 6
+
+[node name="item_info" type="NinePatchRect" parent="fullscreen_background" unique_id=2120150138]
+layout_mode = 0
+offset_left = 816.0
+offset_right = 1280.0
+offset_bottom = 640.0
+
+[node name="item_name" type="Label" parent="fullscreen_background/item_info" unique_id=1066056429]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 41.0
+offset_right = 352.0
+offset_bottom = 89.0
+
+[node name="item_type" type="Label" parent="fullscreen_background/item_info" unique_id=724209791]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 105.0
+offset_right = 416.0
+offset_bottom = 153.0
+
+[node name="item_weight" type="Label" parent="fullscreen_background/item_info" unique_id=1913261766]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 393.0
+offset_right = 192.0
+offset_bottom = 466.0
+
+[node name="carry_weight_remaining" type="Label" parent="fullscreen_background/item_info" unique_id=1427889188]
+layout_mode = 0
+offset_left = 224.0
+offset_top = 393.0
+offset_right = 416.0
+offset_bottom = 466.0
+
+[node name="item_desc" type="Label" parent="fullscreen_background/item_info" unique_id=1466818858]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 169.0
+offset_right = 416.0
+offset_bottom = 377.0
+
+[node name="controls_hint" type="Label" parent="fullscreen_background/item_info" unique_id=205134748]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 473.0
+offset_right = 416.0
+offset_bottom = 537.0

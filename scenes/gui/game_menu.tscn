@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://bo82hjwtgf05d"]
+
+[ext_resource type="Script" uid="uid://ciphgh5367r84" path="res://scenes/gui/game_menu.gd" id="1_box50"]
+[ext_resource type="Texture2D" uid="uid://bm8efun1xgjce" path="res://assets/sprites/stone_wall_test.png" id="2_ed8ij"]
+
+[node name="game_menu" type="CanvasLayer" unique_id=1007440292]
+script = ExtResource("1_box50")
+
+[node name="menu_frame" type="NinePatchRect" parent="." unique_id=1169383144]
+texture_filter = 1
+offset_left = 128.0
+offset_top = 128.0
+offset_right = 1792.0
+offset_bottom = 952.0
+texture = ExtResource("2_ed8ij")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="menu_frame" unique_id=1499804165]
+texture_filter = 1
+layout_mode = 0
+offset_right = 1664.0
+offset_bottom = 128.0
+alignment = 1
+
+[node name="tab_character" type="Label" parent="menu_frame/HBoxContainer" unique_id=797190151]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1- Character"
+horizontal_alignment = 1
+
+[node name="tab_inventory" type="Label" parent="menu_frame/HBoxContainer" unique_id=331180949]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "2 -Inventory"
+horizontal_alignment = 1
+
+[node name="tab_journal" type="Label" parent="menu_frame/HBoxContainer" unique_id=92022960]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "3 - Journal"
+horizontal_alignment = 1
+
+[node name="tab_map" type="Label" parent="menu_frame/HBoxContainer" unique_id=2144353574]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "4 - Map"
+horizontal_alignment = 1
+
+[node name="content_area" type="NinePatchRect" parent="menu_frame" unique_id=1890919329]
+layout_mode = 0
+offset_top = 128.0
+offset_right = 1664.0
+offset_bottom = 824.0
