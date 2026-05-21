@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://3cl5q14rrvy2"]
+
+[ext_resource type="Script" uid="uid://dfufkc764tewc" path="res://scenes/gui/journal_screen.gd" id="1_k67uy"]
+
+[node name="Control" type="Control" unique_id=139922821]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_k67uy")
+
+[node name="quest_list_panel" type="NinePatchRect" parent="." unique_id=905953229]
+layout_mode = 0
+offset_right = 640.0
+offset_bottom = 696.0
+
+[node name="quest_list_container" type="VBoxContainer" parent="quest_list_panel" unique_id=1014393105]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 64.0
+offset_right = 576.0
+offset_bottom = 632.0
+
+[node name="quest_desc_panel" type="NinePatchRect" parent="." unique_id=1496401204]
+layout_mode = 0
+offset_left = 640.0
+offset_right = 1664.0
+offset_bottom = 696.0
+
+[node name="quest_title" type="Label" parent="quest_desc_panel" unique_id=353044755]
+layout_mode = 0
+offset_left = 96.0
+offset_top = 32.0
+offset_right = 592.0
+offset_bottom = 128.0
+
+[node name="quest_status" type="Label" parent="quest_desc_panel" unique_id=942166978]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 24.0
+offset_right = 896.0
+offset_bottom = 96.0
+
+[node name="quest_description" type="RichTextLabel" parent="quest_desc_panel" unique_id=1809672695]
+layout_mode = 0
+offset_left = 72.0
+offset_top = 128.0
+offset_right = 928.0
+offset_bottom = 608.0

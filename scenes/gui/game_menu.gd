@@ -9,9 +9,10 @@ extends CanvasLayer
 var tabs: Array = []
 var current_tab: int = 0
 
-# Preloads only char and inv for now.
+# Preloads the menu tabs.
 var character_scene = preload("res://scenes/gui/character_screen.tscn")
 var inventory_scene = preload("res://scenes/gui/inventory_screen.tscn")
+var journal_scene = preload("res://scenes/gui/journal_screen.tscn")
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -43,6 +44,9 @@ func _load_tab_content() -> void:
 			content_area.add_child(screen)
 		GameMenuManager.TAB_INVENTORY:
 			var screen = inventory_scene.instantiate()
+			content_area.add_child(screen)
+		GameMenuManager.TAB_JOURNAL:
+			var screen = journal_scene.instantiate()
 			content_area.add_child(screen)
 		# Placeholder for the other tabs (This is how its done with "match". Fucking python).
 		_:

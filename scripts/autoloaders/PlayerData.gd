@@ -31,6 +31,8 @@ var combat_xp_to_next_level: int = 100
 
 # Skill tree points available to spend on level up
 var unspent_skill_points: int = 0
+# Starting with 3 for a cheeky testing session.
+var unspent_stat_points: int = 3 
 
 # Red (Warrior), Green (Rogue), and Blue (Mage) tree investment
 # These store how many points have been put into each tree
@@ -79,6 +81,32 @@ var gold: int = 0
 # Status can be: "active", "completed", "failed"
 # ============================================================
 var journal: Dictionary = {}
+
+func _ready() -> void:
+	add_quest({
+		"id": "imp_in_attic",
+		"title": "The Imp in the Attic",
+		"status": "active",
+		"description": "Gary the innkeeper has an imp living in his attic and wants it gone. He mentioned it came in through a broken window on the east side of the building. Worth checking there first."
+	})
+	add_quest({
+		"id": "missing_shipment",
+		"title": "The Missing Shipment",
+		"status": "active",
+		"description": "A merchant's supply cart never arrived from Dawnfield. Last seen heading through the Ashwood road. Could be bandits, could be worse."
+	})
+	add_quest({
+		"id": "old_debts",
+		"title": "Old Debts",
+		"status": "completed",
+		"description": "Recovered the stolen ledger for the moneylender. He paid up, though he didn't look happy about it."
+	})
+	add_quest({
+		"id": "rat_problem",
+		"title": "A Rat Problem",
+		"status": "failed",
+		"description": "The baker's cellar was overrun. You took too long — he hired someone else and made his feelings very clear."
+	})
 
 # ============================================================
 # FUNCTIONS - COMBAT XP & LEVELLING
