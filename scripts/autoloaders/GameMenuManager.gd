@@ -4,8 +4,9 @@ var game_menu_scene = preload("res://scenes/gui/game_menu.tscn")
 var game_menu = null
 var is_open: bool = false
 var current_tab: int = 0
-# Remembers what panel we were on in invnetory.
+# Remembers what panel we were on in char and inv.
 var saved_inventory_panel: int = 0
+var saved_character_panel: int = 0
 
 # These constants are only here for readability.
 const TAB_CHARACTER = 0

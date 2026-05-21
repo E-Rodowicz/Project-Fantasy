@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://b5toq0dl7vuby"]
+
+[ext_resource type="Script" uid="uid://dbb85yt5887p5" path="res://scenes/gui/character_screen.gd" id="1_y1ul8"]
+
+[node name="Control" type="Control" unique_id=1925044566]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_y1ul8")
+
+[node name="general_stats_panel" type="NinePatchRect" parent="." unique_id=1994890453]
+layout_mode = 0
+offset_left = 1216.0
+offset_right = 1664.0
+offset_bottom = 696.0
+
+[node name="info_panel" type="NinePatchRect" parent="." unique_id=379601861]
+layout_mode = 0
+offset_left = 960.0
+offset_right = 1216.0
+offset_bottom = 696.0
+
+[node name="combat_tabs" type="NinePatchRect" parent="." unique_id=1226158175]
+layout_mode = 0
+offset_right = 192.0
+offset_bottom = 696.0
+
+[node name="tab_red" type="Label" parent="combat_tabs" unique_id=985856081]
+layout_mode = 0
+offset_right = 192.0
+offset_bottom = 200.0
+text = "Red"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="tab_green" type="Label" parent="combat_tabs" unique_id=742887423]
+layout_mode = 0
+offset_top = 248.0
+offset_right = 192.0
+offset_bottom = 448.0
+text = "Green"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="tab_blue" type="Label" parent="combat_tabs" unique_id=588833804]
+layout_mode = 0
+offset_top = 496.0
+offset_right = 192.0
+offset_bottom = 696.0
+text = "Blue"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="combat_skill_tree" type="NinePatchRect" parent="." unique_id=117308713]
+layout_mode = 0
+offset_left = 192.0
+offset_right = 960.0
+offset_bottom = 696.0

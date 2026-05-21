@@ -9,7 +9,8 @@ extends CanvasLayer
 var tabs: Array = []
 var current_tab: int = 0
 
-# Preloads only loads inv for now.
+# Preloads only char and inv for now.
+var character_scene = preload("res://scenes/gui/character_screen.tscn")
 var inventory_scene = preload("res://scenes/gui/inventory_screen.tscn")
 
 func _ready() -> void:
@@ -37,6 +38,9 @@ func _load_tab_content() -> void:
 		child.queue_free()
 	
 	match current_tab:
+		GameMenuManager.TAB_CHARACTER:
+			var screen = character_scene.instantiate()
+			content_area.add_child(screen)
 		GameMenuManager.TAB_INVENTORY:
 			var screen = inventory_scene.instantiate()
 			content_area.add_child(screen)
