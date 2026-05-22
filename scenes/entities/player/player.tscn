@@ -4,8 +4,19 @@
 [ext_resource type="Script" uid="uid://ijcqoktfhaw3" path="res://scenes/entities/player/player.gd" id="1_bjvvg"]
 [ext_resource type="Texture2D" uid="uid://dahxtat8db0gf" path="res://assets/sprites/arrow_move-Sheet.png" id="2_635qg"]
 [ext_resource type="Texture2D" uid="uid://d17x8jmg61sbm" path="res://assets/sprites/cross_block-Sheet.png" id="3_58kc7"]
+[ext_resource type="Script" uid="uid://bfuu7yn77lq0m" path="res://scenes/entities/player/light_flicker.gd" id="3_bj7e2"]
 [ext_resource type="Texture2D" uid="uid://mimdkakucpd0" path="res://assets/sprites/arrow_interact-Sheet.png" id="4_nh4ur"]
 [ext_resource type="Script" uid="uid://5gfyi46xt05i" path="res://scenes/entities/player/player_camera.gd" id="6_8akj5"]
+
+[sub_resource type="Gradient" id="Gradient_1murt"]
+offsets = PackedFloat32Array(0, 0.012048192, 0.6626506, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.92771083, 0.92771083, 0.92771083, 1, 0.03959745, 0.03959745, 0.03959745, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_bj7e2"]
+gradient = SubResource("Gradient_1murt")
+fill = 1
+fill_from = Vector2(0.49130434, 0.49565217)
+fill_to = Vector2(1, 1)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_635qg"]
 atlas = ExtResource("2_635qg")
@@ -205,6 +216,17 @@ texture = ExtResource("1_1hmtu")
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="player_sprite" unique_id=1957741297]
 remote_path = NodePath("../../player_camera")
+
+[node name="PointLight2D" type="PointLight2D" parent="player_sprite" unique_id=1247808915 groups=["player"]]
+color = Color(1, 0.6811249, 0.3215686, 1)
+energy = 2.0
+shadow_enabled = true
+shadow_filter = 2
+shadow_filter_smooth = 1.0
+texture = SubResource("GradientTexture2D_bj7e2")
+texture_scale = 4.0
+height = 16.0
+script = ExtResource("3_bj7e2")
 
 [node name="player_arrow_sprite" type="AnimatedSprite2D" parent="." unique_id=1976443915]
 z_index = 10
