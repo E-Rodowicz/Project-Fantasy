@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://bm8efun1xgjce" path="res://assets/sprites/stone_wall_test.png" id="2_7k8c1"]
 [ext_resource type="PackedScene" uid="uid://csowg64ha1rbf" path="res://scenes/items/barrel.tscn" id="3_lfyvx"]
 [ext_resource type="PackedScene" uid="uid://273ex68u0f8v" path="res://scenes/entities/npc/npc.tscn" id="4_w2p53"]
+[ext_resource type="PackedScene" uid="uid://b01xmgu1h57gj" path="res://scenes/entities/enemy/enemy_test.tscn" id="5_7xgas"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfyvx"]
 texture = ExtResource("2_7k8c1")
@@ -90,3 +91,6 @@ shadow_filter_smooth = 1.0
 texture = SubResource("GradientTexture2D_w2p53")
 texture_scale = 3.0
 height = 16.0
+
+[node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
+position = Vector2(120, -56)

@@ -206,7 +206,8 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1hmtu"]
 size = Vector2(8, 8)
 
-[node name="player" type="CharacterBody2D" unique_id=988403666]
+[node name="player" type="CharacterBody2D" unique_id=988403666 groups=["player"]]
+collision_layer = 4
 script = ExtResource("1_bjvvg")
 
 [node name="player_sprite" type="Sprite2D" parent="." unique_id=1406068136]
@@ -217,7 +218,7 @@ texture = ExtResource("1_1hmtu")
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="player_sprite" unique_id=1957741297]
 remote_path = NodePath("../../player_camera")
 
-[node name="PointLight2D" type="PointLight2D" parent="player_sprite" unique_id=1247808915 groups=["player"]]
+[node name="PointLight2D" type="PointLight2D" parent="player_sprite" unique_id=1247808915]
 color = Color(1, 0.6811249, 0.3215686, 1)
 energy = 2.0
 shadow_enabled = true
