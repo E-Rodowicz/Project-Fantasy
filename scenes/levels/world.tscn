@@ -93,4 +93,9 @@ texture_scale = 3.0
 height = 16.0
 
 [node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
-position = Vector2(120, -56)
+position = Vector2(72, -40)
+collision_mask = 12
+
+[node name="enemy_test2" parent="." unique_id=1417782019 instance=ExtResource("5_7xgas")]
+position = Vector2(72, -104)
+collision_mask = 12

@@ -267,7 +267,8 @@ func _can_move_to(target_pos: Vector2) -> bool:
 	# you must add them together. So if the value below is 1, it is layer 1. If it is 3, it is 
 	# layers 1 and 2. If it is 5, it is layers 1 and 3, etc. Instead of adding, you can also use the
 	# bitwise values separately: query.collision_mask = 1 | 2 | 4. These are layers 1, 2 and 3.
-	query.collision_mask = 1
+	# Btw, having hardcoded collision mask in this script overrides the inspector collision options.
+	query.collision_mask = 1 | 8
 	# This excludes the player from collision checking himself (Its what get_rid() does). More can
 	# be added, as it is a list [], so if anything else needs to be excluded it can be passed onto
 	# here.
