@@ -22,17 +22,6 @@ func _ready() -> void:
 	# to call when that happens. 
 	vision_area.body_entered.connect(_on_body_entered)
 	vision_area.body_exited.connect(_on_body_exited)
-
-func _physics_process(_delta: float) -> void:
-	# The two if checks are seperate for style points. I don't think
-	# this affects performance as the check runs every frame anyway and
-	# player is not in range, it does not continue into the next if check.
-	if player_in_range and player_ref and not battle_triggered:
-		if _has_line_of_sight(player_ref):
-			# Gathers all combatants before firing the signal.
-			var combatants = _gather_combatants()
-			battle_triggered = true
-			emit_signal("battle_started", combatants)
 			
 func _on_body_entered(body: Node2D) -> void:
 	# If the player body node2d data enters this function, player in range becomes
@@ -40,11 +29,23 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_in_range = true
 		player_ref = body
+		body.player_moved.connect(_on_player_moved)
+		# Also check immediately in case they stepped into LoS.
+		_on_player_moved()
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
+		if body.player_moved.is_connected(_on_player_moved):
+			body.player_moved.disconnect(_on_player_moved)
 		player_in_range = false
 		player_ref = null
+		
+func _on_player_moved() -> void:
+	if player_in_range and player_ref and not battle_triggered:
+		if _has_line_of_sight(player_ref):
+			var combatants = _gather_combatants()
+			battle_triggered = true
+			emit_signal("battle_started", combatants)
 
 # Casts a ray from the enemy position to player/ally position. If the player/ally is not
 # covered by a wall, it sents out a return hit.
@@ -90,4 +91,6 @@ func _gather_combatants() -> Array:
 					to_check.append(body)
 	
 	# Returns complete list to phyiscs process.
+	print("ITS TRUE!")
+	print(combatants)
 	return combatants

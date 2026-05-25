@@ -12,6 +12,8 @@ var pointer_dir: Vector2 = Vector2.ZERO
 var pointer_update_timer: float = 0.0
 # ...this. How many seconds must pass before the pointer (arrow) can update again.
 const POINTER_UPDATE_RATE: float = 0.12  # seconds between pointer updates
+# This will be used for checks against the player, enemy detection and other triggers.
+signal player_moved
 
 # This built-in function does a check every frame (there's 60fps by default, so theres 60 checks per
 # second). Note: Delta is important. Frames might run quicker on some PCs, and delta checks how
@@ -324,6 +326,7 @@ func _move(dir: Vector2):
 	# (new tile, where the body already snapped to). TRANS_SINE applies a curve making movement
 	# smooth - slow at start, fast in middle, slow at end.
 	sprite_node_pos_tween.tween_property($player_sprite, "global_position", global_position, duration).set_trans(Tween.TRANS_SINE)
+	emit_signal("player_moved")
 
 # Checks if what is being pointed at is interactable and returns a bool saying if it is or not. 
 func _has_interactable(pos: Vector2) -> bool:

@@ -35,6 +35,14 @@ fill = 1
 fill_from = Vector2(0.49130434, 0.49565217)
 fill_to = Vector2(1, 1)
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_7xgas"]
+closed = false
+polygon = PackedVector2Array(-120, -120, -184, -120, -184, -88, -200, -88, -200, -40, -184, -40, -184, -24, -168, -24, -168, -24, -152, -24)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_gy5pc"]
+closed = false
+polygon = PackedVector2Array(40, -56, 56, -40, 56, -24, 24, -24, 40, -24, 40, -8, 40, 8, 56, 8, 56, -8, 72, -8, 72, -24, 56, -24, 152, -24, 152, -40, 168, -40, 168, -72, 88, -72, 88, -88)
+
 [node name="world" type="Node2D" unique_id=2073005942]
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=408497630]
@@ -93,9 +101,15 @@ texture_scale = 3.0
 height = 16.0
 
 [node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
-position = Vector2(72, -40)
+position = Vector2(56, -56)
 collision_mask = 12
 
 [node name="enemy_test2" parent="." unique_id=1417782019 instance=ExtResource("5_7xgas")]
 position = Vector2(72, -104)
 collision_mask = 12
+
+[node name="LightOccluder2D2" type="LightOccluder2D" parent="." unique_id=1573540469]
+occluder = SubResource("OccluderPolygon2D_7xgas")
+
+[node name="LightOccluder2D3" type="LightOccluder2D" parent="." unique_id=131261329]
+occluder = SubResource("OccluderPolygon2D_gy5pc")
