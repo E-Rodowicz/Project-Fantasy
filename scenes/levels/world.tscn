@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://csowg64ha1rbf" path="res://scenes/items/barrel.tscn" id="3_lfyvx"]
 [ext_resource type="PackedScene" uid="uid://273ex68u0f8v" path="res://scenes/entities/npc/npc.tscn" id="4_w2p53"]
 [ext_resource type="PackedScene" uid="uid://b01xmgu1h57gj" path="res://scenes/entities/enemy/enemy_test.tscn" id="5_7xgas"]
+[ext_resource type="Resource" uid="uid://c556jdspaucoc" path="res://scripts/combat/golbin.tres" id="6_gy5pc"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfyvx"]
 texture = ExtResource("2_7k8c1")
@@ -101,12 +102,13 @@ texture_scale = 3.0
 height = 16.0
 
 [node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
-position = Vector2(56, -56)
+position = Vector2(72, -120)
 collision_mask = 12
+stats = ExtResource("6_gy5pc")
 
-[node name="enemy_test2" parent="." unique_id=1417782019 instance=ExtResource("5_7xgas")]
-position = Vector2(72, -104)
-collision_mask = 12
+[node name="enemy_test2" parent="." unique_id=984877115 instance=ExtResource("5_7xgas")]
+position = Vector2(56, -56)
+stats = ExtResource("6_gy5pc")
 
 [node name="LightOccluder2D2" type="LightOccluder2D" parent="." unique_id=1573540469]
 occluder = SubResource("OccluderPolygon2D_7xgas")

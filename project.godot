@@ -24,6 +24,7 @@ GameMenuManager="*uid://bwj35yjayeri1"
 DialogueManager="*uid://cmeiioss67qks"
 LootManager="*uid://c6m2vyr2mqcer"
 InteractManager="*uid://ch16rf63rwelf"
+BattleManager="*uid://de01d4j3efl18"
 
 [display]
 

@@ -15,6 +15,8 @@ var battle_triggered: bool = false
 
 @onready var vision_area = $vision_area
 
+@export var stats: CombatantStats
+
 func _ready() -> void:
 	# vision_area.body_entered is a signal that Godot fires automatically
 	# whenever a physics body enters the Area2D, it's built into the
@@ -45,7 +47,7 @@ func _on_player_moved() -> void:
 		if _has_line_of_sight(player_ref):
 			var combatants = _gather_combatants()
 			battle_triggered = true
-			emit_signal("battle_started", combatants)
+			BattleManager.start_battle(combatants)
 
 # Casts a ray from the enemy position to player/ally position. If the player/ally is not
 # covered by a wall, it sents out a return hit.

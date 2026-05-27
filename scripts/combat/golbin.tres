@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CombatantStats" format=3 uid="uid://c556jdspaucoc"]
+
+[ext_resource type="Script" uid="uid://cfuok6rlvd2eh" path="res://scripts/combat/combatant_stats.gd" id="1_y0k34"]
+
+[resource]
+script = ExtResource("1_y0k34")
+character_name = "golbin"
+speed = 7
+metadata/_custom_type_script = "uid://cfuok6rlvd2eh"
