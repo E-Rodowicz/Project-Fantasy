@@ -5,5 +5,4 @@
 [resource]
 script = ExtResource("1_y0k34")
 character_name = "golbin"
-speed = 7
 metadata/_custom_type_script = "uid://cfuok6rlvd2eh"
