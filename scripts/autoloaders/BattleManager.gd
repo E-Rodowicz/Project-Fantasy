@@ -4,6 +4,10 @@ var active: bool = false
 var combatants: Array = []
 var turn_order: TurnOrder = null
 var current_combatant: Node = null
+var player_turn: PlayerBattleTurn = null
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 func start_battle(combatant_list: Array) -> void:
 	if active:
@@ -38,9 +42,22 @@ func _next_turn() -> void:
 		_start_enemy_turn()
 
 func _start_player_turn() -> void:
-	# Player turn logic will go here
-	print("Player turn - awaiting input")
+	var overlay_node = get_tree().current_scene.get_node("combat_overlay")
+	var world_layer = get_tree().current_scene.get_node("TileMapLayer")
+	var overlay = BattleOverlay.new()
+	overlay.setup(overlay_node)
+	
+	player_turn = PlayerBattleTurn.new()
+	player_turn.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(player_turn)
+	player_turn.turn_finished.connect(_on_player_turn_finished)
+	player_turn.start(current_combatant, world_layer, overlay, combatants, 10)
 
+func _on_player_turn_finished() -> void:
+	player_turn.queue_free()
+	player_turn = null
+	end_turn()
+	
 func _start_ally_turn() -> void:
 	# Ally AI will go here
 	print("Ally turn - AI thinking")

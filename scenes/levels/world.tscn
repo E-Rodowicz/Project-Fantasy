@@ -18,31 +18,8 @@ occlusion_layer_0/light_mask = 1
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_lfyvx")
 
-[sub_resource type="Environment" id="Environment_w2p53"]
-glow_intensity = 2.77
-glow_bloom = 0.34
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_w2p53"]
-closed = false
-polygon = PackedVector2Array(40, -56, 24, -56, 24, -72, -8, -72, -8, -88, -120, -88, -120, -88, -120, -72, -152, -72, -152.00002, -57.971954, -152, -8, -136, -8, -136, 24, -120, 24, -120, 72, -72, 72, -72, 88, -40, 88, -40, 72, 24, 72, 40, 56, 24, 40, 40, 40, 40, 56, 88, 56, 40, 56, 40, 40, 40, 40, 56, 56, 120, 56, 120, 40, 168, 40, 168, 24, 200, 24, 216, 8, 216, -40, 232, -56, 232, -72, 216, -72, 216, -88, 200, -88, 200, -104, 184, -104, 184, -120, 168, -120, 168, -136, 152, -136, 104, -136, 104, -152, 24, -152, 24, -136, 8, -136, 8, -120, -72, -120)
-
-[sub_resource type="Gradient" id="Gradient_8akj5"]
-offsets = PackedFloat32Array(0, 0.012048192, 0.6626506, 1)
-colors = PackedColorArray(1, 1, 1, 1, 0.92771083, 0.92771083, 0.92771083, 1, 0.03959745, 0.03959745, 0.03959745, 1, 0, 0, 0, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_w2p53"]
-gradient = SubResource("Gradient_8akj5")
-fill = 1
-fill_from = Vector2(0.49130434, 0.49565217)
-fill_to = Vector2(1, 1)
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_7xgas"]
-closed = false
-polygon = PackedVector2Array(-120, -120, -184, -120, -184, -88, -200, -88, -200, -40, -184, -40, -184, -24, -168, -24, -168, -24, -152, -24)
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_gy5pc"]
-closed = false
-polygon = PackedVector2Array(40, -56, 56, -40, 56, -24, 24, -24, 40, -24, 40, -8, 40, 8, 56, 8, 56, -8, 72, -8, 72, -24, 56, -24, 152, -24, 152, -40, 168, -40, 168, -72, 88, -72, 88, -88)
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_0lift"]
+light_mode = 1
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dp8al"]
 texture = ExtResource("7_0lift")
@@ -211,6 +188,7 @@ texture = ExtResource("7_0lift")
 2:8/0 = 0
 3:8/0 = 0
 4:8/0 = 0
+4:7/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_f1v6p"]
 terrain_set_0/mode = 2
@@ -220,12 +198,44 @@ terrain_set_0/terrain_1/name = "mid_green"
 terrain_set_0/terrain_1/color = Color(0.4980392, 0.6772901, 0.99215686, 1)
 sources/0 = SubResource("TileSetAtlasSource_dp8al")
 
+[sub_resource type="Environment" id="Environment_w2p53"]
+glow_intensity = 2.77
+glow_bloom = 0.34
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_w2p53"]
+closed = false
+polygon = PackedVector2Array(40, -56, 24, -56, 24, -72, -8, -72, -8, -88, -120, -88, -120, -88, -120, -72, -152, -72, -152.00002, -57.971954, -152, -8, -136, -8, -136, 24, -120, 24, -120, 72, -72, 72, -72, 88, -40, 88, -40, 72, 24, 72, 40, 56, 24, 40, 40, 40, 40, 56, 88, 56, 40, 56, 40, 40, 40, 40, 56, 56, 120, 56, 120, 40, 168, 40, 168, 24, 200, 24, 216, 8, 216, -40, 232, -56, 232, -72, 216, -72, 216, -88, 200, -88, 200, -104, 184, -104, 184, -120, 168, -120, 168, -136, 152, -136, 104, -136, 104, -152, 24, -152, 24, -136, 8, -136, 8, -120, -72, -120)
+
+[sub_resource type="Gradient" id="Gradient_8akj5"]
+offsets = PackedFloat32Array(0, 0.012048192, 0.6626506, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.92771083, 0.92771083, 0.92771083, 1, 0.03959745, 0.03959745, 0.03959745, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_w2p53"]
+gradient = SubResource("Gradient_8akj5")
+fill = 1
+fill_from = Vector2(0.49130434, 0.49565217)
+fill_to = Vector2(1, 1)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_7xgas"]
+closed = false
+polygon = PackedVector2Array(-120, -120, -184, -120, -184, -88, -200, -88, -200, -40, -184, -40, -184, -24, -168, -24, -168, -24, -152, -24)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_gy5pc"]
+closed = false
+polygon = PackedVector2Array(40, -56, 56, -40, 56, -24, 24, -24, 40, -24, 40, -8, 40, 8, 56, 8, 56, -8, 72, -8, 72, -24, 56, -24, 152, -24, 152, -40, 168, -40, 168, -72, 88, -72, 88, -88)
+
 [node name="world" type="Node2D" unique_id=2073005942]
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=408497630]
 texture_filter = 1
 tile_map_data = PackedByteArray("AAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAACAAMAAAAAAAAAAAADAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAABAAQAAAAAAAAAAAAAAAQAAAAAAAAAAAD//wQAAAAAAAAAAAD+/wQAAAAAAAAAAAD9/wQAAAAAAAAAAAD9/wUAAAAAAAAAAAD8/wUAAAAAAAAAAAD7/wUAAAAAAAAAAAD7/wQAAAAAAAAAAAD6/wQAAAAAAAAAAAD5/wQAAAAAAAAAAAD4/wQAAAAAAAAAAAD4/wMAAAAAAAAAAAD4/wIAAAAAAAAAAAD4/wEAAAAAAAAAAAD3/wEAAAAAAAAAAAD3/wAAAAAAAAAAAAD3////AAAAAAAAAAD2////AAAAAAAAAAD2//7/AAAAAAAAAAD2//3/AAAAAAAAAAADAAAAAAAAAAAAAAADAP//AAAAAAAAAAAEAP//AAAAAAAAAAAEAP7/AAAAAAAAAAADAP7/AAAAAAAAAAADAP3/AAAAAAAAAAACAP7/AAAAAAAAAAACAP//AAAAAAAAAAABAP7/AAAAAAAAAAACAAAAAAAAAAAAAAACAPz/AAAAAAAAAAABAPz/AAAAAAAAAAABAPv/AAAAAAAAAAAAAPv/AAAAAAAAAAD///v/AAAAAAAAAAD///r/AAAAAAAAAAD+//r/AAAAAAAAAAD9//r/AAAAAAAAAAD8//r/AAAAAAAAAAD7//r/AAAAAAAAAAD6//r/AAAAAAAAAAD5//r/AAAAAAAAAAD4//r/AAAAAAAAAAD4//v/AAAAAAAAAAD3//v/AAAAAAAAAAD2//v/AAAAAAAAAAD2//z/AAAAAAAAAAAFAP7/AAAAAAAAAAAGAP7/AAAAAAAAAAAHAP7/AAAAAAAAAAAIAP7/AAAAAAAAAAAJAP7/AAAAAAAAAAAJAP3/AAAAAAAAAAAKAP3/AAAAAAAAAAAFAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAHAAMAAAAAAAAAAAAHAAIAAAAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAAKAAEAAAAAAAAAAAALAAEAAAAAAAAAAAAMAAEAAAAAAAAAAAANAAAAAAAAAAAAAAANAP//AAAAAAAAAAANAP7/AAAAAAAAAAANAP3/AAAAAAAAAAAOAPz/AAAAAAAAAAAOAPv/AAAAAAAAAAANAPv/AAAAAAAAAAANAPr/AAAAAAAAAAAMAPr/AAAAAAAAAAAKAPz/AAAAAAAAAAAKAPv/AAAAAAAAAAAJAPv/AAAAAAAAAAAIAPv/AAAAAAAAAAAHAPv/AAAAAAAAAAAGAPv/AAAAAAAAAAAFAPv/AAAAAAAAAAAFAPr/AAAAAAAAAAAMAPn/AAAAAAAAAAALAPn/AAAAAAAAAAALAPj/AAAAAAAAAAAKAPj/AAAAAAAAAAAKAPf/AAAAAAAAAAAJAPf/AAAAAAAAAAAIAPf/AAAAAAAAAAAHAPf/AAAAAAAAAAAGAPf/AAAAAAAAAAAGAPb/AAAAAAAAAAAFAPb/AAAAAAAAAAAEAPb/AAAAAAAAAAADAPb/AAAAAAAAAAACAPb/AAAAAAAAAAABAPb/AAAAAAAAAAABAPf/AAAAAAAAAAAAAPf/AAAAAAAAAAAAAPj/AAAAAAAAAAD+//j/AAAAAAAAAAD9//j/AAAAAAAAAAD8//j/AAAAAAAAAAD7//j/AAAAAAAAAAD///j/AAAAAAAAAAD4//j/AAAAAAAAAAD3//j/AAAAAAAAAAD2//j/AAAAAAAAAAD1//j/AAAAAAAAAAD0//j/AAAAAAAAAAD0//n/AAAAAAAAAAD0//r/AAAAAAAAAADz//r/AAAAAAAAAADz//v/AAAAAAAAAADz//z/AAAAAAAAAADz//3/AAAAAAAAAAD0//3/AAAAAAAAAAD0//7/AAAAAAAAAAD1//7/AAAAAAAAAAA=")
 tile_set = SubResource("TileSet_w2p53")
+
+[node name="combat_overlay" type="TileMapLayer" parent="." unique_id=1880013694]
+light_mask = 2
+texture_filter = 1
+material = SubResource("CanvasItemMaterial_0lift")
+tile_set = SubResource("TileSet_f1v6p")
 
 [node name="player" parent="." unique_id=988403666 instance=ExtResource("1_tsias")]
 position = Vector2(-8, -8)
@@ -292,13 +302,3 @@ occluder = SubResource("OccluderPolygon2D_7xgas")
 
 [node name="LightOccluder2D3" type="LightOccluder2D" parent="." unique_id=131261329]
 occluder = SubResource("OccluderPolygon2D_gy5pc")
-
-[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1894447329]
-layer = 5
-follow_viewport_enabled = true
-
-[node name="combat_overlay" type="TileMapLayer" parent="CanvasLayer" unique_id=1880013694]
-light_mask = 2
-z_index = 1
-texture_filter = 1
-tile_set = SubResource("TileSet_f1v6p")

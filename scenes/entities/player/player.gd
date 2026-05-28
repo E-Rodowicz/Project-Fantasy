@@ -26,6 +26,8 @@ signal player_moved
 # 0.008 seconds, but since there are so many frames, it counts down just as quickly as it would
 # with 30fps.
 func _physics_process(delta: float) -> void:
+	if BattleManager.active:
+		return
 	# Checks if shift is pressed or not.
 	if Input.is_action_just_pressed("precision"):
 		precision_mode = not precision_mode
