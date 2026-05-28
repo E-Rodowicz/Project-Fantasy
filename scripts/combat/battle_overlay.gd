@@ -26,50 +26,70 @@ const MID_GREEN_TERRAIN: int = 1
 
 # Build an AStarGrid2D over the reachable region for pathfinding between waypoints
 func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer, blocked_tiles: Array, mp_budget: int) -> Array:
-	var astar := AStarGrid2D.new()
+	var astar := WeightedAStar.new()
 	
-	# Determine the bounds of the region to search with a start grid by using the MP amount.
 	var half_size: int = int(mp_budget / 2) + 10
-	astar.region = Rect2i(
-		from_tile.x - half_size, from_tile.y - half_size,
-		half_size * 2, half_size * 2
-	)
+	var region_origin := Vector2i(from_tile.x - half_size, from_tile.y - half_size)
+	var region_width: int = half_size * 2
 	
-	# Sets astar cell size to match the game.
-	astar.cell_size = Vector2(16, 16)
-	# Stops the touching tips scenario from happening.
-	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	# This is a guess as to how far a tile is from the goal, this guides the search.
-	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
-	# This updates the settings above and builds the grid.
-	astar.update()
-	
-	# Marks walls and blocked tiles as solid. Loops every tile in the region and checks the world
-	# layer. If there's a wall there (!= -1 means a tile exists), it marks that grid point as solid
-	# so paths route around it.
-	for x in range(astar.region.position.x, astar.region.end.x):
-		for y in range(astar.region.position.y, astar.region.end.y):
+	# Add all passable tiles as points
+	for x in range(region_origin.x, region_origin.x + region_width):
+		for y in range(region_origin.y, region_origin.y + region_width):
 			var t := Vector2i(x, y)
 			if world_layer.get_cell_source_id(t) != -1:
-				astar.set_point_solid(t, true)
+				continue
+			if t in blocked_tiles:
+				continue
+			var local := t - region_origin
+			var id: int = local.x * region_width + local.y
+			astar.add_point(id, Vector2(t.x, t.y))
 	
-	# Makes sure combatants are also solid.
-	for t in blocked_tiles:
-		if astar.is_in_boundsv(t):
-			astar.set_point_solid(t, true)
+	# Connect adjacent passable tiles
+	for x in range(region_origin.x, region_origin.x + region_width):
+		for y in range(region_origin.y, region_origin.y + region_width):
+			var t := Vector2i(x, y)
+			if world_layer.get_cell_source_id(t) != -1:
+				continue
+			if t in blocked_tiles:
+				continue
+			var local := t - region_origin
+			var id: int = local.x * region_width + local.y
 			
-	# Diagonal and orthogonal cost.
-	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+			for dx in [-1, 0, 1]:
+				for dy in [-1, 0, 1]:
+					if dx == 0 and dy == 0:
+						continue
+					var n := Vector2i(t.x + dx, t.y + dy)
+					if world_layer.get_cell_source_id(n) != -1:
+						continue
+					if n in blocked_tiles:
+						continue
+					# Touching-tips rule
+					if dx != 0 and dy != 0:
+						var h := Vector2i(t.x + dx, t.y)
+						var v := Vector2i(t.x, t.y + dy)
+						var h_blocked: bool = world_layer.get_cell_source_id(h) != -1 or h in blocked_tiles
+						var v_blocked: bool = world_layer.get_cell_source_id(v) != -1 or v in blocked_tiles
+						if h_blocked and v_blocked:
+							continue
+					var n_local := n - region_origin
+					var n_id: int = n_local.x * region_width + n_local.y
+					astar.connect_points(id, n_id)
 	
-	if not astar.is_in_boundsv(from_tile) or not astar.is_in_boundsv(to_tile):
-		return []
-	# Stops pathing to solid tile.
-	if astar.is_point_solid(to_tile):
+	var from_local := from_tile - region_origin
+	var from_id: int = from_local.x * region_width + from_local.y
+	var to_local := to_tile - region_origin
+	var to_id: int = to_local.x * region_width + to_local.y
+	
+	if not astar.has_point(from_id) or not astar.has_point(to_id):
 		return []
 	
-	# This gets the results of calcualted path and returns them as "path".
-	var path := astar.get_id_path(from_tile, to_tile)
-	return path
+	var path_vectors := astar.get_point_path(from_id, to_id)
+	
+	var result: Array = []
+	for p in path_vectors:
+		result.append(Vector2i(int(p.x), int(p.y)))
+	return result
 	
 func path_mp_cost(path: Array) -> int:
 	var total: int = 0
@@ -122,7 +142,7 @@ func paint_purple(tile: Vector2i) -> void:
 	
 # Calculates all tiles reachable from a starting tile within an MP budget. Returns a Dictionary
 # mapping Vector2i tile -> int cost to reach.
-func calculate_reachable(start_tile: Vector2i, mp_budget: int, world_layer: TileMapLayer) -> Dictionary:
+func calculate_reachable(start_tile: Vector2i, mp_budget: int, world_layer: TileMapLayer, blocked_tiles: Array = []) -> Dictionary:
 	var costs: Dictionary = {start_tile: 0}
 	var frontier: Array = [start_tile]
 	
@@ -147,6 +167,19 @@ func calculate_reachable(start_tile: Vector2i, mp_budget: int, world_layer: Tile
 				# Skips if there's a wall.
 				if world_layer.get_cell_source_id(neighbour) != -1:
 					continue
+					
+				# Combatants block
+				if neighbour in blocked_tiles:
+					continue
+				
+				# Touching-tips rule
+				if dx != 0 and dy != 0:
+					var h_tile := Vector2i(current.x + dx, current.y)
+					var v_tile := Vector2i(current.x, current.y + dy)
+					var h_blocked: bool = world_layer.get_cell_source_id(h_tile) != -1 or h_tile in blocked_tiles
+					var v_blocked: bool = world_layer.get_cell_source_id(v_tile) != -1 or v_tile in blocked_tiles
+					if h_blocked and v_blocked:
+						continue
 				
 				# Skips if already reached at lower cost
 				if costs.has(neighbour) and costs[neighbour] <= new_cost:
