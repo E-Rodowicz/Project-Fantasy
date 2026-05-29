@@ -1,5 +1,5 @@
 extends Node
-class_name PlayerBattleTurn
+class_name CombatantTurn
 
 # Things passed in from BattleManager.
 var player: Node = null
@@ -70,12 +70,15 @@ func _physics_process(delta: float) -> void:
 				# is in the pressed direction relative to the player. If there
 				# is no valid tile that way (e.g. a wall), it stays put.
 				var wanted := player_tile + dir
-				if wanted in attack_range_tiles:
+				# Checks the attack range and if the cursor is on screen.
+				if wanted in attack_range_tiles and _is_tile_on_screen(wanted):
 					cursor_tile = wanted
 					has_target = false
 				cursor_move_timer = CURSOR_MOVE_RATE
 			else:
-				cursor_tile += dir
+				var new_tile := cursor_tile + dir
+				if _is_tile_on_screen(new_tile):
+					cursor_tile = new_tile
 				cursor_move_timer = CURSOR_MOVE_RATE
 			_redraw()
 	
@@ -99,6 +102,61 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_just_pressed("ability_1"):
 			# Pressing 1 again backs out of attack mode.
 			_exit_attack_mode()
+
+func _is_tile_on_screen(tile: Vector2i) -> bool:
+	# Converts the tile to its world position.
+	var world_pos := world_layer.map_to_local(tile)
+	
+	# Get the viewport and camera.
+	var viewport := player.get_viewport()
+	var camera := viewport.get_camera_2d()
+	
+	# Converts world position to screen position. The canvas transform does this. This is a matrix
+	# (another word for transforms) that is interal to Godot, which changes world coords to screen
+	# pixel coords. It accounts for the camera's position, zoom, rotation, everything. So you
+	# multiply it by a world position and get back where that point appears on screen. Don't ask me
+	# about the maths, but basically this is saying: "take this world position, apply the camera's
+	# scroll and zoom to it, and give me back where it appears on screen in pixels." The * is not a
+	# regular multiplication, it is a transfor multiplication. It is a forumla with multiple steps,
+	# (for example, converting fahrenheit to celsius is temp * 9/5 + 32). Its first a conversion
+	# scale, then it applies the offset. This does the same for the 2D coordiantes. As in, that's
+	# what the * does in this case.
+	var screen_pos := viewport.get_canvas_transform() * world_pos
+	
+	# Get the viewport size (Adapts to aspect ratio changes!). This gives the actual screen
+	# dimension in pixels, so it would be Vector2(1920, 1080) for example.
+	var screen_size := viewport.get_visible_rect().size
+	
+	# Add margin so the cursor doesnt go to the pixel edge. The margin is -8 to account for the fact
+	# that the viewport counts from the centre of the tile, which is 8 pixels off. Making the margin
+	# -8 ensures that the max you are able to go out of bounds of the screen is -8 pixels, meaning 
+	# the cursor can go to the very edges of the screen but not past the edges. 
+	var margin := -8.0
+
+	# Screen coords starts at 0,0 in the top left corner. In the most popular resolution, the
+	# bottom right corner of the screen would be 1920,1080. Read on under the returns checks for
+	# more info...
+	return (
+		# "is the tile far enough from the left edge?" If margin is 32, the tile must be at least
+		# 32 pixels from the left.
+		screen_pos.x >= margin
+		#"is the tile far enough from the right edge?" On a 1920-wide screen with margin 32, the
+		# tile must be at pixel 1888 or less.
+		and screen_pos.x <= screen_size.x - margin
+		# Same thing but for the top edge.
+		and screen_pos.y >= margin
+		# And bottom edge.
+		and screen_pos.y <= screen_size.y - margin
+		# Clarifying example if the screen was 1920x1080 and margin 32 (names changed to values):
+		# return (
+		#     screen_pos.x >= 32
+		#     and screen_pos.x <= 1888
+		#     and screen_pos.y >= 32
+		#     and screen_pos.y <= 1048
+		# )
+		# So the current screen (cursor) position for x must be between 32 and 1888, and for y
+		# between 32 and 1048
+	)
 
 # Gives the last waypoint, if nothing there, gives player position. This lets us move from that
 # point.
@@ -199,8 +257,22 @@ func _execute_move() -> void:
 		# grid, they have no float in betweens. So, things the players sees, like animation, can
 		# use floats, but since it is grid based the logic is entirly based on int.
 		player.global_position = world_layer.map_to_local(dest)
-	overlay.clear_all()
-	turn_finished.emit()
+		player_tile = dest
+	
+	# Take away the MP used.
+	mp_budget -= path_cost
+	
+	# Clear the path and waypoints, move is done.
+	waypoints.clear()
+	full_path.clear()
+	path_cost = 0
+	
+	# Reset the cursor to the new position.
+	cursor_tile = player_tile
+	
+	# Recalculate the reachables with the remaining MP amount.
+	_recalculate_reachable()
+	_redraw()
 
 func _recalculate_reachable() -> void:
 	var blocked := _combatant_tiles()
@@ -230,8 +302,10 @@ func _paint_cursor() -> void:
 	# Prevents painting over final waypoint.
 	if not waypoints.is_empty() and cursor_tile == waypoints.back():
 		return
+	if cursor_tile == player_tile:
+		overlay.paint_grey(cursor_tile)
 	# Is Combatant on this tile? PURPLE.
-	if _tile_has_combatant(cursor_tile):
+	elif _tile_has_combatant(cursor_tile):
 		overlay.paint_purple(cursor_tile)
 	# Reachable within budget? YELLOW.
 	elif reachable.has(cursor_tile):
@@ -335,8 +409,9 @@ func _execute_attack() -> void:
 		_exit_attack_mode()
 		return
 	_apply_damage(target, BASIC_ATTACK_DAMAGE)
-	overlay.clear_all()
-	turn_finished.emit()
+	
+	# Goes to move mode.
+	_exit_attack_mode()
 
 # Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
 # enemies track their own HP on their node, so we branch on the group.

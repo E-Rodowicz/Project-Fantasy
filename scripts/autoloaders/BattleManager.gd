@@ -4,7 +4,7 @@ var active: bool = false
 var combatants: Array = []
 var turn_order: TurnOrder = null
 var current_combatant: Node = null
-var player_turn: PlayerBattleTurn = null
+var player_turn: CombatantTurn = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -47,7 +47,7 @@ func _start_player_turn() -> void:
 	var overlay = BattleOverlay.new()
 	overlay.setup(overlay_node)
 	
-	player_turn = PlayerBattleTurn.new()
+	player_turn = CombatantTurn.new()
 	player_turn.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(player_turn)
 	player_turn.turn_finished.connect(_on_player_turn_finished)
