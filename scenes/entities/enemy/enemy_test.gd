@@ -12,6 +12,7 @@ signal battle_started(combatants)
 var player_in_range: bool = false
 var player_ref: Node2D = null
 var battle_triggered: bool = false
+var current_hp: int = 0
 
 @onready var vision_area = $vision_area
 
@@ -24,6 +25,18 @@ func _ready() -> void:
 	# to call when that happens. 
 	vision_area.body_entered.connect(_on_body_entered)
 	vision_area.body_exited.connect(_on_body_exited)
+	current_hp = stats.get_max_hp()
+			
+func take_damage(amount: int) -> void:
+	current_hp = max(0, current_hp - amount)
+	print(name, " took ", amount, " damage. HP now ", current_hp, "/", stats.get_max_hp())
+	if current_hp <= 0:
+		_die()
+
+func _die() -> void:
+	print(name, " has died.")
+	BattleManager.remove_combatant(self)
+	queue_free()
 			
 func _on_body_entered(body: Node2D) -> void:
 	# If the player body node2d data enters this function, player in range becomes

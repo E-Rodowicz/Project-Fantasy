@@ -64,6 +64,12 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 					if dx == 0 and dy == 0:
 						continue
 					var n := Vector2i(t.x + dx, t.y + dy)
+					# Skip neighbours outside the search region, they were never added as points so
+					# connecting to them would crash.
+					if n.x < region_origin.x or n.x >= region_origin.x + region_width:
+						continue
+					if n.y < region_origin.y or n.y >= region_origin.y + region_width:
+						continue
 					if world_layer.get_cell_source_id(n) != -1:
 						continue
 					if n in blocked_tiles:

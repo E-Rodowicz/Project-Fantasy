@@ -65,13 +65,18 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_pressed("ui_left"): dir.x -= 1
 		if Input.is_action_pressed("ui_right"): dir.x += 1
 		if dir != Vector2i.ZERO:
-			cursor_tile += dir
-			cursor_move_timer = CURSOR_MOVE_RATE
-			# Moving the cursor in attack mode unlocks any chosen target so you can
-			# re-aim. This is what makes "E to choose, E again to confirm" work: you
-			# can only confirm by pressing E twice without moving in between.
 			if mode == Mode.ATTACK:
-				has_target = false
+				# In attack mode the cursor snaps to whichever attack tile
+				# is in the pressed direction relative to the player. If there
+				# is no valid tile that way (e.g. a wall), it stays put.
+				var wanted := player_tile + dir
+				if wanted in attack_range_tiles:
+					cursor_tile = wanted
+					has_target = false
+				cursor_move_timer = CURSOR_MOVE_RATE
+			else:
+				cursor_tile += dir
+				cursor_move_timer = CURSOR_MOVE_RATE
 			_redraw()
 	
 	# End turn works from either mode.
@@ -358,25 +363,14 @@ func _combatant_on_tile(tile: Vector2i) -> Node:
 
 # Draws the attack overlay: the whole range in red, the hover/target state on top.
 func _redraw_attack() -> void:
-	# The reachable attack tiles, painted red.
-	for t in attack_range_tiles:
-		overlay.paint_red(t)
 	if has_target:
-		# Locked target waiting for the confirm press.
 		overlay.paint_bright_green(attack_target)
 		return
-	
-	# No target locked yet, show what the cursor is hovering.
-	if cursor_tile in attack_range_tiles:
-		if _tile_has_combatant(cursor_tile):
-			# A valid enemy under the cursor, this is what you can hit.
-			overlay.paint_purple(cursor_tile)
-		else:
-			# In range but empty.
-			overlay.paint_yellow(cursor_tile)
+	# Only the cursor tile is highlighted: purple if an enemy is there, red if empty.
+	if _tile_has_combatant(cursor_tile):
+		overlay.paint_purple(cursor_tile)
 	else:
-		# Cursor wandered out of range.
-		overlay.paint_grey(cursor_tile)
+		overlay.paint_red(cursor_tile)
 
 func end_turn() -> void:
 	overlay.clear_all()
