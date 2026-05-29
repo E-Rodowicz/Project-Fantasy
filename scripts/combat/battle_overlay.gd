@@ -28,11 +28,12 @@ const MID_GREEN_TERRAIN: int = 1
 func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer, blocked_tiles: Array, mp_budget: int) -> Array:
 	var astar := WeightedAStar.new()
 	
+	# Region origin is the top left corner of the region, region width is the size.
 	var half_size: int = int(mp_budget / 2) + 10
 	var region_origin := Vector2i(from_tile.x - half_size, from_tile.y - half_size)
 	var region_width: int = half_size * 2
 	
-	# Add all passable tiles as points
+	# Adds all passable tiles as points by looping every tile in the above region.
 	for x in range(region_origin.x, region_origin.x + region_width):
 		for y in range(region_origin.y, region_origin.y + region_width):
 			var t := Vector2i(x, y)
@@ -41,10 +42,12 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 			if t in blocked_tiles:
 				continue
 			var local := t - region_origin
+			# Gives the tile a unique ID.
 			var id: int = local.x * region_width + local.y
 			astar.add_point(id, Vector2(t.x, t.y))
 	
-	# Connect adjacent passable tiles
+	# Connect adjacent passable tiles to the discovered tiles. We are doing the same loop again
+	# so we can get the IDs of the tiles in the region.
 	for x in range(region_origin.x, region_origin.x + region_width):
 		for y in range(region_origin.y, region_origin.y + region_width):
 			var t := Vector2i(x, y)
@@ -55,6 +58,7 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 			var local := t - region_origin
 			var id: int = local.x * region_width + local.y
 			
+			# Loops through all neighbours of the current tile, ignoring blockers and walls.
 			for dx in [-1, 0, 1]:
 				for dy in [-1, 0, 1]:
 					if dx == 0 and dy == 0:
@@ -64,7 +68,7 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 						continue
 					if n in blocked_tiles:
 						continue
-					# Touching-tips rule
+					# Touching-tips rule.
 					if dx != 0 and dy != 0:
 						var h := Vector2i(t.x + dx, t.y)
 						var v := Vector2i(t.x, t.y + dy)
@@ -72,20 +76,28 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 						var v_blocked: bool = world_layer.get_cell_source_id(v) != -1 or v in blocked_tiles
 						if h_blocked and v_blocked:
 							continue
+					# Finds the ID of the neighbours and connects the two points (connect_points is
+					# bidirectional, so works both ways).
 					var n_local := n - region_origin
 					var n_id: int = n_local.x * region_width + n_local.y
 					astar.connect_points(id, n_id)
 	
+	# Calculates the IDs of the start and end tiles. If either wasn't added to the graph (because 
+	# it's a wall or combatant), there is no possible path.
 	var from_local := from_tile - region_origin
 	var from_id: int = from_local.x * region_width + from_local.y
 	var to_local := to_tile - region_origin
 	var to_id: int = to_local.x * region_width + to_local.y
 	
+
 	if not astar.has_point(from_id) or not astar.has_point(to_id):
 		return []
 	
+	# The actual pathfinding call.
 	var path_vectors := astar.get_point_path(from_id, to_id)
 	
+	# Converts the coordinates back into Vector2i so that they can be used with the rest of the code
+	# (as they rest uses ints, not floats).
 	var result: Array = []
 	for p in path_vectors:
 		result.append(Vector2i(int(p.x), int(p.y)))

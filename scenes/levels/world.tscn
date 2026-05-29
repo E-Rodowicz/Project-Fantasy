@@ -268,7 +268,6 @@ inventory = ["health_potion"]
 position = Vector2(-40, -72)
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=1899601071]
-visible = false
 color = Color(0, 0, 0, 1)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1827157273]

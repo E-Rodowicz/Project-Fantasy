@@ -20,6 +20,22 @@ var full_path: Array = []
 # MP spent by the path so far.
 var path_cost: int = 0
 
+# Attack state. mode switches the turn between planning movement and aiming an attack.
+enum Mode { MOVE, ATTACK }
+var mode: int = Mode.MOVE
+
+# The tiles the current attack can reach (the 8 around the player for a basic attack).
+var attack_range_tiles: Array = []
+# The tile the player has chosen to hit (only meaningful while has_target is true).
+var attack_target: Vector2i = Vector2i.ZERO
+# True once the first E has locked a target, waiting for the second E to confirm.
+var has_target: bool = false
+
+# Basic attack tuning. Range 1 = the 8 surrounding tiles (chebyshev distance 1).
+# PLACEHOLDER damage until the weapon/affinity damage from the combat doc exists.
+const BASIC_ATTACK_RANGE: int = 1
+const BASIC_ATTACK_DAMAGE: int = 5
+
 const CURSOR_MOVE_RATE: float = 0.12
 var cursor_move_timer: float = 0.0
 
@@ -40,6 +56,7 @@ func start(p_player: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p_co
 	_redraw()
 
 func _physics_process(delta: float) -> void:
+	# Cursor movement is the same in both modes.
 	cursor_move_timer -= delta
 	if cursor_move_timer <= 0.0:
 		var dir := Vector2i.ZERO
@@ -50,14 +67,33 @@ func _physics_process(delta: float) -> void:
 		if dir != Vector2i.ZERO:
 			cursor_tile += dir
 			cursor_move_timer = CURSOR_MOVE_RATE
+			# Moving the cursor in attack mode unlocks any chosen target so you can
+			# re-aim. This is what makes "E to choose, E again to confirm" work: you
+			# can only confirm by pressing E twice without moving in between.
+			if mode == Mode.ATTACK:
+				has_target = false
 			_redraw()
 	
-	if Input.is_action_just_pressed("interact"):
-		_on_confirm()
-	if Input.is_action_just_pressed("cancel"):
-		_on_cancel()
+	# End turn works from either mode.
 	if Input.is_action_just_pressed("end_turn"):
 		end_turn()
+		return
+	
+	if mode == Mode.MOVE:
+		if Input.is_action_just_pressed("ability_1"):
+			_enter_attack_mode()
+		elif Input.is_action_just_pressed("interact"):
+			_on_confirm()
+		elif Input.is_action_just_pressed("cancel"):
+			_on_cancel()
+	else: # Mode.ATTACK
+		if Input.is_action_just_pressed("interact"):
+			_on_attack_confirm()
+		elif Input.is_action_just_pressed("cancel"):
+			_on_attack_cancel()
+		elif Input.is_action_just_pressed("ability_1"):
+			# Pressing 1 again backs out of attack mode.
+			_exit_attack_mode()
 
 # Gives the last waypoint, if nothing there, gives player position. This lets us move from that
 # point.
@@ -167,6 +203,9 @@ func _recalculate_reachable() -> void:
 	
 func _redraw() -> void:
 	overlay.clear_all()
+	if mode == Mode.ATTACK:
+		_redraw_attack()
+		return
 	# Paint all reachable tiles soft green.
 	overlay.paint_soft_green(reachable.keys())
 	# Mid green for commited path.
@@ -215,6 +254,129 @@ func _combatant_tiles() -> Array:
 		# Appends the position of the combatant.
 		tiles.append(world_layer.local_to_map(c.global_position))
 	return tiles
+	
+# ============================================================
+# ATTACK
+# ============================================================
+
+# Switch from movement planning into attack aiming.
+func _enter_attack_mode() -> void:
+	# Abandon any half-planned movement; choosing to attack is a different action.
+	waypoints.clear()
+	full_path.clear()
+	path_cost = 0
+	
+	mode = Mode.ATTACK
+	has_target = false
+	_build_attack_range()
+	
+	# Snap the cursor onto the first adjacent enemy if there is one, so the common
+	# "one enemy right next to me" case is just: press 1, E, E.
+	cursor_tile = player_tile
+	for t in attack_range_tiles:
+		if _tile_has_combatant(t):
+			cursor_tile = t
+			break
+	_redraw()
+
+# Back out of attack mode, returning to movement planning.
+func _exit_attack_mode() -> void:
+	mode = Mode.MOVE
+	has_target = false
+	attack_range_tiles.clear()
+	cursor_tile = player_tile
+	_recalculate_reachable()
+	_redraw()
+
+# Build the tiles a basic attack can reach: the 8 around the player. Walls are skipped
+# so the highlight stays clean (you can't melee into a wall).
+func _build_attack_range() -> void:
+	attack_range_tiles.clear()
+	for dx in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+		for dy in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var t := player_tile + Vector2i(dx, dy)
+			if world_layer.get_cell_source_id(t) != -1:
+				continue
+			attack_range_tiles.append(t)
+
+# First E chooses a target, second E (without moving) confirms and resolves it.
+func _on_attack_confirm() -> void:
+	if not has_target:
+		# First press: only valid if the cursor is on an in-range tile that has an enemy.
+		if cursor_tile in attack_range_tiles and _tile_has_combatant(cursor_tile):
+			attack_target = cursor_tile
+			has_target = true
+			_redraw()
+		return
+	# Second press: the cursor is guaranteed to still be on the target (moving clears
+	# has_target), so resolve the attack.
+	_execute_attack()
+
+# Cancel (Q): first unlocks the target; if there's nothing to unlock, leaves attack mode.
+func _on_attack_cancel() -> void:
+	if has_target:
+		has_target = false
+		_redraw()
+	else:
+		_exit_attack_mode()
+
+# Apply the damage and end the turn.
+func _execute_attack() -> void:
+	var target := _combatant_on_tile(attack_target)
+	if target == null:
+		# Safety net; we only ever lock onto occupied tiles, so this shouldn't fire.
+		_exit_attack_mode()
+		return
+	_apply_damage(target, BASIC_ATTACK_DAMAGE)
+	overlay.clear_all()
+	turn_finished.emit()
+
+# Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
+# enemies track their own HP on their node, so we branch on the group.
+func _apply_damage(target: Node, amount: int) -> void:
+	if target.is_in_group("player"):
+		PlayerData.take_damage(amount)
+		print("Player took ", amount, " damage. HP now ", PlayerData.current_hp, "/", PlayerData.max_hp)
+		if PlayerData.current_hp <= 0:
+			BattleManager.remove_combatant(target)
+	else:
+		# The enemy node handles its own HP and death (removing itself from the
+		# battle and freeing itself when it hits 0).
+		target.take_damage(amount)
+
+# Returns the combatant node standing on a tile, or null. Skips the player so you
+# can never target yourself.
+func _combatant_on_tile(tile: Vector2i) -> Node:
+	for c in combatants:
+		if c == player:
+			continue
+		if world_layer.local_to_map(c.global_position) == tile:
+			return c
+	return null
+
+# Draws the attack overlay: the whole range in red, the hover/target state on top.
+func _redraw_attack() -> void:
+	# The reachable attack tiles, painted red.
+	for t in attack_range_tiles:
+		overlay.paint_red(t)
+	if has_target:
+		# Locked target waiting for the confirm press.
+		overlay.paint_bright_green(attack_target)
+		return
+	
+	# No target locked yet, show what the cursor is hovering.
+	if cursor_tile in attack_range_tiles:
+		if _tile_has_combatant(cursor_tile):
+			# A valid enemy under the cursor, this is what you can hit.
+			overlay.paint_purple(cursor_tile)
+		else:
+			# In range but empty.
+			overlay.paint_yellow(cursor_tile)
+	else:
+		# Cursor wandered out of range.
+		overlay.paint_grey(cursor_tile)
 
 func end_turn() -> void:
 	overlay.clear_all()
