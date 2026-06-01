@@ -1,7 +1,7 @@
 extends PointLight2D
 
 @export var flicker_speed: float = 10.0
-@export var scale_variance: float = 0.05
+@export var scale_variance: float = 0.006
 @export var energy_variance: float = 0.1
 
 var base_scale: float

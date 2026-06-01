@@ -5,6 +5,10 @@ var combatants: Array = []
 var turn_order: TurnOrder = null
 var current_combatant: Node = null
 var player_turn: CombatantTurn = null
+# For when battle just ends, so that any key presses arent immidietly used out of battle, like using
+# E to kill something then the game checking for interactables as there is no delay between battle
+# mode and regular mode.
+var just_closed: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -31,6 +35,8 @@ func start_battle(combatant_list: Array) -> void:
 	_next_turn()
 
 func _next_turn() -> void:
+	if not active:
+		return
 	current_combatant = turn_order.get_next_turn()
 	print("It is ", current_combatant.name, "'s turn")
 	
@@ -64,8 +70,19 @@ func _start_ally_turn() -> void:
 	end_turn()
 
 func _start_enemy_turn() -> void:
-	# Enemy AI will go here
-	print("Enemy turn - AI thinking")
+	var overlay_node = get_tree().current_scene.get_node("combat_overlay")
+	var world_layer = get_tree().current_scene.get_node("TileMapLayer")
+	var overlay = BattleOverlay.new()
+	overlay.setup(overlay_node)
+	
+	var enemy_turn := CombatantTurn.new()
+	enemy_turn.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(enemy_turn)
+	enemy_turn.turn_finished.connect(_on_enemy_turn_finished.bind(enemy_turn))
+	enemy_turn.start(current_combatant, world_layer, overlay, combatants, current_combatant.stats.get_movement_points(), true)
+
+func _on_enemy_turn_finished(enemy_turn: CombatantTurn) -> void:
+	enemy_turn.queue_free()
 	end_turn()
 
 func end_turn() -> void:
@@ -99,6 +116,24 @@ func _end_battle_player_dead() -> void:
 
 func _cleanup() -> void:
 	active = false
+	just_closed = true
+	
+	# Clean up active turn node.
+	if player_turn:
+		player_turn.turn_finished.disconnect(_on_player_turn_finished)
+		player_turn.queue_free()
+		player_turn = null
+		
+	# Clears the overlay.
+	var overlay_node = get_tree().current_scene.get_node_or_null("combat_overlay")
+	if overlay_node:
+		overlay_node.clear()
+	
+	# Resets process mode to normal.
+	for c in combatants:
+		if is_instance_valid(c):
+			c.process_mode = Node.PROCESS_MODE_INHERIT
+	
 	get_tree().paused = false
 	combatants.clear()
 	turn_order = null

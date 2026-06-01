@@ -1,11 +1,15 @@
 extends Node
 class_name CombatantTurn
 
-# Things passed in from BattleManager.
-var player: Node = null
+# # Who is being controlled this turn. Replaces the old "player" var.
+var combatant: Node = null
 var world_layer: TileMapLayer = null
 var overlay: BattleOverlay = null
 var combatants: Array = []
+# When true, AI makes decisions. When false, human uses the cursor.
+var ai_controlled: bool = false
+var animating: bool = false
+var attacks_remaining: int = 1
 
 # State of everything.
 var mp_budget: int = 0
@@ -31,7 +35,6 @@ var attack_target: Vector2i = Vector2i.ZERO
 # True once the first E has locked a target, waiting for the second E to confirm.
 var has_target: bool = false
 
-# Basic attack tuning. Range 1 = the 8 surrounding tiles (chebyshev distance 1).
 # PLACEHOLDER damage until the weapon/affinity damage from the combat doc exists.
 const BASIC_ATTACK_RANGE: int = 1
 const BASIC_ATTACK_DAMAGE: int = 5
@@ -42,20 +45,32 @@ var cursor_move_timer: float = 0.0
 # Emitted when the player ends their turn so BattleManager can advance.
 signal turn_finished
 
-func start(p_player: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p_combatants: Array, p_mp: int) -> void:
-	player = p_player
+func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p_combatants: Array, p_mp: int, p_ai: bool = false) -> void:
+	combatant = p_combatant
 	world_layer = p_world
 	overlay = p_overlay
 	combatants = p_combatants
 	mp_budget = p_mp
+	ai_controlled = p_ai
 	
-	player_tile = world_layer.local_to_map(player.global_position)
+	player_tile = world_layer.local_to_map(combatant.global_position)
 	cursor_tile = player_tile
 	
 	_recalculate_reachable()
-	_redraw()
+	
+	if ai_controlled:
+		# When a function uses await, it pauses at that line and lets the rest of the game keep
+		# running. When the thing its waiting for finishes, so in this case the tween, it continues
+		# where it left of.
+		await _run_ai()
+	else:
+		_redraw()
 
 func _physics_process(delta: float) -> void:
+	if ai_controlled:
+		return
+	if animating:
+		return
 	# Cursor movement is the same in both modes.
 	cursor_move_timer -= delta
 	if cursor_move_timer <= 0.0:
@@ -108,8 +123,7 @@ func _is_tile_on_screen(tile: Vector2i) -> bool:
 	var world_pos := world_layer.map_to_local(tile)
 	
 	# Get the viewport and camera.
-	var viewport := player.get_viewport()
-	var camera := viewport.get_camera_2d()
+	var viewport := combatant.get_viewport()
 	
 	# Converts world position to screen position. The canvas transform does this. This is a matrix
 	# (another word for transforms) that is interal to Godot, which changes world coords to screen
@@ -172,7 +186,7 @@ func _remaining_mp() -> int:
 func _on_confirm() -> void:
 	# If the cursor is on the final waypoint, execute move.
 	if not waypoints.is_empty() and cursor_tile == waypoints.back():
-		_execute_move()
+		await _execute_move()
 		return
 		
 	# If that is not the case, tried to add a new waypoint where the cursor is.
@@ -256,7 +270,11 @@ func _execute_move() -> void:
 		# world position as pixels can be fractional, while Vector2i is an in because tiles are a
 		# grid, they have no float in betweens. So, things the players sees, like animation, can
 		# use floats, but since it is grid based the logic is entirly based on int.
-		player.global_position = world_layer.map_to_local(dest)
+		# Above is a left over from when I used map_to_local as I was bascially teleporting the
+		# combatants.
+		animating = true
+		await _animate_movement(full_path)
+		animating = false
 		player_tile = dest
 	
 	# Take away the MP used.
@@ -279,6 +297,8 @@ func _recalculate_reachable() -> void:
 	reachable = overlay.calculate_reachable(_path_origin(), _remaining_mp(), world_layer, blocked)
 	
 func _redraw() -> void:
+	if not BattleManager.active:
+		return
 	overlay.clear_all()
 	if mode == Mode.ATTACK:
 		_redraw_attack()
@@ -319,7 +339,7 @@ func _paint_cursor() -> void:
 
 func _tile_has_combatant(tile: Vector2i) -> bool:
 	for c in combatants:
-		if c == player:
+		if c == combatant:
 			continue
 		if world_layer.local_to_map(c.global_position) == tile:
 			return true
@@ -328,7 +348,7 @@ func _tile_has_combatant(tile: Vector2i) -> bool:
 func _combatant_tiles() -> Array:
 	var tiles: Array = []
 	for c in combatants:
-		if c == player:
+		if c == combatant:
 			continue
 		# Appends the position of the combatant.
 		tiles.append(world_layer.local_to_map(c.global_position))
@@ -340,6 +360,8 @@ func _combatant_tiles() -> Array:
 
 # Switch from movement planning into attack aiming.
 func _enter_attack_mode() -> void:
+	if attacks_remaining <= 0:
+		return
 	# Abandon any half-planned movement; choosing to attack is a different action.
 	waypoints.clear()
 	full_path.clear()
@@ -409,7 +431,7 @@ func _execute_attack() -> void:
 		_exit_attack_mode()
 		return
 	_apply_damage(target, BASIC_ATTACK_DAMAGE)
-	
+	attacks_remaining -= 1
 	# Goes to move mode.
 	_exit_attack_mode()
 
@@ -430,7 +452,7 @@ func _apply_damage(target: Node, amount: int) -> void:
 # can never target yourself.
 func _combatant_on_tile(tile: Vector2i) -> Node:
 	for c in combatants:
-		if c == player:
+		if c == combatant:
 			continue
 		if world_layer.local_to_map(c.global_position) == tile:
 			return c
@@ -450,3 +472,126 @@ func _redraw_attack() -> void:
 func end_turn() -> void:
 	overlay.clear_all()
 	turn_finished.emit()
+	
+## AI LOGIC ##
+func _run_ai() -> void:
+	var target := _find_nearest_target()
+	if target == null:
+		turn_finished.emit()
+		return
+		
+	var target_tile := world_layer.local_to_map(target.global_position)
+	
+	# If someone is adjescent, attack and end turn.
+	if _is_adjacent(player_tile, target_tile):
+		if attacks_remaining > 0:
+			_apply_damage(target, BASIC_ATTACK_DAMAGE)
+			attacks_remaining -= 1
+		turn_finished.emit()
+		return
+		
+	# Find the best tile to move to.
+	var destination := _find_best_move(target_tile)
+	
+	if destination != player_tile:
+		var blocked := _combatant_tiles()
+		var path := overlay.find_path(player_tile, destination, world_layer, blocked, mp_budget)
+		# For now it just teleports to the destination. Later we can use the path var above to add
+		# animation.
+		await _animate_movement(path)
+		player_tile = destination
+		# This takes away the cost of the move to that tile from the mp_budget. "reachable" checks
+		# the cost ad "destination" is the tile it uses to calculate that cost.
+		mp_budget -= reachable[destination]
+		
+	# After moving, it checks if target is adjacent and attacks.
+	if _is_adjacent(player_tile, target_tile) and attacks_remaining > 0:
+		_apply_damage(target, BASIC_ATTACK_DAMAGE)
+		attacks_remaining -= 1
+	
+	turn_finished.emit()
+	
+func _find_nearest_target() -> Node:
+	var best_target: Node = null
+	var best_distance: float = 999999.0
+	
+	for c in combatants:
+		if c == combatant:
+			continue
+		# Melee behaviour targets players and allies.
+		if c.is_in_group("player") or c.is_in_group("ally"):
+			var c_tile := world_layer.local_to_map(c.global_position)
+			var dist := _tile_distance(player_tile, c_tile)
+			if dist < best_distance:
+				best_distance = dist
+				best_target = c
+				
+	return best_target
+	
+func _find_best_move(target_tile: Vector2i) -> Vector2i:
+	# First it tries to reach a tile adjacent to the target.
+	var adjacent := _get_adjacent_tiles(target_tile)
+	var best_tile: Vector2i = player_tile
+	var best_cost: int = 999999
+	
+	for tile in adjacent:
+		if reachable.has(tile) and reachable[tile] < best_cost:
+			best_tile = tile
+			best_cost = reachable[tile]
+			
+		if best_tile != player_tile:
+			return best_tile
+			
+	# If ye can't reach the target, finds a real path using a huge amount of fake MP to get the
+	# full route around the walls/obsticles.
+	var blocked := _combatant_tiles()
+	blocked.erase(target_tile)
+	var search_budget: int = int(_tile_distance(player_tile, target_tile))
+	var path := overlay.find_path(player_tile, target_tile, world_layer, blocked, search_budget)
+				
+	if path.is_empty():
+		return player_tile
+		
+	# Walks along the path as far as real MP allows.
+	var furthest: Vector2i = player_tile
+	for tile in path:
+		if reachable.has(tile):
+			furthest = tile
+			
+	return furthest
+
+func _get_adjacent_tiles(tile: Vector2i) -> Array:
+	var tiles: Array = []
+	for dx in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+		for dy in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var t := tile + Vector2i(dx, dy)
+			if world_layer.get_cell_source_id(t) != -1:
+				continue
+			tiles.append(t)
+	return tiles
+	
+func _is_adjacent(from: Vector2i, to: Vector2i) -> bool:
+	return from != to and abs(from.x - to.x) <= BASIC_ATTACK_RANGE and abs(from.y - to.y) <= BASIC_ATTACK_RANGE
+	
+func _tile_distance(a: Vector2i, b: Vector2i) -> float:
+	var dx: float = abs(a.x - b.x)
+	var dy: float = abs(a.y - b.y)
+	var mn: float = min(dx, dy)
+	var mx: float = max(dx, dy)
+	return mn * 3.0 + (mx - mn) * 2.0
+
+func _animate_movement(path: Array) -> void:
+	# Create a tween for the combatant.
+	var tween := combatant.create_tween()
+	
+	# For each tile in the path (Skipping the first (0) as that's where we start).
+	for i in range(1, path.size()):
+		var world_pos := world_layer.map_to_local(path[i])
+		# This bascially means move from your global position to world_pos (next part of path) in
+		# 0.07 seconds.
+		tween.tween_property(combatant, "global_position", world_pos, 0.1)
+	
+	# Wait for the tween to finish before continuing.
+	await tween.finished

@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://b01xmgu1h57gj" path="res://scenes/entities/enemy/enemy_test.tscn" id="5_7xgas"]
 [ext_resource type="Resource" uid="uid://c556jdspaucoc" path="res://scripts/combat/golbin.tres" id="6_gy5pc"]
 [ext_resource type="Texture2D" uid="uid://g5y5qjk8hbeo" path="res://assets/sprites/combat_overlay.png" id="7_0lift"]
+[ext_resource type="Script" uid="uid://bfuu7yn77lq0m" path="res://scenes/entities/player/light_flicker.gd" id="8_dp8al"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfyvx"]
 texture = ExtResource("2_7k8c1")
@@ -199,22 +200,13 @@ terrain_set_0/terrain_1/color = Color(0.4980392, 0.6772901, 0.99215686, 1)
 sources/0 = SubResource("TileSetAtlasSource_dp8al")
 
 [sub_resource type="Environment" id="Environment_w2p53"]
+glow_enabled = true
 glow_intensity = 2.77
 glow_bloom = 0.34
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_w2p53"]
 closed = false
 polygon = PackedVector2Array(40, -56, 24, -56, 24, -72, -8, -72, -8, -88, -120, -88, -120, -88, -120, -72, -152, -72, -152.00002, -57.971954, -152, -8, -136, -8, -136, 24, -120, 24, -120, 72, -72, 72, -72, 88, -40, 88, -40, 72, 24, 72, 40, 56, 24, 40, 40, 40, 40, 56, 88, 56, 40, 56, 40, 40, 40, 40, 56, 56, 120, 56, 120, 40, 168, 40, 168, 24, 200, 24, 216, 8, 216, -40, 232, -56, 232, -72, 216, -72, 216, -88, 200, -88, 200, -104, 184, -104, 184, -120, 168, -120, 168, -136, 152, -136, 104, -136, 104, -152, 24, -152, 24, -136, 8, -136, 8, -120, -72, -120)
-
-[sub_resource type="Gradient" id="Gradient_8akj5"]
-offsets = PackedFloat32Array(0, 0.012048192, 0.6626506, 1)
-colors = PackedColorArray(1, 1, 1, 1, 0.92771083, 0.92771083, 0.92771083, 1, 0.03959745, 0.03959745, 0.03959745, 1, 0, 0, 0, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_w2p53"]
-gradient = SubResource("Gradient_8akj5")
-fill = 1
-fill_from = Vector2(0.49130434, 0.49565217)
-fill_to = Vector2(1, 1)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_7xgas"]
 closed = false
@@ -223,6 +215,18 @@ polygon = PackedVector2Array(-120, -120, -184, -120, -184, -88, -200, -88, -200,
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_gy5pc"]
 closed = false
 polygon = PackedVector2Array(40, -56, 56, -40, 56, -24, 24, -24, 40, -24, 40, -8, 40, 8, 56, 8, 56, -8, 72, -8, 72, -24, 56, -24, 152, -24, 152, -40, 168, -40, 168, -72, 88, -72, 88, -88)
+
+[sub_resource type="Gradient" id="Gradient_1murt"]
+offsets = PackedFloat32Array(0, 0.012048192, 0.6626506, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.92771083, 0.92771083, 0.92771083, 1, 0.03959745, 0.03959745, 0.03959745, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_f1v6p"]
+gradient = SubResource("Gradient_1murt")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 1)
 
 [node name="world" type="Node2D" unique_id=2073005942]
 
@@ -276,17 +280,6 @@ environment = SubResource("Environment_w2p53")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1892095172]
 occluder = SubResource("OccluderPolygon2D_w2p53")
 
-[node name="PointLight2D" type="PointLight2D" parent="." unique_id=241933570]
-position = Vector2(104, -104)
-color = Color(1, 0.83429265, 0.51972955, 1)
-energy = 2.0
-shadow_enabled = true
-shadow_filter = 2
-shadow_filter_smooth = 1.0
-texture = SubResource("GradientTexture2D_w2p53")
-texture_scale = 3.0
-height = 16.0
-
 [node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
 position = Vector2(72, -120)
 collision_mask = 12
@@ -301,3 +294,14 @@ occluder = SubResource("OccluderPolygon2D_7xgas")
 
 [node name="LightOccluder2D3" type="LightOccluder2D" parent="." unique_id=131261329]
 occluder = SubResource("OccluderPolygon2D_gy5pc")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=246527503]
+position = Vector2(152, -104)
+color = Color(1, 0.6811249, 0.3215686, 1)
+energy = 2.0
+shadow_enabled = true
+shadow_filter = 2
+texture = SubResource("GradientTexture2D_f1v6p")
+texture_scale = 0.4
+height = 16.0
+script = ExtResource("8_dp8al")

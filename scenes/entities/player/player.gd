@@ -67,6 +67,9 @@ func _handle_quick_interact():
 	if LootManager.just_closed:
 		LootManager.just_closed = false
 		return
+	if BattleManager.just_closed:
+		BattleManager.just_closed = false
+		return
 	if not Input.is_action_just_pressed("interact"):
 		return
 	
