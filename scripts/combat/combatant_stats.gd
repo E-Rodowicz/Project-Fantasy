@@ -31,6 +31,10 @@ class_name CombatantStats
 @export_group("Behaviour")
 @export_enum("melee", "ranged", "caster", "support") var behaviour: String = "melee"
 
+@export_group("Combat")
+@export var base_damage_min: int = 3
+@export var base_damage_max: int = 5
+
 # Derived stats
 func get_max_hp() -> int:
 	if override_hp:

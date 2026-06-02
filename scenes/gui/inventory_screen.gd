@@ -51,9 +51,6 @@ var current_list_items: Array = []
 var selected_slot_item_index: int = 0
 var selected_list_item_index: int = 0
 
-# Equipped items. Stores item by slot name.
-var equipped_items: Dictionary = {}
-
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
@@ -313,24 +310,24 @@ func _equip_item() -> void:
 	var item: Dictionary = current_slot_items[selected_slot_item_index]
 	
 	# If item is already equipped in THIS slot, unequips it.
-	if equipped_items.get(slot_name) == item:
+	if PlayerData.equipped_items.get(slot_name) == item:
 		item["equipped"] = false
-		equipped_items.erase(slot_name)
+		PlayerData.equipped_items.erase(slot_name)
 	else:
 		# Unequips from any slot it might already be in.
-		for s: String in equipped_items.keys():
-			if equipped_items[s] == item:
-				equipped_items[s]["equipped"] = false
-				equipped_items.erase(s)
+		for s: String in PlayerData.equipped_items.keys():
+			if PlayerData.equipped_items[s] == item:
+				PlayerData.equipped_items[s]["equipped"] = false
+				PlayerData.equipped_items.erase(s)
 				break
 		
 		# Unequips whatever is currently in the target slot.
-		if equipped_items.has(slot_name):
-			equipped_items[slot_name]["equipped"] = false
+		if PlayerData.equipped_items.has(slot_name):
+			PlayerData.equipped_items[slot_name]["equipped"] = false
 		
 		# Equips to a new slot.
 		item["equipped"] = true
-		equipped_items[slot_name] = item
+		PlayerData.equipped_items[slot_name] = item
 	
 	_update_slot_items_list()
 	_enter_equipment_active(true)

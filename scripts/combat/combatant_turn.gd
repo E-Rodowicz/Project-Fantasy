@@ -9,7 +9,10 @@ var combatants: Array = []
 # When true, AI makes decisions. When false, human uses the cursor.
 var ai_controlled: bool = false
 var animating: bool = false
-var attacks_remaining: int = 1
+
+var bp_remaining: int = 0
+var ap_remaining: int = 0
+var is_offhand_attack: bool = false
 
 # State of everything.
 var mp_budget: int = 0
@@ -35,10 +38,6 @@ var attack_target: Vector2i = Vector2i.ZERO
 # True once the first E has locked a target, waiting for the second E to confirm.
 var has_target: bool = false
 
-# PLACEHOLDER damage until the weapon/affinity damage from the combat doc exists.
-const BASIC_ATTACK_RANGE: int = 1
-const BASIC_ATTACK_DAMAGE: int = 5
-
 const CURSOR_MOVE_RATE: float = 0.12
 var cursor_move_timer: float = 0.0
 
@@ -52,6 +51,16 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 	combatants = p_combatants
 	mp_budget = p_mp
 	ai_controlled = p_ai
+	
+	if combatant.is_in_group("player"):
+		bp_remaining = PlayerData.bp_max
+		ap_remaining = PlayerData.ap_max
+	else:
+		bp_remaining = 1
+		ap_remaining = 0
+	
+	if combatant.is_in_group("player"):
+		CombatLog.add(combatant.name + "'s turn. (" + str(bp_remaining) + " BP, " + str(ap_remaining) + " AP)")
 	
 	player_tile = world_layer.local_to_map(combatant.global_position)
 	cursor_tile = player_tile
@@ -117,6 +126,15 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_just_pressed("ability_1"):
 			# Pressing 1 again backs out of attack mode.
 			_exit_attack_mode()
+
+func _get_attack_range() -> int:
+	if combatant.is_in_group("player"):
+		var weapon: Dictionary = PlayerData.get_equipped_weapon()
+		if weapon.is_empty():
+			return 1
+		return weapon.get("weapon_range", 1)
+	else:
+		return 1
 
 func _is_tile_on_screen(tile: Vector2i) -> bool:
 	# Converts the tile to its world position.
@@ -362,7 +380,7 @@ func _combatant_tiles() -> Array:
 
 # Switch from movement planning into attack aiming.
 func _enter_attack_mode() -> void:
-	if attacks_remaining <= 0:
+	if bp_remaining <= 0:
 		return
 	# Abandon any half-planned movement; choosing to attack is a different action.
 	waypoints.clear()
@@ -395,8 +413,9 @@ func _exit_attack_mode() -> void:
 # so the highlight stays clean (you can't melee into a wall).
 func _build_attack_range() -> void:
 	attack_range_tiles.clear()
-	for dx in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
-		for dy in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+	var attack_range: int = _get_attack_range()
+	for dx in range(-attack_range, attack_range + 1):
+		for dy in range(-attack_range, attack_range + 1):
 			if dx == 0 and dy == 0:
 				continue
 			var t := player_tile + Vector2i(dx, dy)
@@ -429,13 +448,64 @@ func _on_attack_cancel() -> void:
 func _execute_attack() -> void:
 	var target := _combatant_on_tile(attack_target)
 	if target == null:
-		# Safety net; we only ever lock onto occupied tiles, so this shouldn't fire.
 		_exit_attack_mode()
 		return
-	_apply_damage(target, BASIC_ATTACK_DAMAGE)
-	attacks_remaining -= 1
-	# Goes to move mode.
+	
+	# Main hand attack.
+	_try_attack(target)
+	
+	# Off-hand attack if dual wielding.
+	if combatant.is_in_group("player") and PlayerData.is_dual_wielding():
+		is_offhand_attack = true
+		_try_attack(target)
+		is_offhand_attack = false
+	
+	bp_remaining -= 1
 	_exit_attack_mode()
+
+func _roll_damage() -> int:
+	if combatant.is_in_group("player"):
+		var weapon: Dictionary = {}
+		if is_offhand_attack:
+			weapon = PlayerData.get_offhand_weapon()
+		else:
+			weapon = PlayerData.get_equipped_weapon()
+		if weapon.is_empty():
+			return 1
+		var result: Dictionary = ItemDB.calculate_damage(weapon, PlayerData.get_stats_dict())
+		# Randi range is a builtin that gives back a random int between two values.
+		var damage: int = randi_range(result["min"], result["max"])
+		# Second attack of dual wield does 50% damage.
+		if is_offhand_attack:
+			damage = roundi(damage * 0.5)
+		return damage
+	else:
+		return randi_range(combatant.stats.base_damage_min, combatant.stats.base_damage_max)
+
+func _try_attack(target: Node) -> void:
+	var dodge_chance: float = 0.0
+	if target.is_in_group("player"):
+		dodge_chance = 0.05 * PlayerData.dexterity
+	else:
+		dodge_chance = target.stats.get_dodge_chance()
+	
+	var hit_roll: float = randf()
+	if hit_roll < dodge_chance:
+		CombatLog.add(combatant.name + " attacks " + target.name + " but misses!")
+		return
+	
+	# Shield block check (only if target is the player).
+	if target.is_in_group("player"):
+		var shield: Dictionary = PlayerData.get_equipped_shield()
+		if not shield.is_empty():
+			var block_roll: float = randf()
+			if block_roll < shield.get("block_chance", 0.0):
+				CombatLog.add(target.name + " blocks " + combatant.name + "'s attack!")
+				return
+	
+	# Damage.
+	var damage: int = _roll_damage()
+	_apply_damage(target, damage)
 
 # Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
 # enemies track their own HP on their node, so we branch on the group.
@@ -487,9 +557,9 @@ func _run_ai() -> void:
 	
 	# If someone is adjescent, attack and end turn.
 	if _is_adjacent(player_tile, target_tile):
-		if attacks_remaining > 0:
-			_apply_damage(target, BASIC_ATTACK_DAMAGE)
-			attacks_remaining -= 1
+		if bp_remaining > 0:
+			_try_attack(target)
+			bp_remaining -= 1
 		turn_finished.emit()
 		return
 		
@@ -514,9 +584,9 @@ func _run_ai() -> void:
 		CombatLog.add(combatant.name + " moves. (" + str(move_cost) + " MP)")
 		
 	# After moving, it checks if target is adjacent and attacks.
-	if _is_adjacent(player_tile, target_tile) and attacks_remaining > 0:
-		_apply_damage(target, BASIC_ATTACK_DAMAGE)
-		attacks_remaining -= 1
+	if _is_adjacent(player_tile, target_tile) and bp_remaining > 0:
+		_try_attack(target)
+		bp_remaining -= 1
 	
 	turn_finished.emit()
 	
@@ -571,8 +641,9 @@ func _find_best_move(target_tile: Vector2i) -> Vector2i:
 
 func _get_adjacent_tiles(tile: Vector2i) -> Array:
 	var tiles: Array = []
-	for dx in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
-		for dy in range(-BASIC_ATTACK_RANGE, BASIC_ATTACK_RANGE + 1):
+	var attack_range: int = _get_attack_range()
+	for dx in range(-attack_range, attack_range + 1):
+		for dy in range(-attack_range, attack_range + 1):
 			if dx == 0 and dy == 0:
 				continue
 			var t := tile + Vector2i(dx, dy)
@@ -582,7 +653,8 @@ func _get_adjacent_tiles(tile: Vector2i) -> Array:
 	return tiles
 	
 func _is_adjacent(from: Vector2i, to: Vector2i) -> bool:
-	return from != to and abs(from.x - to.x) <= BASIC_ATTACK_RANGE and abs(from.y - to.y) <= BASIC_ATTACK_RANGE
+	var attack_range: int = _get_attack_range()
+	return from != to and abs(from.x - to.x) <= attack_range and abs(from.y - to.y) <= attack_range
 	
 func _tile_distance(a: Vector2i, b: Vector2i) -> float:
 	var dx: float = abs(a.x - b.x)
@@ -592,7 +664,7 @@ func _tile_distance(a: Vector2i, b: Vector2i) -> float:
 	return mn * 3.0 + (mx - mn) * 2.0
 
 func _animate_movement(path: Array) -> void:
-	# Create a tween for the combatant.
+	# Creates a tween for the combatant.
 	var tween := combatant.create_tween()
 	
 	# For each tile in the path (Skipping the first (0) as that's where we start).

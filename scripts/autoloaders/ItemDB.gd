@@ -1,46 +1,75 @@
 extends Node
 
+const AFFINITY_MULTIPLIERS: Dictionary = {
+	"D": 0.01,
+	"C": 0.025,
+	"B": 0.05,
+	"A": 0.075,
+	"S": 0.15,
+	"U": 0.30,
+}
+
 var items: Dictionary = {
 	# ============================================================
 	# WEAPONS
 	# slot: "weapon" fits either weapon slot
 	# ============================================================
-	"iron_sword": {
-		"id": "iron_sword",
-		"name": "Iron Sword",
-		"type": "weapon",
-		"slot": "weapon",
-		"weight": 3.5,
-		"value": 50,
-		"desc": "Good old iron sword."
+"iron_sword": {
+	"id": "iron_sword",
+	"name": "Iron Sword",
+	"type": "weapon",
+	"slot": "weapon",
+	"weight": 3.5,
+	"value": 50,
+	"desc": "Good old iron sword.",
+	"base_damage_min": 8,
+	"base_damage_max": 10,
+	"affinity": {},
+	"weapon_range": 1,
+	"handed": "one",
+	"ranged": false,
+},
+"iron_dagger": {
+	"id": "iron_dagger",
+	"name": "Iron Dagger",
+	"type": "weapon",
+	"slot": "weapon",
+	"weight": 1.0,
+	"value": 20,
+	"desc": "Small and fast. Good for a quick stab.",
+	"base_damage_min": 4,
+	"base_damage_max": 6,
+	"affinity": {"dexterity": "C"},
+	"weapon_range": 1,
+	"handed": "one",
+	"ranged": false,
+},
+"wooden_staff": {
+	"id": "wooden_staff",
+	"name": "Wooden Staff",
+	"type": "weapon",
+	"slot": "weapon",
+	"weight": 2.5,
+	"value": 30,
+	"desc": "A sturdy walking stick that doubles as a weapon.",
+	"base_damage_min": 6,
+	"base_damage_max": 8,
+	"affinity": {},
+	"weapon_range": 1,
+	"handed": "two",
+	"ranged": false,
 	},
-	"iron_dagger": {
-		"id": "iron_dagger",
-		"name": "Iron Dagger",
-		"type": "weapon",
-		"slot": "weapon",
-		"weight": 1.0,
-		"value": 20,
-		"desc": "Small and fast. Good for a quick stab."
-	},
-	"wooden_staff": {
-		"id": "wooden_staff",
-		"name": "Wooden Staff",
-		"type": "weapon",
-		"slot": "weapon",
-		"weight": 2.5,
-		"value": 30,
-		"desc": "A sturdy walking stick that doubles as a weapon."
-	},
-	"iron_shield": {
-		"id": "iron_shield",
-		"name": "Iron Shield",
-		"type": "weapon",
-		"slot": "weapon",
-		"weight": 5.0,
-		"value": 40,
-		"desc": "Heavy but reliable. Fits either hand."
-	},
+"iron_shield": {
+	"id": "iron_shield",
+	"name": "Iron Shield",
+	"type": "shield",
+	"slot": "weapon",
+	"weight": 5.0,
+	"value": 40,
+	"desc": "Heavy but reliable. Fits either hand.",
+	"armour": 3,
+	"block_chance": 0.15,
+},
 	# ============================================================
 	# ARMOUR - HEAD
 	# slot: "head" fits only head slot
@@ -311,6 +340,30 @@ var items: Dictionary = {
 		"desc": "A key that doesn't seem to fit anything obvious."
 	}
 }
+
+func calculate_damage(weapon: Dictionary, attacker_stats: Dictionary) -> Dictionary:
+	# .get() returns the second argument as a fallback. So if someone passes a weapon that's missing
+	# the damage field, you get 1 instead of an error. It's a safety net which
+	# weapon["base_damage_min"] doesn't have.
+	var base_min: int = weapon.get("base_damage_min", 1)
+	var base_max: int = weapon.get("base_damage_max", 1)
+	var affinity: Dictionary = weapon.get("affinity", {})
+	
+	var bonus_min: float = 0.0
+	var bonus_max: float = 0.0
+	
+	for stat_name in affinity.keys():
+		var tier: String = affinity[stat_name]
+		var multiplier: float = AFFINITY_MULTIPLIERS.get(tier, 0.0)
+		var stat_value: int = attacker_stats.get(stat_name, 0)
+		# Calculates the bonus with weapon affinity.
+		bonus_min += base_min * multiplier * stat_value
+		bonus_max += base_max * multiplier * stat_value
+		
+	var final_min: int = base_min + roundi(bonus_min)
+	var final_max: int = base_max + roundi(bonus_max)
+	
+	return {"min": final_min, "max": final_max}
 
 # Checks if item exists and returns its duplicate.
 func get_item(item_id: String) -> Dictionary:

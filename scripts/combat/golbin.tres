@@ -5,4 +5,8 @@
 [resource]
 script = ExtResource("1_y0k34")
 character_name = "golbin"
+override_hp = true
+custom_hp = 100
+base_damage_min = 1
+base_damage_max = 2
 metadata/_custom_type_script = "uid://cfuok6rlvd2eh"

@@ -41,8 +41,11 @@ var green_points: int = 0
 var blue_points: int = 0
 
 # HP
-var max_hp: int = 10
-var current_hp: int = 10
+var max_hp: int = 100
+var current_hp: int = 100
+
+var bp_max: int = 1
+var ap_max: int = 0
 
 # ============================================================
 # LIFE SKILLS
@@ -72,7 +75,7 @@ const LIFE_SKILL_MAX_LEVEL: int = 50
 # ============================================================
 var inventory: Array = []
 var max_carry_weight: float = 50.0
-
+var equipped_items: Dictionary = {}
 var gold: int = 0
 
 # ============================================================
@@ -107,6 +110,53 @@ func _ready() -> void:
 		"status": "failed",
 		"description": "The baker's cellar was overrun. You took too long — he hired someone else and made his feelings very clear."
 	})
+
+func get_equipped_weapon() -> Dictionary:
+	var right: Dictionary = equipped_items.get("slot_right_weapon", {})
+	var left: Dictionary = equipped_items.get("slot_left_weapon", {})
+	
+	# Return the first actual weapon found, skip shields.
+	if not right.is_empty() and right.get("type") == "weapon":
+		return right
+	if not left.is_empty() and left.get("type") == "weapon":
+		return left
+	return {}
+	
+func get_equipped_shield() -> Dictionary:
+	var right: Dictionary = equipped_items.get("slot_right_weapon", {})
+	var left: Dictionary = equipped_items.get("slot_left_weapon", {})
+
+	if not right.is_empty() and right.get("type") == "shield":
+		return right
+	if not left.is_empty() and left.get("type") == "shield":
+		return left
+	return {}
+	
+func is_dual_wielding() -> bool:
+	var right: Dictionary = equipped_items.get("slot_right_weapon", {})
+	var left: Dictionary = equipped_items.get("slot_left_weapon", {})
+	return right.get("type") == "weapon" and left.get("type") == "weapon"
+	
+func get_offhand_weapon() -> Dictionary:
+	var right: Dictionary = equipped_items.get("slot_right_weapon", {})
+	var left: Dictionary = equipped_items.get("slot_left_weapon", {})
+	
+	# get_equipped_weapon() returns right first, so off-hand is left.
+	if not right.is_empty() and right.get("type") == "weapon":
+		if not left.is_empty() and left.get("type") == "weapon":
+			return left
+	return {}
+	
+# This is just so that stats can be easily passed onto ItemDB to calculate weapon damage.
+func get_stats_dict() -> Dictionary:
+	return {
+		"strength": strength,
+		"vitality": vitality,
+		"dexterity": dexterity,
+		"speed": speed,
+		"charisma": charisma,
+		"intelligence": intelligence,
+	}
 
 # ============================================================
 # FUNCTIONS - COMBAT XP & LEVELLING
