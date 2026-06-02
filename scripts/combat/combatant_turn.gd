@@ -280,6 +280,8 @@ func _execute_move() -> void:
 	# Take away the MP used.
 	mp_budget -= path_cost
 	
+	CombatLog.add(combatant.name + " moves. (" + str(path_cost) + " MP, " + str(mp_budget) + " MP remaining)")
+	
 	# Clear the path and waypoints, move is done.
 	waypoints.clear()
 	full_path.clear()
@@ -440,13 +442,14 @@ func _execute_attack() -> void:
 func _apply_damage(target: Node, amount: int) -> void:
 	if target.is_in_group("player"):
 		PlayerData.take_damage(amount)
-		print("Player took ", amount, " damage. HP now ", PlayerData.current_hp, "/", PlayerData.max_hp)
+		CombatLog.add(combatant.name + " hits Player for " + str(amount) + " damage. (" + str(PlayerData.current_hp) + "/" + str(PlayerData.max_hp) + " HP)")
 		if PlayerData.current_hp <= 0:
 			BattleManager.remove_combatant(target)
 	else:
 		# The enemy node handles its own HP and death (removing itself from the
 		# battle and freeing itself when it hits 0).
 		target.take_damage(amount)
+		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
 
 # Returns the combatant node standing on a tile, or null. Skips the player so you
 # can never target yourself.
@@ -501,8 +504,14 @@ func _run_ai() -> void:
 		await _animate_movement(path)
 		player_tile = destination
 		# This takes away the cost of the move to that tile from the mp_budget. "reachable" checks
-		# the cost ad "destination" is the tile it uses to calculate that cost.
-		mp_budget -= reachable[destination]
+		# the cost and "destination" is the tile it uses to calculate that cost.
+		# This var is specifically made for the combat log, so that we can show how much MP was
+		# used. If it was mp_budget -= reachable[destination], the amount would not be stored
+		# anywhere and we could not display it. We could just grab it from the dictionary again, but
+		# its more clean to store it locally.
+		var move_cost: int = reachable[destination]
+		mp_budget -= move_cost
+		CombatLog.add(combatant.name + " moves. (" + str(move_cost) + " MP)")
 		
 	# After moving, it checks if target is adjacent and attacks.
 	if _is_adjacent(player_tile, target_tile) and attacks_remaining > 0:

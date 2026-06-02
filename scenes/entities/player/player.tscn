@@ -229,6 +229,8 @@ texture = SubResource("GradientTexture2D_bj7e2")
 texture_scale = 0.4
 height = 16.0
 script = ExtResource("3_bj7e2")
+flicker_speed = 6.0
+energy_variance = 0.06
 
 [node name="player_arrow_sprite" type="AnimatedSprite2D" parent="." unique_id=1976443915]
 z_index = 10

@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://c8afkgoc38bw"]
+
+[ext_resource type="Script" uid="uid://dm6wvr2oqrecs" path="res://scenes/gui/combat_log_display.gd" id="1_1b6rm"]
+
+[node name="CombatLogDisplay" type="Control" unique_id=947158895]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+script = ExtResource("1_1b6rm")
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=854032027]
+layout_mode = 0
+offset_left = 100.0
+offset_top = 656.0
+offset_right = 800.0
+offset_bottom = 988.0002
+
+[node name="RichTextLabel" type="RichTextLabel" parent="PanelContainer" unique_id=311139901]
+layout_mode = 2
+scroll_following = true
+vertical_alignment = 2

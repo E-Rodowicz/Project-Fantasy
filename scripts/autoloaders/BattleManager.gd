@@ -28,9 +28,12 @@ func start_battle(combatant_list: Array) -> void:
 	turn_order = TurnOrder.new()
 	turn_order.setup(combatants)
 	
-	print("Battle started with: ")
+	CombatLog.clear()
+	var names: String = ""
 	for c in combatants:
-		print("  - ", c.name)
+		names += c.name + ", "
+	# Trum suffic get rid of the ending, meaning the last name does not get the comma and space.
+	CombatLog.add("Battle started: " + names.trim_suffix(", "))
 	
 	_next_turn()
 
@@ -38,7 +41,7 @@ func _next_turn() -> void:
 	if not active:
 		return
 	current_combatant = turn_order.get_next_turn()
-	print("It is ", current_combatant.name, "'s turn")
+	CombatLog.add(current_combatant.name + "'s turn.")
 	
 	if current_combatant.is_in_group("player"):
 		_start_player_turn()
@@ -106,11 +109,11 @@ func _check_battle_end() -> void:
 		_end_battle_victory()
 
 func _end_battle_victory() -> void:
-	print("Victory!")
+	CombatLog.add("Victory!")
 	_cleanup()
 
 func _end_battle_player_dead() -> void:
-	print("Game over")
+	CombatLog.add("Defeated...")
 	_cleanup()
 	get_tree().quit()
 

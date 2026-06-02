@@ -29,12 +29,12 @@ func _ready() -> void:
 			
 func take_damage(amount: int) -> void:
 	current_hp = max(0, current_hp - amount)
-	print(name, " took ", amount, " damage. HP now ", current_hp, "/", stats.get_max_hp())
+	CombatLog.add(name + " takes " + str(amount) + " damage. (" + str(current_hp) + "/" + str(stats.get_max_hp()) + " HP)")
 	if current_hp <= 0:
 		_die()
 
 func _die() -> void:
-	print(name, " has died.")
+	CombatLog.add(name + " has been slain.")
 	BattleManager.remove_combatant(self)
 	queue_free()
 			
