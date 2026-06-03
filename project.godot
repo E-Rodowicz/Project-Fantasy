@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 ItemDB="*uid://bjbam3yfm7yd"
+AbilityDB="*uid://d3h24l4fb8y2k"
 PlayerData="*uid://c7nnmog54fjse"
 GameMenuManager="*uid://bwj35yjayeri1"
 DialogueManager="*uid://cmeiioss67qks"
@@ -151,6 +152,11 @@ cancel={
 ability_1={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":49,"key_label":0,"unicode":49,"location":0,"echo":false,"script":null)
+]
+}
+ability_2={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":50,"key_label":0,"unicode":50,"location":0,"echo":false,"script":null)
 ]
 }
 

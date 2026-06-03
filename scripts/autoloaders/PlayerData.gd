@@ -40,6 +40,8 @@ var red_points: int = 0
 var green_points: int = 0
 var blue_points: int = 0
 
+var learned_abilities: Array = []
+
 # HP
 var max_hp: int = 100
 var current_hp: int = 100
@@ -86,6 +88,8 @@ var gold: int = 0
 var journal: Dictionary = {}
 
 func _ready() -> void:
+	learn_ability("cleave")
+	ap_max = 1
 	add_quest({
 		"id": "imp_in_attic",
 		"title": "The Imp in the Attic",
@@ -265,3 +269,13 @@ func take_damage(amount: int) -> void:
 
 func heal(amount: int) -> void:
 	current_hp = min(max_hp, current_hp + amount)
+	
+# ============================================================
+# FUNCTIONS - ABILITIES
+# ============================================================
+func has_ability(ability_id: String) -> bool:
+	return ability_id in learned_abilities
+	
+func learn_ability(ability_id: String) -> void:
+	if ability_id not in learned_abilities:
+		learned_abilities.append(ability_id)

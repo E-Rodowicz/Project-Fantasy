@@ -28,7 +28,7 @@ var full_path: Array = []
 var path_cost: int = 0
 
 # Attack state. mode switches the turn between planning movement and aiming an attack.
-enum Mode { MOVE, ATTACK }
+enum Mode {MOVE, ATTACK, ABILITY}
 var mode: int = Mode.MOVE
 
 # The tiles the current attack can reach (the 8 around the player for a basic attack).
@@ -37,6 +37,12 @@ var attack_range_tiles: Array = []
 var attack_target: Vector2i = Vector2i.ZERO
 # True once the first E has locked a target, waiting for the second E to confirm.
 var has_target: bool = false
+
+# Ability vars.
+var active_ability: Dictionary = {}
+var ability_direction: Vector2i = Vector2i.ZERO
+var ability_tiles: Array = []
+var ability_instance: BaseAbility = null
 
 const CURSOR_MOVE_RATE: float = 0.12
 var cursor_move_timer: float = 0.0
@@ -99,12 +105,12 @@ func _physics_process(delta: float) -> void:
 					cursor_tile = wanted
 					has_target = false
 				cursor_move_timer = CURSOR_MOVE_RATE
-			else:
+			elif mode == Mode.MOVE:
 				var new_tile := cursor_tile + dir
 				if _is_tile_on_screen(new_tile):
 					cursor_tile = new_tile
 				cursor_move_timer = CURSOR_MOVE_RATE
-			_redraw()
+				_redraw()
 	
 	# End turn works from either mode.
 	if Input.is_action_just_pressed("end_turn"):
@@ -114,11 +120,13 @@ func _physics_process(delta: float) -> void:
 	if mode == Mode.MOVE:
 		if Input.is_action_just_pressed("ability_1"):
 			_enter_attack_mode()
+		elif Input.is_action_just_pressed("ability_2"):
+			_enter_ability_mode("cleave")
 		elif Input.is_action_just_pressed("interact"):
 			_on_confirm()
 		elif Input.is_action_just_pressed("cancel"):
 			_on_cancel()
-	else: # Mode.ATTACK
+	elif mode == Mode.ATTACK:
 		if Input.is_action_just_pressed("interact"):
 			_on_attack_confirm()
 		elif Input.is_action_just_pressed("cancel"):
@@ -126,7 +134,91 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_just_pressed("ability_1"):
 			# Pressing 1 again backs out of attack mode.
 			_exit_attack_mode()
+	elif mode == Mode.ABILITY:
+		_handle_ability_input()
 
+func _enter_ability_mode(ability_id: String) -> void:
+	var ability: Dictionary = AbilityDB.get_ability(ability_id)
+	if ability.is_empty():
+		return
+	if not PlayerData.has_ability(ability_id):
+		return
+	
+	var cost: Dictionary = ability.get("cost", {})
+	for resource in cost.keys():
+		var amount: int = cost[resource]
+		match resource:
+			"ap":
+				if ap_remaining < amount:
+					return
+			"bp":
+				if bp_remaining < amount:
+					return
+			"mp":
+				if mp_budget < amount:
+					return
+	
+	ability_instance = AbilityDB.create_ability(ability_id)
+	if ability_instance == null:
+		return
+	
+	active_ability = ability
+	mode = Mode.ABILITY
+	ability_direction = Vector2i.ZERO
+	ability_tiles.clear()
+	overlay.clear_all()
+
+func _handle_ability_input() -> void:
+	if active_ability.get("targeting") == "direction":
+		var new_direction: Vector2i = Vector2i.ZERO
+		
+		if Input.is_action_just_pressed("ui_up"):
+			new_direction = Vector2i(0, -1)
+		elif Input.is_action_just_pressed("ui_down"):
+			new_direction = Vector2i(0, 1)
+		elif Input.is_action_just_pressed("ui_left"):
+			new_direction = Vector2i(-1, 0)
+		elif Input.is_action_just_pressed("ui_right"):
+			new_direction = Vector2i(1, 0)
+		
+		if new_direction != Vector2i.ZERO:
+			ability_direction = new_direction
+			_build_ability_tiles()
+		
+		if Input.is_action_just_pressed("interact") and not ability_tiles.is_empty():
+			_execute_ability()
+		
+		if Input.is_action_just_pressed("cancel"):
+			_exit_ability_mode()
+
+func _build_ability_tiles() -> void:
+	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
+	overlay.clear_all()
+	for tile in ability_tiles:
+		if _tile_has_combatant(tile):
+			overlay.paint_purple(tile)
+		else:
+			overlay.paint_yellow(tile)
+	
+func _execute_ability() -> void:
+	var cost: Dictionary = active_ability.get("cost", {})
+	for resource in cost.keys():
+		match resource:
+			"ap": ap_remaining -= cost[resource]
+			"bp": bp_remaining -= cost[resource]
+			"mp": mp_budget -= cost[resource]
+	
+	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
+	ability_instance.execute(combatant, ability_tiles, combatants, world_layer)
+	_exit_ability_mode()
+	
+func _exit_ability_mode() -> void:
+	mode = Mode.MOVE
+	active_ability = {}
+	ability_direction = Vector2i.ZERO
+	ability_tiles.clear()
+	overlay.clear_all()
+	
 func _get_attack_range() -> int:
 	if combatant.is_in_group("player"):
 		var weapon: Dictionary = PlayerData.get_equipped_weapon()
