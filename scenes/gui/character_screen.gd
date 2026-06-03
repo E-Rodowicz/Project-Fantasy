@@ -269,7 +269,37 @@ func _input_skill_tree(event: InputEvent) -> void:
 		combat_skill_tree.visible = false
 		_enter_combat_tabs_active(true)
 		get_viewport().set_input_as_handled()
+		return
 
+	# Hotbar assignment.
+	var slot: int = PlayerData.get_hotbar_slot_from_event(event)
+	if slot != -1:
+		_assign_ability_to_hotbar(slot)
+		# This is critical: it prevents the same key press from also triggering GameMenuManager's
+		# tab switching (since keys 1-4 are shared between ability_X and ui_X actions).
+		get_viewport().set_input_as_handled()
+			
+func _assign_ability_to_hotbar(slot: int) -> void:
+	# Get the ability ID for currently selected skill node. Placeholder for now.
+	var ability_id: String = _get_selected_ability_id()
+	if ability_id == "":
+		return
+		
+	if not PlayerData.has_ability(ability_id):
+		return
+	
+	# Move the logic handling off to PlayerData, which assigns the ability, removes it, etc.
+	PlayerData.assign_hotbar(slot, ability_id)
+	
+func _get_selected_ability_id() -> String:
+	# This connects teh skills tree data to the ability system. Once the skills nodes will know
+	# which ability they represent, returns that ID. Placeholder for now.
+	if skill_nodes.is_empty():
+		return ""
+	# All palceholder, will need to be redone probably.
+	var node: Button = skill_nodes[selected_skill_node]
+	return ""
+			
 func _input_general_stats(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_up") and not event.is_echo():
 		selected_stat_row = max(0, selected_stat_row - 1)

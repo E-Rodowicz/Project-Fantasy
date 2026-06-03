@@ -89,6 +89,7 @@ var journal: Dictionary = {}
 
 func _ready() -> void:
 	learn_ability("cleave")
+	hotbar[1] = "cleave"
 	ap_max = 1
 	add_quest({
 		"id": "imp_in_attic",
@@ -279,3 +280,41 @@ func has_ability(ability_id: String) -> bool:
 func learn_ability(ability_id: String) -> void:
 	if ability_id not in learned_abilities:
 		learned_abilities.append(ability_id)
+		
+# ============================================================
+# HOTBAR
+# 10 slots: index 0 = key 1 (locked to basic attack), index 1-9 = keys 2-0.
+# Each slot holds an ability ID string, or "" if empty.
+# "basic_attack" is a special ID meaning the built-in melee attack mode.
+# ============================================================
+var hotbar: Array = ["basic_attack", "", "", "", "", "", "", "", "", ""]
+
+func assign_hotbar(slot: int, ability_id: String) -> void:
+	if slot == 0:
+		return
+	# If the ability is on this slot, return.
+	if hotbar[slot] == ability_id:
+		hotbar[slot] = ""
+		return
+	# Removes the ability from its current slot (if its on any slot) then prevents the ability from
+	# appearing on two slots at once.
+	for i in range(hotbar.size()):
+		if hotbar[i] == ability_id:
+			hotbar[i] = ""
+	# Places it on requested slot.
+	hotbar[slot] = ability_id
+	
+func get_hotbar_ability(slot: int) -> String:
+	if slot < 0 or slot >= hotbar.size():
+		return ""
+	return hotbar[slot]
+
+func get_hotbar_slot_from_event(event: InputEvent) -> int:
+	var action_map: Array = [
+		"ability_1", "ability_2", "ability_3", "ability_4", "ability_5",
+		"ability_6", "ability_7", "ability_8", "ability_9", "ability_0"
+	]
+	for i in range(action_map.size()):
+		if event.is_action_pressed(action_map[i]) and not event.is_echo():
+			return i
+	return -1

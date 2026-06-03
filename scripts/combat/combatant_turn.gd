@@ -43,6 +43,9 @@ var active_ability: Dictionary = {}
 var ability_direction: Vector2i = Vector2i.ZERO
 var ability_tiles: Array = []
 var ability_instance: BaseAbility = null
+var has_ability_target: bool = false
+
+var active_hotbar_slot: int = -1
 
 const CURSOR_MOVE_RATE: float = 0.12
 var cursor_move_timer: float = 0.0
@@ -105,6 +108,7 @@ func _physics_process(delta: float) -> void:
 					cursor_tile = wanted
 					has_target = false
 				cursor_move_timer = CURSOR_MOVE_RATE
+				_redraw()
 			elif mode == Mode.MOVE:
 				var new_tile := cursor_tile + dir
 				if _is_tile_on_screen(new_tile):
@@ -116,13 +120,9 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("end_turn"):
 		end_turn()
 		return
-	
+
 	if mode == Mode.MOVE:
-		if Input.is_action_just_pressed("ability_1"):
-			_enter_attack_mode()
-		elif Input.is_action_just_pressed("ability_2"):
-			_enter_ability_mode("cleave")
-		elif Input.is_action_just_pressed("interact"):
+		if Input.is_action_just_pressed("interact"):
 			_on_confirm()
 		elif Input.is_action_just_pressed("cancel"):
 			_on_cancel()
@@ -131,11 +131,53 @@ func _physics_process(delta: float) -> void:
 			_on_attack_confirm()
 		elif Input.is_action_just_pressed("cancel"):
 			_on_attack_cancel()
-		elif Input.is_action_just_pressed("ability_1"):
-			# Pressing 1 again backs out of attack mode.
-			_exit_attack_mode()
 	elif mode == Mode.ABILITY:
 		_handle_ability_input()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if ai_controlled or animating:
+		return
+		
+	var slot: int = PlayerData.get_hotbar_slot_from_event(event)
+	if slot == -1:
+		return
+		
+	_handle_hotbar_press(slot)
+	get_viewport().set_input_as_handled()
+	
+func _handle_hotbar_press(slot: int) -> void:
+	var ability_id: String = PlayerData.get_hotbar_ability(slot)
+	
+	# Empty slot means do nothing.
+	if ability_id == "":
+		return
+		
+	# If we're already in this slot's mode, toggle it off (going back to Move).
+	if slot == active_hotbar_slot:
+		if mode == Mode.ATTACK:
+			_exit_attack_mode()
+		elif mode == Mode.ABILITY:
+			_exit_ability_mode()
+		active_hotbar_slot = -1
+		return
+
+	# If we're in a different mode, exit that first.
+	if mode == Mode.ATTACK:
+		_exit_attack_mode()
+	elif mode == Mode.ABILITY:
+		_exit_ability_mode()
+		
+	# Enter the new mode.
+	if ability_id == "basic_attack":
+		_enter_attack_mode()
+		active_hotbar_slot = slot
+		
+	else:
+		_enter_ability_mode(ability_id)
+		# Only tracks as active is we actually are in the mode, in case we cannot use it due to AP 
+		# or something else.
+		if mode == Mode.ABILITY:
+			active_hotbar_slot = slot
 
 func _enter_ability_mode(ability_id: String) -> void:
 	var ability: Dictionary = AbilityDB.get_ability(ability_id)
@@ -167,6 +209,31 @@ func _enter_ability_mode(ability_id: String) -> void:
 	ability_direction = Vector2i.ZERO
 	ability_tiles.clear()
 	overlay.clear_all()
+	
+	# Auto-aims toward the direction with the most enemies. This only works for "direction"
+	# abilities, which are orthogonal left, right, top, down aiming abilities directly from the
+	# player character.
+	if ability_instance.get_targeting_type() == "direction":
+		var best_direction: Vector2i = Vector2i.ZERO
+		var best_count: int = 0
+		var directions: Array = [
+			Vector2i(0, -1), Vector2i(0, 1),
+			Vector2i(-1, 0), Vector2i(1, 0)
+		]
+		
+		for dir in directions:
+			var tiles: Array = ability_instance.get_target_tiles(player_tile, dir, world_layer)
+			var count: int = 0
+			for tile in tiles:
+				if _tile_has_combatant(tile):
+					count += 1
+			if count > best_count:
+				best_count = count
+				best_direction = dir
+		
+		if best_direction != Vector2i.ZERO:
+			ability_direction = best_direction
+			_build_ability_tiles()
 
 func _handle_ability_input() -> void:
 	if active_ability.get("targeting") == "direction":
@@ -183,13 +250,27 @@ func _handle_ability_input() -> void:
 		
 		if new_direction != Vector2i.ZERO:
 			ability_direction = new_direction
+			has_ability_target = false
 			_build_ability_tiles()
 		
 		if Input.is_action_just_pressed("interact") and not ability_tiles.is_empty():
-			_execute_ability()
+			if not has_ability_target:
+				has_ability_target = true
+				_redraw_ability_confirm()
+			else:
+				_execute_ability()
 		
 		if Input.is_action_just_pressed("cancel"):
-			_exit_ability_mode()
+			if has_ability_target:
+				has_ability_target = false
+				_build_ability_tiles()
+			else:
+				_exit_ability_mode()
+
+func _redraw_ability_confirm() -> void:
+	overlay.clear_all()
+	for tile in ability_tiles:
+		overlay.paint_bright_green(tile)
 
 func _build_ability_tiles() -> void:
 	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
@@ -217,7 +298,12 @@ func _exit_ability_mode() -> void:
 	active_ability = {}
 	ability_direction = Vector2i.ZERO
 	ability_tiles.clear()
-	overlay.clear_all()
+	active_hotbar_slot = -1
+	ability_instance = null
+	has_ability_target = false
+	cursor_tile = player_tile
+	_recalculate_reachable()
+	_redraw()
 	
 func _get_attack_range() -> int:
 	if combatant.is_in_group("player"):
@@ -498,6 +584,7 @@ func _exit_attack_mode() -> void:
 	has_target = false
 	attack_range_tiles.clear()
 	cursor_tile = player_tile
+	active_hotbar_slot = -1
 	_recalculate_reachable()
 	_redraw()
 
@@ -628,11 +715,13 @@ func _redraw_attack() -> void:
 	if has_target:
 		overlay.paint_bright_green(attack_target)
 		return
+	if cursor_tile == player_tile:
+		return
 	# Only the cursor tile is highlighted: purple if an enemy is there, red if empty.
 	if _tile_has_combatant(cursor_tile):
 		overlay.paint_purple(cursor_tile)
 	else:
-		overlay.paint_red(cursor_tile)
+		overlay.paint_yellow(cursor_tile)
 
 func end_turn() -> void:
 	overlay.clear_all()
