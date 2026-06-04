@@ -203,6 +203,7 @@ offset_left = 8.0
 offset_top = 72.0
 offset_right = 248.0
 offset_bottom = 632.0
+autowrap_mode = 3
 
 [node name="info_bonus" type="Label" parent="info_panel" unique_id=41735022]
 layout_mode = 0

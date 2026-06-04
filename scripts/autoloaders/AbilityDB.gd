@@ -10,7 +10,7 @@ var abilities: Dictionary = {
 		"sp_cost": 3,
 		"targeting": "direction",
 		"range": 3,
-		"damage_percent": 0.5,
+		"damage_percent": 0.66,
 		"dismember_one_hand": 0.025,
 		"dismember_two_hand": 0.05,
 		"description": "Attacks in a horizontal line of 4 tiles for 50% damage. Small chance to insta-kill each target."

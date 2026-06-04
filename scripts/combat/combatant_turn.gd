@@ -170,7 +170,8 @@ func _handle_hotbar_press(slot: int) -> void:
 	# Enter the new mode.
 	if ability_id == "basic_attack":
 		_enter_attack_mode()
-		active_hotbar_slot = slot
+		if mode == Mode.ATTACK:
+			active_hotbar_slot = slot
 		
 	else:
 		_enter_ability_mode(ability_id)

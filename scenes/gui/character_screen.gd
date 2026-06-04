@@ -58,6 +58,7 @@ var selected_combat_tab: int = 0
 # Skill tree
 var skill_nodes: Array = []
 var selected_skill_node: int = 0
+var current_tree_abilities: Array = []
 
 # General stats navigation
 var stat_rows: Array = []
@@ -130,6 +131,7 @@ func _enter_skill_tree_active(from_back: bool = false) -> void:
 	if not from_back:
 		selected_skill_node = 0
 	combat_skill_tree.visible = true
+	_populate_skill_tree()
 	_update_skill_node_highlight()
 	_update_info_panel_from_skill_node()
 
@@ -181,8 +183,34 @@ func _update_info_panel_from_combat_tab() -> void:
 	pass
 
 func _update_info_panel_from_skill_node() -> void:
-	# Will show skill name, cost, description etc.
-	# Placeholder for now
+	if current_tree_abilities.is_empty() or selected_skill_node >= current_tree_abilities.size():
+		_clear_info_panel()
+		return
+
+	var ability_id: String = current_tree_abilities[selected_skill_node]
+	var data: Dictionary = AbilityDB.get_ability(ability_id)
+	var learned: bool = PlayerData.has_ability(ability_id)
+
+	info_title.text = data.get("name", "")
+	info_desc.text = data.get("description", "")
+
+	# Build the bonus line: cost, learned status, and hotbar slot.
+	var cost: Dictionary = data.get("cost", {})
+	var bonus_text: String = ""
+	for resource in cost.keys():
+		bonus_text += str(cost[resource]) + " " + resource.to_upper() + "  "
+
+	if not learned:
+		bonus_text += "[Not Learned]"
+	else:
+		# Checkd if this ability is on the hotbar somewhere.
+		var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+		for i in range(PlayerData.hotbar.size()):
+			if PlayerData.hotbar[i] == ability_id:
+				bonus_text += "[Hotbar: " + key_names[i] + "]"
+				break
+
+	info_bonus.text = bonus_text
 	pass
 
 func _update_info_panel_from_stat() -> void:
@@ -252,7 +280,7 @@ func _input_skill_tree(event: InputEvent) -> void:
 		_update_skill_node_highlight()
 		_update_info_panel_from_skill_node()
 	if event.is_action_pressed("ui_down") and not event.is_echo():
-		selected_skill_node = min(skill_nodes.size() - 1, selected_skill_node + 1)
+		selected_skill_node = min(current_tree_abilities.size() - 1, selected_skill_node + 1)
 		_update_skill_node_highlight()
 		_update_info_panel_from_skill_node()
 	if event.is_action_pressed("ui_left") and not event.is_echo():
@@ -260,7 +288,7 @@ func _input_skill_tree(event: InputEvent) -> void:
 		_update_skill_node_highlight()
 		_update_info_panel_from_skill_node()
 	if event.is_action_pressed("ui_right") and not event.is_echo():
-		selected_skill_node = min(skill_nodes.size() - 1, selected_skill_node + 1)
+		selected_skill_node = min(current_tree_abilities.size() - 1, selected_skill_node + 1)
 		_update_skill_node_highlight()
 		_update_info_panel_from_skill_node()
 	if event.is_action_pressed("interact") and not event.is_echo():
@@ -280,25 +308,19 @@ func _input_skill_tree(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 			
 func _assign_ability_to_hotbar(slot: int) -> void:
-	# Get the ability ID for currently selected skill node. Placeholder for now.
 	var ability_id: String = _get_selected_ability_id()
 	if ability_id == "":
 		return
-		
 	if not PlayerData.has_ability(ability_id):
 		return
-	
-	# Move the logic handling off to PlayerData, which assigns the ability, removes it, etc.
 	PlayerData.assign_hotbar(slot, ability_id)
+	# Refresh the info panel so the hotbar slot text updates immediately.
+	_update_info_panel_from_skill_node()
 	
 func _get_selected_ability_id() -> String:
-	# This connects teh skills tree data to the ability system. Once the skills nodes will know
-	# which ability they represent, returns that ID. Placeholder for now.
-	if skill_nodes.is_empty():
+	if current_tree_abilities.is_empty() or selected_skill_node >= current_tree_abilities.size():
 		return ""
-	# All palceholder, will need to be redone probably.
-	var node: Button = skill_nodes[selected_skill_node]
-	return ""
+	return current_tree_abilities[selected_skill_node]
 			
 func _input_general_stats(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_up") and not event.is_echo():
@@ -391,3 +413,30 @@ func _update_general_stats_display() -> void:
 	$general_stats/stat_lightning_res.text = "Lightning Res: " + str(0) + "%"
 	$general_stats/stat_ice_res.text = "Ice Res: " + str(0) + "%"
 	$general_stats/stat_poison_res.text = "Poison Res: " + str(0) + "%"
+
+# Sets up abilities for each tree when it is entered.
+func _get_abilities_for_tab(tab_index: int) -> Array:
+	var tree_name: String = ""
+	match tab_index:
+		0: tree_name = "red"
+		1: tree_name = "green"
+		2: tree_name = "blue"
+		
+	var result: Array = []
+	for ability_id in AbilityDB.abilities.keys():
+		var data: Dictionary = AbilityDB.abilities[ability_id]
+		if data.get("tree", "") == tree_name:
+			result.append(ability_id)
+	return result
+
+func _populate_skill_tree() -> void:
+	current_tree_abilities = _get_abilities_for_tab(selected_combat_tab)
+
+	for i in range(skill_nodes.size()):
+		if i < current_tree_abilities.size():
+			var ability_id: String = current_tree_abilities[i]
+			var data: Dictionary = AbilityDB.get_ability(ability_id)
+			skill_nodes[i].text = data.get("name", ability_id)
+			skill_nodes[i].visible = true
+		else:
+			skill_nodes[i].visible = false

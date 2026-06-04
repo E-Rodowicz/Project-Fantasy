@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://dglkqqhv3gaip"]
+
+[ext_resource type="Script" uid="uid://cgh6376sfmnq7" path="res://scenes/gui/hotbar_display.gd" id="1_q8gy2"]
+
+[node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
+script = ExtResource("1_q8gy2")
+
+[node name="anchor" type="Control" parent="." unique_id=1650653445]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="hotbar_container" type="HBoxContainer" parent="anchor" unique_id=858619990]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -40.0
+offset_right = 20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 4
