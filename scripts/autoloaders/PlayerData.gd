@@ -46,6 +46,7 @@ var learned_abilities: Array = []
 var max_hp: int = 100
 var current_hp: int = 100
 
+var mp_max: int = 10
 var bp_max: int = 1
 var ap_max: int = 0
 

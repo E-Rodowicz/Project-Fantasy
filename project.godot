@@ -27,6 +27,7 @@ LootManager="*uid://c6m2vyr2mqcer"
 InteractManager="*uid://ch16rf63rwelf"
 BattleManager="*uid://de01d4j3efl18"
 CombatLog="*uid://b6ehgsn8cuax5"
+PlayerHud="*uid://c3g1tm6cd10lm"
 HotbarDisplay="*uid://dglkqqhv3gaip"
 
 [display]
