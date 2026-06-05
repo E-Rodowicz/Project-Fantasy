@@ -60,7 +60,7 @@ func _start_player_turn() -> void:
 	player_turn.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(player_turn)
 	player_turn.turn_finished.connect(_on_player_turn_finished)
-	player_turn.start(current_combatant, world_layer, overlay, combatants, 10)
+	player_turn.start(current_combatant, world_layer, overlay, combatants, PlayerData.get_max_mp())
 
 func _on_player_turn_finished() -> void:
 	player_turn.queue_free()

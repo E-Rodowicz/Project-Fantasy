@@ -11,10 +11,10 @@ script = ExtResource("1_1b6rm")
 
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=854032027]
 layout_mode = 0
-offset_left = 16.0
-offset_top = 584.0
-offset_right = 716.0
-offset_bottom = 916.0002
+offset_left = 9.32
+offset_top = 566.1
+offset_right = 709.32
+offset_bottom = 898.10016
 
 [node name="RichTextLabel" type="RichTextLabel" parent="PanelContainer" unique_id=311139901]
 layout_mode = 2

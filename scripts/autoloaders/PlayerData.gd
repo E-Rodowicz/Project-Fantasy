@@ -42,13 +42,14 @@ var blue_points: int = 0
 
 var learned_abilities: Array = []
 
-# HP
 var max_hp: int = 100
 var current_hp: int = 100
-
-var mp_max: int = 10
 var bp_max: int = 1
 var ap_max: int = 0
+var mp_override: int = -1
+
+const BASE_MP: int = 5
+const MP_PER_SPEED_PER_LEVEL: float = 0.25
 
 # ============================================================
 # LIFE SKILLS
@@ -91,7 +92,7 @@ var journal: Dictionary = {}
 func _ready() -> void:
 	learn_ability("cleave")
 	hotbar[1] = "cleave"
-	ap_max = 1
+	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",
 		"title": "The Imp in the Attic",
@@ -271,6 +272,16 @@ func take_damage(amount: int) -> void:
 
 func heal(amount: int) -> void:
 	current_hp = min(max_hp, current_hp + amount)
+	
+# ============================================================
+# FUNCTIONS - MP
+# ============================================================
+func get_max_mp() -> int:
+	if mp_override >= 0:
+		return mp_override
+	# Formula for MP amount.
+	var gained: int = int(speed * MP_PER_SPEED_PER_LEVEL * (combat_level - 1))
+	return BASE_MP + gained
 	
 # ============================================================
 # FUNCTIONS - ABILITIES

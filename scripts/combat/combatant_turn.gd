@@ -14,6 +14,10 @@ var bp_remaining: int = 0
 var ap_remaining: int = 0
 var is_offhand_attack: bool = false
 
+var mp_label: Label = null
+var hit_label: Label = null
+var hit_labels: Array = []
+
 # State of everything.
 var mp_budget: int = 0
 var player_tile: Vector2i = Vector2i.ZERO
@@ -50,6 +54,8 @@ var active_hotbar_slot: int = -1
 const CURSOR_MOVE_RATE: float = 0.12
 var cursor_move_timer: float = 0.0
 
+var ui_root: Node2D = null
+
 # Emitted when the player ends their turn so BattleManager can advance.
 signal turn_finished
 
@@ -75,6 +81,11 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 	cursor_tile = player_tile
 	
 	_recalculate_reachable()
+	
+	ui_root = Node2D.new()
+	add_child(ui_root)
+	mp_label = _create_floating_label()
+	hit_label = _create_floating_label()
 	
 	if ai_controlled:
 		# When a function uses await, it pauses at that line and lets the rest of the game keep
@@ -180,6 +191,45 @@ func _handle_hotbar_press(slot: int) -> void:
 		if mode == Mode.ABILITY:
 			active_hotbar_slot = slot
 
+func _create_floating_label() -> Label:
+	var label: Label = Label.new()
+	var font: Font = preload("res://assets/fonts/m3x6.ttf")
+	label.z_index = 100
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 2)
+	label.visible = false
+	ui_root.add_child(label)
+
+	return label
+
+func _update_floating_labels() -> void:
+	# MP label belongs to MOVE mode, on a reachable tile that isn't the origin.
+	if mode == Mode.MOVE and reachable.has(cursor_tile) and cursor_tile != player_tile:
+		var total_cost: int = path_cost + reachable[cursor_tile]
+		mp_label.text = str(total_cost) + " MP"
+		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(-8, -6)
+		mp_label.visible = true
+	else:
+		mp_label.visible = false
+		
+	# Hit label belongs to ATTACK mode, on an enemy.
+	if mode == Mode.ATTACK and _tile_has_combatant(cursor_tile):
+		var target: Node = _combatant_on_tile(cursor_tile)
+		if target != null:
+			var hit_chance: float = 1.0 - _get_dodge_chance(target)
+			hit_label.text = str(roundi(hit_chance * 100)) + "%"
+			hit_label.position = world_layer.map_to_local(cursor_tile) + Vector2(6, -10)
+			hit_label.visible = true
+		else:
+			hit_label.visible = false
+	else:
+		hit_label.visible = false
+
 func _enter_ability_mode(ability_id: String) -> void:
 	var ability: Dictionary = AbilityDB.get_ability(ability_id)
 	if ability.is_empty():
@@ -207,6 +257,7 @@ func _enter_ability_mode(ability_id: String) -> void:
 	
 	active_ability = ability
 	mode = Mode.ABILITY
+	_update_floating_labels()
 	ability_direction = Vector2i.ZERO
 	ability_tiles.clear()
 	overlay.clear_all()
@@ -503,7 +554,8 @@ func _redraw() -> void:
 		_redraw_attack()
 		return
 	# Paint all reachable tiles soft green.
-	overlay.paint_soft_green(reachable.keys())
+	if reachable.size() > 1:
+		overlay.paint_soft_green(reachable.keys())
 	# Mid green for commited path.
 	if full_path.size() > 0:
 		overlay.paint_mid_green(full_path)
@@ -516,25 +568,22 @@ func _redraw() -> void:
 		overlay.paint_final_waypoint(waypoints.back())
 	# Paint the cursor tile on top with the right colour.
 	_paint_cursor()
+	# Show MP cost when hobering over a reachable tile.
+	if reachable.has(cursor_tile) and cursor_tile != player_tile:
+		var total_cost: int = path_cost + reachable[cursor_tile]
+		mp_label.text = str(total_cost) + "MP"
+		mp_label.position = world_layer.map_to_local(cursor_tile)
+		mp_label.visible = true
+	else:
+		mp_label.visible = false
 
 func _paint_cursor() -> void:
-	# Prevents painting over final waypoint.
 	if not waypoints.is_empty() and cursor_tile == waypoints.back():
 		return
-	if cursor_tile == player_tile:
-		overlay.paint_grey(cursor_tile)
-	# Is Combatant on this tile? PURPLE.
-	elif _tile_has_combatant(cursor_tile):
-		overlay.paint_purple(cursor_tile)
-	# Reachable within budget? YELLOW.
-	elif reachable.has(cursor_tile):
+	if reachable.has(cursor_tile) and cursor_tile != player_tile:
 		overlay.paint_yellow(cursor_tile)
-	# Not a wall but unreachable in budget? GREY.
-	elif world_layer.get_cell_source_id(cursor_tile) == -1:
-		overlay.paint_grey(cursor_tile)
-	# Wall/blocked? RED.
 	else:
-		overlay.paint_red(cursor_tile)
+		overlay.paint_grey(cursor_tile)
 
 func _tile_has_combatant(tile: Vector2i) -> bool:
 	for c in combatants:
@@ -567,6 +616,7 @@ func _enter_attack_mode() -> void:
 	path_cost = 0
 	
 	mode = Mode.ATTACK
+	_update_floating_labels()
 	has_target = false
 	_build_attack_range()
 	
@@ -663,11 +713,7 @@ func _roll_damage() -> int:
 		return randi_range(combatant.stats.base_damage_min, combatant.stats.base_damage_max)
 
 func _try_attack(target: Node) -> void:
-	var dodge_chance: float = 0.0
-	if target.is_in_group("player"):
-		dodge_chance = 0.05 * PlayerData.dexterity
-	else:
-		dodge_chance = target.stats.get_dodge_chance()
+	var dodge_chance: float = _get_dodge_chance(target)
 	
 	var hit_roll: float = randf()
 	if hit_roll < dodge_chance:
@@ -723,6 +769,7 @@ func _redraw_attack() -> void:
 		overlay.paint_purple(cursor_tile)
 	else:
 		overlay.paint_yellow(cursor_tile)
+	_update_floating_labels()
 
 func end_turn() -> void:
 	overlay.clear_all()
@@ -858,3 +905,8 @@ func _animate_movement(path: Array) -> void:
 	
 	# Wait for the tween to finish before continuing.
 	await tween.finished
+
+func _get_dodge_chance(target: Node) -> float:
+	if target.is_in_group("player"):
+		return 0.05 * PlayerData.dexterity
+	return target.stats.get_dodge_chance()
