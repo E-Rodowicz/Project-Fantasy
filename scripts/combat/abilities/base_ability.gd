@@ -37,3 +37,9 @@ func roll_weapon_damage(caster: Node) -> int:
 		return randi_range(result["min"], result["max"])
 	else:
 		return randi_range(caster.stats.base_damage_min, caster.stats.base_damage_max)
+
+func get_hit_modifier() -> float:
+	return data.get("hit_modifier", 0.0)
+	
+func get_hit_chance(target: Node) -> float:
+	return CombatantStats.hit_chance_for(target, get_hit_modifier())

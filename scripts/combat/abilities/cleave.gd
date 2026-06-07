@@ -43,6 +43,10 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var target: Node = combatant_on_tile(tile, all_combatants, world_layer)
 		if target == null or target == caster:
 			continue
+		var hit_chance: float = get_hit_chance(target)
+		if randf() >= hit_chance:
+			CombatLog.add(target.name + " dodges " + caster.name + "'s cleave!")
+			continue
 		
 		# Dismember check.
 		if randf() < dismember_chance:

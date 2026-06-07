@@ -55,3 +55,11 @@ func get_dodge_chance() -> float:
 func get_hit_chance(target_dodge: float) -> float:
 	return 1.0 - target_dodge
 	
+static func dodge_chance_for(target: Node) -> float:
+	if target.is_in_group("player"):
+		return 0.05 * PlayerData.dexterity
+	return target.stats.get_dodge_chance()
+	
+static func hit_chance_for(target: Node, hit_modifier: float = 0.0) -> float:
+	var base: float = 1.0 - dodge_chance_for(target)
+	return clampf(base + hit_modifier, 0.0, 1.0)

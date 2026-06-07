@@ -216,6 +216,7 @@ func _update_floating_labels() -> void:
 		mp_label.visible = true
 	else:
 		mp_label.visible = false
+	_update_hit_labels()
 		
 	# Hit label belongs to ATTACK mode, on an enemy.
 	if mode == Mode.ATTACK and _tile_has_combatant(cursor_tile):
@@ -286,6 +287,7 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
+	_update_floating_labels()
 
 func _handle_ability_input() -> void:
 	if active_ability.get("targeting") == "direction":
@@ -323,6 +325,7 @@ func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
 	for tile in ability_tiles:
 		overlay.paint_bright_green(tile)
+	_update_floating_labels()
 
 func _build_ability_tiles() -> void:
 	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
@@ -332,6 +335,7 @@ func _build_ability_tiles() -> void:
 			overlay.paint_purple(tile)
 		else:
 			overlay.paint_yellow(tile)
+	_update_floating_labels()
 	
 func _execute_ability() -> void:
 	var cost: Dictionary = active_ability.get("cost", {})
@@ -568,6 +572,7 @@ func _redraw() -> void:
 		overlay.paint_final_waypoint(waypoints.back())
 	# Paint the cursor tile on top with the right colour.
 	_paint_cursor()
+	_update_floating_labels()
 	# Show MP cost when hobering over a reachable tile.
 	if reachable.has(cursor_tile) and cursor_tile != player_tile:
 		var total_cost: int = path_cost + reachable[cursor_tile]
@@ -713,10 +718,8 @@ func _roll_damage() -> int:
 		return randi_range(combatant.stats.base_damage_min, combatant.stats.base_damage_max)
 
 func _try_attack(target: Node) -> void:
-	var dodge_chance: float = _get_dodge_chance(target)
-	
-	var hit_roll: float = randf()
-	if hit_roll < dodge_chance:
+	var hit_chance: float = CombatantStats.hit_chance_for(target, 0.0)
+	if randf() >= hit_chance:
 		CombatLog.add(combatant.name + " attacks " + target.name + " but misses!")
 		return
 	
@@ -761,14 +764,11 @@ func _combatant_on_tile(tile: Vector2i) -> Node:
 func _redraw_attack() -> void:
 	if has_target:
 		overlay.paint_bright_green(attack_target)
-		return
-	if cursor_tile == player_tile:
-		return
-	# Only the cursor tile is highlighted: purple if an enemy is there, red if empty.
-	if _tile_has_combatant(cursor_tile):
-		overlay.paint_purple(cursor_tile)
-	else:
-		overlay.paint_yellow(cursor_tile)
+	elif cursor_tile != player_tile:
+		if _tile_has_combatant(cursor_tile):
+			overlay.paint_purple(cursor_tile)
+		else:
+			overlay.paint_yellow(cursor_tile)
 	_update_floating_labels()
 
 func end_turn() -> void:
@@ -910,3 +910,33 @@ func _get_dodge_chance(target: Node) -> float:
 	if target.is_in_group("player"):
 		return 0.05 * PlayerData.dexterity
 	return target.stats.get_dodge_chance()
+
+func _targeted_enemy_tiles() -> Array:
+	var result: Array = []
+	if mode == Mode.ATTACK:
+		if _tile_has_combatant(cursor_tile):
+			result.append(cursor_tile)
+	elif mode == Mode.ABILITY:
+		for tile in ability_tiles:
+			if _tile_has_combatant(tile):
+				result.append(tile)
+	return result
+
+func _hit_chance_against(target: Node) -> float:
+	if mode == Mode.ABILITY and ability_instance != null:
+		return ability_instance.get_hit_chance(target)
+	return CombatantStats.hit_chance_for(target, 0.0)
+	
+func _update_hit_labels() -> void:
+	var tiles: Array = _targeted_enemy_tiles()
+	while hit_labels.size() < tiles.size():
+		hit_labels.append(_create_floating_label())
+	for i in range(hit_labels.size()):
+		if i < tiles.size():
+			var target: Node = _combatant_on_tile(tiles[i])
+			var hit_chance: float = _hit_chance_against(target)
+			hit_labels[i].text = str(roundi(hit_chance * 100)) + "%"
+			hit_labels[i].position = world_layer.map_to_local(tiles[i]) + Vector2(6, -10)
+			hit_labels[i].visible = true
+		else:
+			hit_labels[i].visible = false
