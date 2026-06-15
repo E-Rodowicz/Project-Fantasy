@@ -287,6 +287,30 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
+			
+	elif ability_instance.get_targeting_type() == "line":
+		var best_direction: Vector2i = Vector2i.ZERO
+		var best_count: int = 0
+		var directions: Array = [
+			Vector2i(0, -1), Vector2i(0, 1),
+			Vector2i(-1, 0), Vector2i(1, 0),
+			Vector2i(-1, -1), Vector2i(1, -1),
+			Vector2i(-1, 1), Vector2i(1, 1)
+		]
+		
+		for dir in directions:
+			var tiles: Array = ability_instance.get_target_tiles(player_tile, dir, world_layer)
+			var count: int = 0
+			for tile in tiles:
+				if _tile_has_combatant(tile):
+					count += 1
+			if count > best_count:
+				best_count = count
+				best_direction = dir
+		if best_direction != Vector2i.ZERO:
+			ability_direction = best_direction
+			_build_ability_tiles()
+			
 	_update_floating_labels()
 
 func _handle_ability_input() -> void:
@@ -320,6 +344,40 @@ func _handle_ability_input() -> void:
 				_build_ability_tiles()
 			else:
 				_exit_ability_mode()
+				
+	elif active_ability.get("targeting") == "line":
+		var any_pressed: bool = (
+			Input.is_action_just_pressed("ui_up") or
+			Input.is_action_just_pressed("ui_down") or
+			Input.is_action_just_pressed("ui_left") or
+			Input.is_action_just_pressed("ui_right")
+		)
+		
+		if any_pressed:
+			var new_direction: Vector2i = Vector2i.ZERO
+			if Input.is_action_pressed("ui_up"): new_direction.y -= 1
+			if Input.is_action_pressed("ui_down"): new_direction.y += 1
+			if Input.is_action_pressed("ui_left"): new_direction.x -= 1
+			if Input.is_action_pressed("ui_right"): new_direction.x += 1
+			
+			if new_direction != Vector2i.ZERO:
+				ability_direction = new_direction
+				has_ability_target = false
+				_build_ability_tiles()
+				
+		if Input.is_action_just_pressed("interact") and not ability_tiles.is_empty():
+			if not has_ability_target:
+				has_ability_target = true
+				_redraw_ability_confirm()
+			else:
+				_execute_ability()
+			
+		if Input.is_action_just_pressed("cancel"):
+			if has_ability_target:
+				has_ability_target = false
+				_build_ability_tiles()
+			else:
+				_exit_ability_mode()
 
 func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
@@ -346,7 +404,10 @@ func _execute_ability() -> void:
 			"mp": mp_budget -= cost[resource]
 	
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
-	ability_instance.execute(combatant, ability_tiles, combatants, world_layer)
+	animating = true
+	await ability_instance.execute(combatant, ability_tiles, combatants, world_layer)
+	animating = false
+	player_tile = world_layer.local_to_map(combatant.global_position)
 	_exit_ability_mode()
 	
 func _exit_ability_mode() -> void:
