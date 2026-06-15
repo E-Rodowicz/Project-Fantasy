@@ -58,6 +58,9 @@ func _on_body_exited(body: Node2D) -> void:
 func _on_player_moved() -> void:
 	if player_in_range and player_ref and not battle_triggered:
 		if _has_line_of_sight(player_ref):
+			await get_tree().physics_frame
+			if battle_triggered:
+				return
 			var combatants = _gather_combatants()
 			battle_triggered = true
 			BattleManager.start_battle(combatants)

@@ -58,3 +58,9 @@ func _get_speed(combatant: Node) -> float:
 	if combatant.is_in_group("player"):
 		return float(PlayerData.speed)
 	return float(combatant.stats.speed)
+	
+func add_combatant(combatant: Node) -> void:
+	if combatant in combatants:
+		return
+	combatants.append(combatant)
+	accumulators[combatant] = 0.0

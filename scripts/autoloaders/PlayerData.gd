@@ -92,6 +92,8 @@ var journal: Dictionary = {}
 func _ready() -> void:
 	learn_ability("cleave")
 	hotbar[1] = "cleave"
+	learn_ability("charge")
+	hotbar[2] = "charge"
 	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",

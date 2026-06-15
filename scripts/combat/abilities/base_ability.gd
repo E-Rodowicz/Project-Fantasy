@@ -43,3 +43,9 @@ func get_hit_modifier() -> float:
 	
 func get_hit_chance(target: Node) -> float:
 	return CombatantStats.hit_chance_for(target, get_hit_modifier())
+	
+func _deal_damage(target: Node, amount: int) -> void:
+	if target.is_in_group("player"):
+		PlayerData.take_damage(amount)
+	else:
+		target.take_damage(amount)

@@ -61,7 +61,4 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " cleaves " + target.name + " for " + str(final_damage) + ".")
-		if target.is_in_group("player"):
-			PlayerData.take_damage(final_damage)
-		else:
-			target.take_damage(final_damage)
+		_deal_damage(target, final_damage)
