@@ -139,6 +139,7 @@ func _cleanup() -> void:
 			c.process_mode = Node.PROCESS_MODE_INHERIT
 	
 	get_tree().paused = false
+	PlayerData.clear_status_effects()
 	combatants.clear()
 	turn_order = null
 	current_combatant = null

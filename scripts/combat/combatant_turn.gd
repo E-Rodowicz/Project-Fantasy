@@ -48,6 +48,7 @@ var ability_direction: Vector2i = Vector2i.ZERO
 var ability_tiles: Array = []
 var ability_instance: BaseAbility = null
 var has_ability_target: bool = false
+var status_processor: StatusEffectProcessor = StatusEffectProcessor.new()
 
 var active_hotbar_slot: int = -1
 
@@ -86,6 +87,11 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 	add_child(ui_root)
 	mp_label = _create_floating_label()
 	hit_label = _create_floating_label()
+	
+	var survived: bool = status_processor.process(combatant, combatants, world_layer)
+	if not survived:
+		turn_finished.emit()
+		return
 	
 	if ai_controlled:
 		# When a function uses await, it pauses at that line and lets the rest of the game keep
@@ -256,6 +262,9 @@ func _enter_ability_mode(ability_id: String) -> void:
 			"mp":
 				if mp_budget < amount:
 					return
+			"sc":
+				if PlayerData.get_spell_charges(ability.get("id", "")) < amount:
+					return
 	
 	ability_instance = AbilityDB.create_ability(ability_id)
 	if ability_instance == null:
@@ -312,6 +321,27 @@ func _enter_ability_mode(ability_id: String) -> void:
 			if count > best_count:
 				best_count = count
 				best_direction = dir
+		if best_direction != Vector2i.ZERO:
+			ability_direction = best_direction
+			_build_ability_tiles()
+			
+	elif ability_instance.get_targeting_type() == "touch":
+		var best_direction: Vector2i = Vector2i.ZERO
+		var directions: Array = [
+			Vector2i(0, -1), Vector2i(0, 1),
+			Vector2i(-1, 0), Vector2i(1, 0),
+			Vector2i(-1, -1), Vector2i(1, -1),
+			Vector2i(-1, 1), Vector2i(1, 1)
+		]
+		
+		for dir in directions:
+			var tile: Vector2i = player_tile + dir
+			if world_layer.get_cell_source_id(tile) != -1:
+				continue
+			if _tile_has_combatant(tile):
+				best_direction = dir
+				break
+		
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
@@ -383,6 +413,40 @@ func _handle_ability_input() -> void:
 				_build_ability_tiles()
 			else:
 				_exit_ability_mode()
+				
+	elif active_ability.get("targeting") == "touch":
+		var any_pressed: bool = (
+			Input.is_action_just_pressed("ui_up") or
+			Input.is_action_just_pressed("ui_down") or
+			Input.is_action_just_pressed("ui_left") or
+			Input.is_action_just_pressed("ui_right")
+		)
+		
+		if any_pressed:
+			var new_direction: Vector2i = Vector2i.ZERO
+			if Input.is_action_pressed("ui_up"): new_direction.y -= 1
+			if Input.is_action_pressed("ui_down"): new_direction.y += 1
+			if Input.is_action_pressed("ui_left"): new_direction.x -= 1
+			if Input.is_action_pressed("ui_right"): new_direction.x += 1
+			
+			if new_direction != Vector2i.ZERO:
+				ability_direction = new_direction
+				has_ability_target = false
+				_build_ability_tiles()
+				
+		if Input.is_action_just_pressed("interact") and not ability_tiles.is_empty():
+			if not has_ability_target:
+				has_ability_target = true
+				_redraw_ability_confirm()
+			else:
+				_execute_ability()
+			
+		if Input.is_action_just_pressed("cancel"):
+			if has_ability_target:
+				has_ability_target = false
+				_build_ability_tiles()
+			else:
+				_exit_ability_mode()
 
 func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
@@ -407,6 +471,7 @@ func _execute_ability() -> void:
 			"ap": ap_remaining -= cost[resource]
 			"bp": bp_remaining -= cost[resource]
 			"mp": mp_budget -= cost[resource]
+			"sc": PlayerData.use_spell_charge(active_ability.get("id", ""))
 	
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
 	animating = true

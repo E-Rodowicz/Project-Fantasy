@@ -44,8 +44,14 @@ var learned_abilities: Array = []
 
 var max_hp: int = 100
 var current_hp: int = 100
-var bp_max: int = 1
+var bp_max: int = 10
 var ap_max: int = 0
+# Spell Charges. Per-ability charge pools for blue tree spells.
+# Key: ability_id (String), Value: current charges remaining (int).
+var spell_charges: Dictionary = {}
+# Status effects active on the player.
+# Key: effect_id (String), Value: number of stacks (int).
+var status_effects: Dictionary = {}
 var mp_override: int = -1
 
 const BASE_MP: int = 5
@@ -94,6 +100,8 @@ func _ready() -> void:
 	hotbar[1] = "cleave"
 	learn_ability("charge")
 	hotbar[2] = "charge"
+	learn_ability("flametouch")
+	hotbar[3] = "flametouch"
 	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",
@@ -294,6 +302,11 @@ func has_ability(ability_id: String) -> bool:
 func learn_ability(ability_id: String) -> void:
 	if ability_id not in learned_abilities:
 		learned_abilities.append(ability_id)
+		# The lines below add SC to specific spells when the abilties are acquired.
+		var ability: Dictionary = AbilityDB.get_ability(ability_id)
+		var max_sc: int = ability.get("max_sc", 0)
+		if max_sc > 0:
+			spell_charges[ability_id] = max_sc
 		
 # ============================================================
 # HOTBAR
@@ -332,3 +345,41 @@ func get_hotbar_slot_from_event(event: InputEvent) -> int:
 		if event.is_action_pressed(action_map[i]) and not event.is_echo():
 			return i
 	return -1
+	
+# ============================================================
+# FUNCTIONS - SPELL CHARGES
+# ============================================================
+func get_spell_charges(ability_id: String) -> int:
+	if not spell_charges.has(ability_id):
+		return 0
+	return spell_charges[ability_id]
+
+func use_spell_charge(ability_id: String) -> void:
+	if spell_charges.has(ability_id) and spell_charges[ability_id] > 0:
+		spell_charges[ability_id] -= 1
+		
+func restore_spell_charges(ability_id: String) -> void:
+	var ability: Dictionary = AbilityDB.get_ability(ability_id)
+	spell_charges[ability_id] = ability.get("max_sc", 0)
+	
+func restore_all_spell_charges() -> void:
+	for ability_id in spell_charges.keys():
+		restore_spell_charges(ability_id)
+
+# ============================================================
+# FUNCTIONS - STATUS EFFECTS
+# ============================================================
+func get_status_stacks(effect_id: String) -> int:
+	return status_effects.get(effect_id, 0)
+	
+func add_status_effect(effect_id: String, stacks: int) -> void:
+	status_effects[effect_id] = status_effects.get(effect_id, 0) + stacks
+	
+func remove_status_stacks(effect_id: String, amount: int) -> void:
+	if status_effects.has(effect_id):
+		status_effects[effect_id] -= amount
+		if status_effects[effect_id] <= 0:
+			status_effects.erase(effect_id)
+			
+func clear_status_effects() -> void:
+	status_effects.clear()

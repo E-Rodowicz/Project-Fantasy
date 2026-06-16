@@ -244,7 +244,7 @@ material = SubResource("CanvasItemMaterial_0lift")
 tile_set = SubResource("TileSet_f1v6p")
 
 [node name="player" parent="." unique_id=988403666 instance=ExtResource("1_tsias")]
-position = Vector2(-200, -248)
+position = Vector2(-152, -184)
 
 [node name="barrel" parent="." unique_id=1627460681 instance=ExtResource("3_lfyvx")]
 position = Vector2(-120, 8)

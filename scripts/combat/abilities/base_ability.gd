@@ -49,3 +49,9 @@ func _deal_damage(target: Node, amount: int) -> void:
 		PlayerData.take_damage(amount)
 	else:
 		target.take_damage(amount)
+		
+func _apply_status_effect(target: Node, effect_id: String, stacks: int) -> void:
+	if target.is_in_group("player"):
+		PlayerData.add_status_effect(effect_id, stacks)
+	else:
+		target.add_status_effect(effect_id, stacks)

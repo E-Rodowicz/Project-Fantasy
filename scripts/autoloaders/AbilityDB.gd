@@ -1,6 +1,8 @@
 extends Node
 
 var abilities: Dictionary = {
+	# ------------ RED ------------
+	# ------------ LEVEL 2 ------------
 	"cleave": {
 		"id": "cleave",
 		"name": "Cleave",
@@ -32,6 +34,24 @@ var abilities: Dictionary = {
 		"hit_modifier": 0.0,
 		"description": "Charges in a line, hitting targets along the way for 50% damage. Endpoint target takes 100% and is pushed. No room to push? 300% crush damage instead."
 		},
+	# ------------ GREEN ------------
+	# ------------ LEVEL 2 ------------
+	# N/A
+	# ------------ BLUE ------------
+	# ------------ LEVEL 2 ------------
+	"flametouch": {
+		"id": "flametouch",
+		"name": "Flametouch",
+		"tree": "blue",
+		"level_req": 2,
+		"cost": {"bp": 1, "sc": 1},
+		"sp_cost": 3,
+		"targeting": "touch",
+		"damage_percent": 2.0,
+		"hit_modifier": 0.0,
+		"max_sc": 8,
+		"description": "Touch an opponent, setting them aflame for 200% damage. Applies Fire (1)."
+		},
 }
 
 func get_ability(ability_id: String) -> Dictionary:
@@ -51,6 +71,8 @@ func create_ability(ability_id: String) -> BaseAbility:
 			instance = CleaveAbility.new()
 		"charge":
 			instance = ChargeAbility.new()
+		"flametouch":
+			instance = FlameTouchAbility.new()
 	
 	if instance != null:
 		instance.setup(abilities[ability_id])

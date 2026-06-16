@@ -13,6 +13,7 @@ var player_in_range: bool = false
 var player_ref: Node2D = null
 var battle_triggered: bool = false
 var current_hp: int = 0
+var status_effects: Dictionary = {}
 
 var detection_range: float = 0.0
 
@@ -118,3 +119,15 @@ func _gather_combatants() -> Array:
 	print("ITS TRUE!")
 	print(combatants)
 	return combatants
+	
+func get_status_stacks(effect_id: String) -> int:
+	return status_effects.get(effect_id, 0)
+
+func add_status_effect(effect_id: String, stacks: int) -> void:
+	status_effects[effect_id] = status_effects.get(effect_id, 0) + stacks
+
+func remove_status_stacks(effect_id: String, amount: int) -> void:
+	if status_effects.has(effect_id):
+		status_effects[effect_id] -= amount
+		if status_effects[effect_id] <= 0:
+			status_effects.erase(effect_id)
