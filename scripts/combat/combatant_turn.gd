@@ -194,6 +194,8 @@ func _handle_hotbar_press(slot: int) -> void:
 func _create_floating_label() -> Label:
 	var label: Label = Label.new()
 	var font: Font = preload("res://assets/fonts/m3x6.ttf")
+	# Material for the text so its completely unshaded.
+	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
 	label.z_index = 100
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -204,6 +206,9 @@ func _create_floating_label() -> Label:
 	label.add_theme_constant_override("outline_size", 2)
 	label.visible = false
 	ui_root.add_child(label)
+	# Makes the text unshaded by the world (This is needed as its not under canvaslayer).
+	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	label.material = mat
 
 	return label
 
@@ -408,6 +413,7 @@ func _execute_ability() -> void:
 	await ability_instance.execute(combatant, ability_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
+	BattleManager.check_for_reinforcements()
 	_exit_ability_mode()
 	
 func _exit_ability_mode() -> void:
@@ -606,6 +612,7 @@ func _execute_move() -> void:
 	# Recalculate the reachables with the remaining MP amount.
 	_recalculate_reachable()
 	_redraw()
+	BattleManager.check_for_reinforcements()
 
 func _recalculate_reachable() -> void:
 	var blocked := _combatant_tiles()
@@ -872,6 +879,7 @@ func _run_ai() -> void:
 		var move_cost: int = reachable[destination]
 		mp_budget -= move_cost
 		CombatLog.add(combatant.name + " moves. (" + str(move_cost) + " MP)")
+		BattleManager.check_for_reinforcements()
 		
 	# After moving, it checks if target is adjacent and attacks.
 	if _is_adjacent(player_tile, target_tile) and bp_remaining > 0:

@@ -40,6 +40,7 @@ func start_battle(combatant_list: Array) -> void:
 func _next_turn() -> void:
 	if not active:
 		return
+	check_for_reinforcements()
 	current_combatant = turn_order.get_next_turn()
 	CombatLog.add(current_combatant.name + "'s turn.")
 	
@@ -141,3 +142,32 @@ func _cleanup() -> void:
 	combatants.clear()
 	turn_order = null
 	current_combatant = null
+	
+func add_combatant(new_combatant: Node) -> void:
+	if new_combatant in combatants:
+		return
+	new_combatant.battle_triggered = true
+	new_combatant.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	turn_order.add_combatant(new_combatant)
+	CombatLog.add(new_combatant.name + " has joined the battle.")
+	
+func check_for_reinforcements() -> void:
+	var all_enemies: Array = get_tree().get_nodes_in_group("enemy")
+	
+	for enemy in all_enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy in combatants:
+			continue
+		if enemy.battle_triggered:
+			continue
+			
+		# Check if any current combatant is within this enemy's detection range.
+		for combatant in combatants:
+			if not is_instance_valid(combatant):
+				continue
+			var dist_sq: float = enemy.global_position.distance_squared_to(combatant.global_position)
+			if dist_sq <= enemy.detection_range * enemy.detection_range:
+				if enemy._has_line_of_sight(combatant):
+					add_combatant(enemy)
+					break

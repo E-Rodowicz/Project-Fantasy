@@ -14,6 +14,8 @@ var player_ref: Node2D = null
 var battle_triggered: bool = false
 var current_hp: int = 0
 
+var detection_range: float = 0.0
+
 @onready var vision_area = $vision_area
 
 @export var stats: CombatantStats
@@ -26,6 +28,10 @@ func _ready() -> void:
 	vision_area.body_entered.connect(_on_body_entered)
 	vision_area.body_exited.connect(_on_body_exited)
 	current_hp = stats.get_max_hp()
+	for child in vision_area.get_children():
+		if child is CollisionShape2D and child.shape is CircleShape2D:
+			detection_range = child.shape.radius
+			break
 			
 func take_damage(amount: int) -> void:
 	current_hp = max(0, current_hp - amount)
