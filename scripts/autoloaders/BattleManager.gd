@@ -92,6 +92,7 @@ func _on_enemy_turn_finished(enemy_turn: CombatantTurn) -> void:
 func end_turn() -> void:
 	if not active:
 		return
+	CombatLog.add("----------------------------------")
 	await get_tree().process_frame
 	_next_turn()
 

@@ -50,6 +50,8 @@ var ability_instance: BaseAbility = null
 var has_ability_target: bool = false
 var status_processor: StatusEffectProcessor = StatusEffectProcessor.new()
 
+var blink_landing_tile: Vector2i = Vector2i.ZERO
+
 var active_hotbar_slot: int = -1
 
 const CURSOR_MOVE_RATE: float = 0.12
@@ -345,7 +347,26 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
-			
+		
+	elif ability_instance.get_targeting_type() == "blink":
+		_build_ability_tiles()
+		if ability_tiles.is_empty():
+			mode = Mode.MOVE
+			active_ability = {}
+			ability_instance = null
+			return
+		
+		# Places cursor on nearest target.
+		var best_tile: Vector2i = ability_tiles[0]
+		var best_dist: int = 999
+		for tile in ability_tiles:
+			var dist: int = maxi(abs(tile.x - player_tile.x), abs(tile.y - player_tile.y))
+			if dist < best_dist:
+				best_dist = dist
+				best_tile = tile
+		cursor_tile = best_tile
+		overlay.paint_purple(cursor_tile)
+		
 	_update_floating_labels()
 
 func _handle_ability_input() -> void:
@@ -448,6 +469,85 @@ func _handle_ability_input() -> void:
 			else:
 				_exit_ability_mode()
 
+	elif active_ability.get("targeting") == "blink":
+		if not has_ability_target:
+			# Phase 1: selecting landing tile.
+			var moved: bool = false
+			if Input.is_action_just_pressed("ui_up"):
+				cursor_tile.y -= 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_down"):
+				cursor_tile.y += 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_left"):
+				cursor_tile.x -= 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_right"):
+				cursor_tile.x += 1
+				moved = true
+			
+			if moved:
+				_build_ability_tiles()
+				if cursor_tile in ability_tiles:
+					overlay.paint_purple(cursor_tile)
+				else:
+					overlay.paint_grey(cursor_tile)
+			
+			if Input.is_action_just_pressed("interact") and cursor_tile in ability_tiles:
+				has_ability_target = true
+				blink_landing_tile = cursor_tile
+				var directions: Array = [
+					Vector2i(0, -1), Vector2i(0, 1),
+					Vector2i(-1, 0), Vector2i(1, 0),
+					Vector2i(-1, -1), Vector2i(1, -1),
+					Vector2i(-1, 1), Vector2i(1, 1)
+				]
+				for dir in directions:
+					var tile: Vector2i = blink_landing_tile + dir
+					if world_layer.get_cell_source_id(tile) != -1:
+						continue
+					if _tile_has_combatant(tile):
+						cursor_tile = tile
+						break
+				_redraw_blink_target_select()
+			
+			if Input.is_action_just_pressed("cancel"):
+				_exit_ability_mode()
+		
+		else:
+			# Phase 2: aim attack direction from landing tile.
+			var any_pressed: bool = (
+				Input.is_action_just_pressed("ui_up") or
+				Input.is_action_just_pressed("ui_down") or
+				Input.is_action_just_pressed("ui_left") or
+				Input.is_action_just_pressed("ui_right")
+			)
+			
+			if any_pressed:
+				var dir: Vector2i = Vector2i.ZERO
+				if Input.is_action_pressed("ui_up"): dir.y -= 1
+				if Input.is_action_pressed("ui_down"): dir.y += 1
+				if Input.is_action_pressed("ui_left"): dir.x -= 1
+				if Input.is_action_pressed("ui_right"): dir.x += 1
+				
+				if dir != Vector2i.ZERO:
+					var wanted: Vector2i = blink_landing_tile + dir
+					if world_layer.get_cell_source_id(wanted) == -1:
+						cursor_tile = wanted
+						_redraw_blink_target_select()
+			
+			if Input.is_action_just_pressed("interact"):
+				_execute_ability()
+			
+			if Input.is_action_just_pressed("cancel"):
+				has_ability_target = false
+				_build_ability_tiles()
+				cursor_tile = blink_landing_tile
+				if cursor_tile in ability_tiles:
+					overlay.paint_purple(cursor_tile)
+				else:
+					overlay.paint_grey(cursor_tile)
+
 func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
 	for tile in ability_tiles:
@@ -475,7 +575,10 @@ func _execute_ability() -> void:
 	
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
 	animating = true
-	await ability_instance.execute(combatant, ability_tiles, combatants, world_layer)
+	var execute_tiles: Array = ability_tiles
+	if active_ability.get("targeting") == "blink":
+		execute_tiles = [blink_landing_tile, cursor_tile]
+	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
 	BattleManager.check_for_reinforcements()
@@ -489,6 +592,7 @@ func _exit_ability_mode() -> void:
 	active_hotbar_slot = -1
 	ability_instance = null
 	has_ability_target = false
+	blink_landing_tile = Vector2i.ZERO
 	cursor_tile = player_tile
 	_recalculate_reachable()
 	_redraw()
@@ -851,6 +955,12 @@ func _roll_damage() -> int:
 		return randi_range(combatant.stats.base_damage_min, combatant.stats.base_damage_max)
 
 func _try_attack(target: Node) -> void:
+	# Blink dodge: separate roll before regular dodge.
+	if target.is_in_group("player") and PlayerData.get_status_stacks("blink_dodge") > 0:
+		if randf() < 0.33:
+			CombatLog.add(target.name + " blink-dodges " + combatant.name + "'s attack!")
+			PlayerData.remove_status_stacks("blink_dodge", 1)
+			return
 	var hit_chance: float = CombatantStats.hit_chance_for(target, 0.0)
 	if randf() >= hit_chance:
 		CombatLog.add(combatant.name + " attacks " + target.name + " but misses!")
@@ -902,6 +1012,15 @@ func _redraw_attack() -> void:
 			overlay.paint_purple(cursor_tile)
 		else:
 			overlay.paint_yellow(cursor_tile)
+	_update_floating_labels()
+
+func _redraw_blink_target_select() -> void:
+	overlay.clear_all()
+	overlay.paint_bright_green(blink_landing_tile)
+	if _tile_has_combatant(cursor_tile):
+		overlay.paint_purple(cursor_tile)
+	else:
+		overlay.paint_yellow(cursor_tile)
 	_update_floating_labels()
 
 func end_turn() -> void:
@@ -1051,9 +1170,13 @@ func _targeted_enemy_tiles() -> Array:
 		if _tile_has_combatant(cursor_tile):
 			result.append(cursor_tile)
 	elif mode == Mode.ABILITY:
-		for tile in ability_tiles:
-			if _tile_has_combatant(tile):
-				result.append(tile)
+		if active_ability.get("targeting") == "blink" and has_ability_target:
+			if _tile_has_combatant(cursor_tile):
+				result.append(cursor_tile)
+		else:
+			for tile in ability_tiles:
+				if _tile_has_combatant(tile):
+					result.append(tile)
 	return result
 
 func _hit_chance_against(target: Node) -> float:

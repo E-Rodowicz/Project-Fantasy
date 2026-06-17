@@ -284,7 +284,7 @@ environment = SubResource("Environment_w2p53")
 occluder = SubResource("OccluderPolygon2D_w2p53")
 
 [node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("5_7xgas")]
-position = Vector2(-248, -312)
+position = Vector2(-104, -280)
 stats = ExtResource("6_gy5pc")
 
 [node name="enemy_test2" parent="." unique_id=984877115 instance=ExtResource("5_7xgas")]

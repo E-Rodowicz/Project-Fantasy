@@ -102,6 +102,10 @@ func _ready() -> void:
 	hotbar[2] = "charge"
 	learn_ability("flametouch")
 	hotbar[3] = "flametouch"
+	learn_ability("bolt")
+	hotbar[4] = "bolt"
+	learn_ability("blink")
+	hotbar[5] = "blink"
 	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",

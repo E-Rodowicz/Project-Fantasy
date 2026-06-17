@@ -12,6 +12,7 @@ func process(p_combatant: Node, p_combatants: Array, p_world_layer: TileMapLayer
 	world_layer = p_world_layer
 	
 	_process_fire()
+	_process_blink_dodge()
 	
 	return _is_alive()
 	
@@ -99,6 +100,13 @@ func _is_alive() -> bool:
 	if combatant.is_in_group("player"):
 		return PlayerData.current_hp > 0
 	return combatant.current_hp > 0
+	
+func _process_blink_dodge() -> void:
+	if not combatant.is_in_group("player"):
+		return
+	if _get_stacks("blink_dodge") > 0:
+		_remove_stacks("blink_dodge", 1)
+		CombatLog.add("Blink dodge fades.")
 
 # ============================================================
 # HELPERS — arbitrary target (for spread)
