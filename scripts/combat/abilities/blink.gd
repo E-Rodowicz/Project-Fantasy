@@ -1,10 +1,29 @@
 class_name BlinkAbility
 extends BaseAbility
 
-func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: TileMapLayer) -> Array:
+func get_target_tiles(player_tile: Vector2i, _direction: Vector2i, world_layer: TileMapLayer) -> Array:
 	var blink_range: int = data.get("blink_range", 6)
 	var all_combatants: Array = BattleManager.combatants
+	var all_enemies: Array = world_layer.get_tree().get_nodes_in_group("enemy")
 	var valid: Array = []
+	
+	# Pre-compute occupied tiles (can't land on anyone).
+	var occupied_tiles: Array = []
+	for c in all_combatants:
+		if is_instance_valid(c):
+			occupied_tiles.append(world_layer.local_to_map(c.global_position))
+	for e in all_enemies:
+		if is_instance_valid(e) and e not in all_combatants:
+			occupied_tiles.append(world_layer.local_to_map(e.global_position))
+	
+	# Pre-compute enemy tiles (must land adjacent to one).
+	var enemy_tiles: Array = []
+	for c in all_combatants:
+		if is_instance_valid(c) and not c.is_in_group("player"):
+			enemy_tiles.append(world_layer.local_to_map(c.global_position))
+	for e in all_enemies:
+		if is_instance_valid(e) and e not in all_combatants:
+			enemy_tiles.append(world_layer.local_to_map(e.global_position))
 	
 	for dx in range(-blink_range, blink_range + 1):
 		for dy in range(-blink_range, blink_range + 1):
@@ -13,24 +32,13 @@ func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: T
 			if maxi(abs(dx), abs(dy)) > blink_range:
 				continue
 			var tile: Vector2i = player_tile + Vector2i(dx, dy)
-			# Not a wall.
 			if world_layer.get_cell_source_id(tile) != -1:
 				continue
-			# Not occupied by any combatant.
-			var occupied: bool = false
-			for c in all_combatants:
-				if is_instance_valid(c) and world_layer.local_to_map(c.global_position) == tile:
-					occupied = true
-					break
-			if occupied:
+			if tile in occupied_tiles:
 				continue
-			# Must be adjacent to at least one enemy.
 			var near_enemy: bool = false
-			for c in all_combatants:
-				if not is_instance_valid(c) or c.is_in_group("player"):
-					continue
-				var c_tile: Vector2i = world_layer.local_to_map(c.global_position)
-				if abs(c_tile.x - tile.x) <= 1 and abs(c_tile.y - tile.y) <= 1:
+			for e_tile in enemy_tiles:
+				if abs(e_tile.x - tile.x) <= 1 and abs(e_tile.y - tile.y) <= 1:
 					near_enemy = true
 					break
 			if near_enemy:

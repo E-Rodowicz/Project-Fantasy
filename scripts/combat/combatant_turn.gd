@@ -250,8 +250,8 @@ func _update_floating_labels() -> void:
 	_update_hit_labels()
 		
 	# Hit label belongs to ATTACK mode, on an enemy.
-	if mode == Mode.ATTACK and _tile_has_combatant(cursor_tile):
-		var target: Node = _combatant_on_tile(cursor_tile)
+	if mode == Mode.ATTACK and _tile_has_combatant(cursor_tile, true):
+		var target: Node = _combatant_on_tile(cursor_tile, true)
 		if target != null:
 			var hit_chance: float = 1.0 - _get_dodge_chance(target)
 			hit_label.text = str(roundi(hit_chance * 100)) + "%"
@@ -576,7 +576,7 @@ func _build_ability_tiles() -> void:
 	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
 	overlay.clear_all()
 	for tile in ability_tiles:
-		if _tile_has_combatant(tile):
+		if _tile_has_combatant(tile, true):
 			overlay.paint_purple(tile)
 		else:
 			overlay.paint_yellow(tile)
@@ -596,6 +596,13 @@ func _execute_ability() -> void:
 	var execute_tiles: Array = ability_tiles
 	if active_ability.get("targeting") == "blink":
 		execute_tiles = [blink_landing_tile, cursor_tile]
+		
+	# Engage any non-combat enemies on targeted tiles before executing.
+	for tile in execute_tiles:
+		var target: Node = _combatant_on_tile(tile, true)
+		if target != null:
+			_engage_if_needed(target)
+		
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
@@ -842,8 +849,6 @@ func _calculate_ranged_area(weapon_range: int) -> Array:
 	var max_dist: int = weapon_range / 2 + 1
 	for dx in range(-max_dist, max_dist + 1):
 		for dy in range(-max_dist, max_dist + 1):
-			if dx == 0 and dy == 0:
-				continue
 			var mn: int = mini(abs(dx), abs(dy))
 			var mx: int = maxi(abs(dx), abs(dy))
 			var cost: int = mn * 3 + (mx - mn) * 2
@@ -868,12 +873,18 @@ func _paint_cursor() -> void:
 	else:
 		overlay.paint_grey(cursor_tile)
 
-func _tile_has_combatant(tile: Vector2i) -> bool:
+func _tile_has_combatant(tile: Vector2i, include_non_combat: bool = false) -> bool:
 	for c in combatants:
 		if c == combatant:
 			continue
 		if world_layer.local_to_map(c.global_position) == tile:
 			return true
+	if include_non_combat:
+		for e in get_tree().get_nodes_in_group("enemy"):
+			if not is_instance_valid(e) or e in combatants:
+				continue
+			if world_layer.local_to_map(e.global_position) == tile:
+				return true
 	return false
 
 func _combatant_tiles() -> Array:
@@ -990,11 +1001,14 @@ func _on_attack_confirm() -> void:
 	# Ranged attack.
 	if PlayerData.is_ranged_weapon_equipped():
 		if not has_target:
-			if not ranged_target_tiles.is_empty():
+			if cursor_tile in ranged_area_tiles:
 				has_target = true
 				overlay.clear_all()
+				for tile in ranged_area_tiles:
+					overlay.paint_light_blue(tile)
 				for tile in ranged_target_tiles:
 					overlay.paint_bright_green(tile)
+				overlay.paint_bright_green(cursor_tile)
 				_update_floating_labels()
 			return
 		_execute_ranged_attack()
@@ -1002,7 +1016,7 @@ func _on_attack_confirm() -> void:
 	
 	# Melee attack.
 	if not has_target:
-		if cursor_tile in attack_range_tiles and _tile_has_combatant(cursor_tile):
+		if cursor_tile in attack_range_tiles and _tile_has_combatant(cursor_tile, true):
 			attack_target = cursor_tile
 			has_target = true
 			_redraw()
@@ -1022,7 +1036,7 @@ func _on_attack_cancel() -> void:
 
 # Apply the damage and end the turn.
 func _execute_attack() -> void:
-	var target := _combatant_on_tile(attack_target)
+	var target := _combatant_on_tile(attack_target, true)
 	if target == null:
 		_exit_attack_mode()
 		return
@@ -1040,7 +1054,41 @@ func _execute_attack() -> void:
 	_exit_attack_mode()
 
 func _execute_ranged_attack() -> void:
-	CombatLog.add("Ranged attack — execution not yet implemented.")
+	var weapon: Dictionary = PlayerData.get_equipped_weapon()
+	var weapon_range: int = weapon.get("weapon_range", 12)
+	var penetration_remaining: int = weapon.get("penetration", 0)
+	
+	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
+	var range_used: int = 0
+	var targets_hit: Array = []
+	
+	# Walk the projectile path, collecting targets.
+	for i in range(1, line.size()):
+		var tile: Vector2i = line[i]
+		var prev: Vector2i = line[i - 1]
+		var dx: int = abs(tile.x - prev.x)
+		var dy: int = abs(tile.y - prev.y)
+		range_used += 3 if (dx != 0 and dy != 0) else 2
+		if range_used > weapon_range:
+			break
+		if world_layer.get_cell_source_id(tile) != -1:
+			break
+		var target: Node = _combatant_on_tile(tile, true)
+		if target != null:
+			targets_hit.append(target)
+			if penetration_remaining <= 0:
+				break
+			penetration_remaining -= 1
+	
+	# Resolve the attack.
+	if targets_hit.is_empty():
+		CombatLog.add(combatant.name + " fires but hits nothing!")
+	else:
+		for target in targets_hit:
+			_engage_if_needed(target)
+			_try_attack(target)
+	
+	bp_remaining -= 1
 	has_target = false
 	_exit_attack_mode()
 
@@ -1104,12 +1152,18 @@ func _apply_damage(target: Node, amount: int) -> void:
 
 # Returns the combatant node standing on a tile, or null. Skips the player so you
 # can never target yourself.
-func _combatant_on_tile(tile: Vector2i) -> Node:
+func _combatant_on_tile(tile: Vector2i, include_non_combat: bool = false) -> Node:
 	for c in combatants:
 		if c == combatant:
 			continue
 		if world_layer.local_to_map(c.global_position) == tile:
 			return c
+	if include_non_combat:
+		for e in get_tree().get_nodes_in_group("enemy"):
+			if not is_instance_valid(e) or e in combatants:
+				continue
+			if world_layer.local_to_map(e.global_position) == tile:
+				return e
 	return null
 
 # Draws the attack overlay: the whole range in red, the hover/target state on top.
@@ -1117,7 +1171,7 @@ func _redraw_attack() -> void:
 	if has_target:
 		overlay.paint_bright_green(attack_target)
 	elif cursor_tile != player_tile:
-		if _tile_has_combatant(cursor_tile):
+		if _tile_has_combatant(cursor_tile, true):
 			overlay.paint_purple(cursor_tile)
 		else:
 			overlay.paint_yellow(cursor_tile)
@@ -1173,7 +1227,7 @@ func _redraw_ranged_attack() -> void:
 			continue
 			
 		# Enemy on tile.
-		if _tile_has_combatant(tile):
+		if _tile_has_combatant(tile, true):
 			overlay.paint_purple(tile)
 			ranged_target_tiles.append(tile)
 			if penetration_remaining <= 0:
@@ -1190,7 +1244,7 @@ func _redraw_ranged_attack() -> void:
 func _redraw_blink_target_select() -> void:
 	overlay.clear_all()
 	overlay.paint_bright_green(blink_landing_tile)
-	if _tile_has_combatant(cursor_tile):
+	if _tile_has_combatant(cursor_tile, true):
 		overlay.paint_purple(cursor_tile)
 	else:
 		overlay.paint_yellow(cursor_tile)
@@ -1344,15 +1398,15 @@ func _targeted_enemy_tiles() -> Array:
 			for tile in ranged_target_tiles:
 				result.append(tile)
 		else:
-			if _tile_has_combatant(cursor_tile):
+			if _tile_has_combatant(cursor_tile, true):
 				result.append(cursor_tile)
 	elif mode == Mode.ABILITY:
 		if active_ability.get("targeting") == "blink" and has_ability_target:
-			if _tile_has_combatant(cursor_tile):
+			if _tile_has_combatant(cursor_tile, true):
 				result.append(cursor_tile)
 		else:
 			for tile in ability_tiles:
-				if _tile_has_combatant(tile):
+				if _tile_has_combatant(tile, true):
 					result.append(tile)
 	return result
 
@@ -1367,10 +1421,14 @@ func _update_hit_labels() -> void:
 		hit_labels.append(_create_floating_label())
 	for i in range(hit_labels.size()):
 		if i < tiles.size():
-			var target: Node = _combatant_on_tile(tiles[i])
+			var target: Node = _combatant_on_tile(tiles[i], true)
 			var hit_chance: float = _hit_chance_against(target)
 			hit_labels[i].text = str(roundi(hit_chance * 100)) + "%"
 			hit_labels[i].position = world_layer.map_to_local(tiles[i]) + Vector2(6, -10)
 			hit_labels[i].visible = true
 		else:
 			hit_labels[i].visible = false
+
+func _engage_if_needed(target: Node) -> void:
+	if target.is_in_group("enemy") and target not in combatants:
+		BattleManager.add_combatant(target)

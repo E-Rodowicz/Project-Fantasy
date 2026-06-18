@@ -20,11 +20,13 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 # Find who is standing on a tile.
 func combatant_on_tile(tile: Vector2i, all_combatants: Array, world_layer: TileMapLayer) -> Node:
 	for c in all_combatants:
-		if not is_instance_valid(c):
-			continue
-		var c_tile: Vector2i = world_layer.local_to_map(c.global_position)
-		if c_tile == tile:
+		if world_layer.local_to_map(c.global_position) == tile:
 			return c
+	for e in world_layer.get_tree().get_nodes_in_group("enemy"):
+		if not is_instance_valid(e) or e in all_combatants:
+			continue
+		if world_layer.local_to_map(e.global_position) == tile:
+			return e
 	return null
 	
 # Roll weapon damage for the caster.
@@ -55,3 +57,7 @@ func _apply_status_effect(target: Node, effect_id: String, stacks: int) -> void:
 		PlayerData.add_status_effect(effect_id, stacks)
 	else:
 		target.add_status_effect(effect_id, stacks)
+		
+func _engage_if_needed(target: Node) -> void:
+	if target.is_in_group("enemy") and target not in BattleManager.combatants:
+		BattleManager.add_combatant(target)
