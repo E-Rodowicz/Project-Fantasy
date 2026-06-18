@@ -18,6 +18,7 @@ const YELLOW_COORDS := Vector2i(1, 8)
 const GREY_COORDS := Vector2i(2, 8)
 const RED_COORDS := Vector2i(3, 8)
 const PURPLE_COORDS := Vector2i(4, 8)
+const LIGHT_BLUE_COORDS := Vector2i(3, 7)
 
 # Terrain set and terrain indices for autotiled colours.
 const TERRAIN_SET: int = 0
@@ -108,7 +109,32 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 	for p in path_vectors:
 		result.append(Vector2i(int(p.x), int(p.y)))
 	return result
+
+# Bresenham's line algorithm.
+func get_line_tiles(from: Vector2i, to: Vector2i) -> Array:
+	var tiles: Array = []
+	var x: int = from.x
+	var y: int = from.y
+	var dx: int = abs(to.x - from.x)
+	var dy: int = abs(to.y - from.y)
+	var sx: int = 1 if from.x < to.x else -1
+	var sy: int = 1 if from.y < to.y else -1
+	var err: int = dx - dy
 	
+	while true:
+		tiles.append(Vector2i(x, y))
+		if x == to.x and y == to.y:
+			break
+		var e2: int = 2 * err
+		if e2 > -dy:
+			err -= dy
+			x += sx
+		if e2 < dx:
+			err += dx
+			y += sy
+			
+	return tiles
+
 func path_mp_cost(path: Array) -> int:
 	var total: int = 0
 	for i in range(1, path.size()):
@@ -157,6 +183,9 @@ func paint_red(tile: Vector2i) -> void:
 
 func paint_purple(tile: Vector2i) -> void:
 	paint_single(tile, PURPLE_COORDS)
+	
+func paint_light_blue(tile: Vector2i) -> void:
+	paint_single(tile, LIGHT_BLUE_COORDS)
 	
 # Calculates all tiles reachable from a starting tile within an MP budget. Returns a Dictionary
 # mapping Vector2i tile -> int cost to reach.

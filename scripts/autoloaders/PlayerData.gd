@@ -106,6 +106,7 @@ func _ready() -> void:
 	hotbar[4] = "bolt"
 	learn_ability("blink")
 	hotbar[5] = "blink"
+	equipped_items["slot_right_weapon"] = ItemDB.get_item("long_bow")
 	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",
@@ -167,6 +168,10 @@ func get_offhand_weapon() -> Dictionary:
 		if not left.is_empty() and left.get("type") == "weapon":
 			return left
 	return {}
+	
+func is_ranged_weapon_equipped() -> bool:
+	var weapon: Dictionary = get_equipped_weapon()
+	return weapon.get("ranged", false)
 	
 # This is just so that stats can be easily passed onto ItemDB to calculate weapon damage.
 func get_stats_dict() -> Dictionary:

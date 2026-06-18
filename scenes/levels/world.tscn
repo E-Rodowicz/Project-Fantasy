@@ -192,6 +192,7 @@ texture = ExtResource("7_0lift")
 3:8/0 = 0
 4:8/0 = 0
 4:7/0 = 0
+3:7/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_f1v6p"]
 terrain_set_0/mode = 2

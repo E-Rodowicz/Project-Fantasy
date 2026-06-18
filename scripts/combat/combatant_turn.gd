@@ -41,6 +41,8 @@ var attack_range_tiles: Array = []
 var attack_target: Vector2i = Vector2i.ZERO
 # True once the first E has locked a target, waiting for the second E to confirm.
 var has_target: bool = false
+var ranged_target_tiles: Array = []
+var ranged_area_tiles: Array = []
 
 # Ability vars.
 var active_ability: Dictionary = {}
@@ -117,17 +119,22 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_pressed("ui_left"): dir.x -= 1
 		if Input.is_action_pressed("ui_right"): dir.x += 1
 		if dir != Vector2i.ZERO:
+			# Cursor snaps to nearest target. Works for both melee and ranged.
 			if mode == Mode.ATTACK:
-				# In attack mode the cursor snaps to whichever attack tile
-				# is in the pressed direction relative to the player. If there
-				# is no valid tile that way (e.g. a wall), it stays put.
-				var wanted := player_tile + dir
-				# Checks the attack range and if the cursor is on screen.
-				if wanted in attack_range_tiles and _is_tile_on_screen(wanted):
-					cursor_tile = wanted
-					has_target = false
-				cursor_move_timer = CURSOR_MOVE_RATE
-				_redraw()
+				if PlayerData.is_ranged_weapon_equipped():
+					var new_tile: Vector2i = cursor_tile + dir
+					if _is_tile_on_screen(new_tile):
+						cursor_tile = new_tile
+						has_target = false
+					cursor_move_timer = CURSOR_MOVE_RATE
+					_redraw_ranged_attack()
+				else:
+					var wanted := player_tile + dir
+					if wanted in attack_range_tiles and _is_tile_on_screen(wanted):
+						cursor_tile = wanted
+						has_target = false
+					cursor_move_timer = CURSOR_MOVE_RATE
+					_redraw()
 			elif mode == Mode.MOVE:
 				var new_tile := cursor_tile + dir
 				if _is_tile_on_screen(new_tile):
@@ -221,11 +228,22 @@ func _create_floating_label() -> Label:
 	return label
 
 func _update_floating_labels() -> void:
-	# MP label belongs to MOVE mode, on a reachable tile that isn't the origin.
 	if mode == Mode.MOVE and reachable.has(cursor_tile) and cursor_tile != player_tile:
 		var total_cost: int = path_cost + reachable[cursor_tile]
 		mp_label.text = str(total_cost) + " MP"
 		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(-8, -6)
+		mp_label.visible = true
+	elif mode == Mode.ATTACK and PlayerData.is_ranged_weapon_equipped() and cursor_tile != player_tile:
+		var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
+		var range_cost: int = 0
+		for i in range(1, line.size()):
+			var prev: Vector2i = line[i - 1]
+			var curr: Vector2i = line[i]
+			var dx: int = abs(curr.x - prev.x)
+			var dy: int = abs(curr.y - prev.y)
+			range_cost += 3 if (dx != 0 and dy != 0) else 2
+		mp_label.text = str(range_cost) + "R"
+		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(3, -2)
 		mp_label.visible = true
 	else:
 		mp_label.visible = false
@@ -819,6 +837,29 @@ func _redraw() -> void:
 	else:
 		mp_label.visible = false
 
+func _calculate_ranged_area(weapon_range: int) -> Array:
+	var tiles: Array = []
+	var max_dist: int = weapon_range / 2 + 1
+	for dx in range(-max_dist, max_dist + 1):
+		for dy in range(-max_dist, max_dist + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var mn: int = mini(abs(dx), abs(dy))
+			var mx: int = maxi(abs(dx), abs(dy))
+			var cost: int = mn * 3 + (mx - mn) * 2
+			if cost > weapon_range:
+				continue
+			var tile: Vector2i = player_tile + Vector2i(dx, dy)
+			var line: Array = overlay.get_line_tiles(player_tile, tile)
+			var blocked: bool = false
+			for i in range(1, line.size()):
+				if world_layer.get_cell_source_id(line[i]) != -1:
+					blocked = true
+					break
+			if not blocked:
+				tiles.append(tile)
+	return tiles
+
 func _paint_cursor() -> void:
 	if not waypoints.is_empty() and cursor_tile == waypoints.back():
 		return
@@ -862,6 +903,54 @@ func _enter_attack_mode() -> void:
 	has_target = false
 	_build_attack_range()
 	
+	if PlayerData.is_ranged_weapon_equipped():
+		var weapon: Dictionary = PlayerData.get_equipped_weapon()
+		var weapon_range: int = weapon.get("weapon_range", 12)
+		var penetration: int = weapon.get("penetration", 0)
+		ranged_area_tiles = _calculate_ranged_area(weapon_range)
+		
+		# Auto-aim, finds the cursor target that hits the most enemies.
+		var best_cursor: Vector2i = player_tile
+		var best_count: int = 0
+		var best_dist: int = 999
+		
+		for c in combatants:
+			if c == combatant or not is_instance_valid(c):
+				continue
+			if c.is_in_group("player"):
+				continue
+			var c_tile: Vector2i = world_layer.local_to_map(c.global_position)
+			var line: Array = overlay.get_line_tiles(player_tile, c_tile)
+			var count: int = 0
+			var range_used: int = 0
+			var pen_remaining: int = penetration
+			
+			for i in range(1, line.size()):
+				var tile: Vector2i = line[i]
+				var prev: Vector2i = line[i - 1]
+				var dx: int = abs(tile.x - prev.x)
+				var dy: int = abs(tile.y - prev.y)
+				range_used += 3 if (dx != 0 and dy != 0) else 2
+				if range_used > weapon_range:
+					break
+				if world_layer.get_cell_source_id(tile) != -1:
+					break
+				if _tile_has_combatant(tile):
+					count += 1
+					if pen_remaining <= 0:
+						break
+					pen_remaining -= 1
+			
+			var dist: int = maxi(abs(c_tile.x - player_tile.x), abs(c_tile.y - player_tile.y))
+			if count > best_count or (count == best_count and dist < best_dist):
+				best_count = count
+				best_cursor = c_tile
+				best_dist = dist
+		
+		cursor_tile = best_cursor
+		_redraw_ranged_attack()
+		return
+	
 	# Snap the cursor onto the first adjacent enemy if there is one, so the common
 	# "one enemy right next to me" case is just: press 1, E, E.
 	cursor_tile = player_tile
@@ -876,6 +965,7 @@ func _exit_attack_mode() -> void:
 	mode = Mode.MOVE
 	has_target = false
 	attack_range_tiles.clear()
+	ranged_area_tiles.clear()
 	cursor_tile = player_tile
 	active_hotbar_slot = -1
 	_recalculate_reachable()
@@ -897,22 +987,36 @@ func _build_attack_range() -> void:
 
 # First E chooses a target, second E (without moving) confirms and resolves it.
 func _on_attack_confirm() -> void:
+	# Ranged attack.
+	if PlayerData.is_ranged_weapon_equipped():
+		if not has_target:
+			if not ranged_target_tiles.is_empty():
+				has_target = true
+				overlay.clear_all()
+				for tile in ranged_target_tiles:
+					overlay.paint_bright_green(tile)
+				_update_floating_labels()
+			return
+		_execute_ranged_attack()
+		return
+	
+	# Melee attack.
 	if not has_target:
-		# First press: only valid if the cursor is on an in-range tile that has an enemy.
 		if cursor_tile in attack_range_tiles and _tile_has_combatant(cursor_tile):
 			attack_target = cursor_tile
 			has_target = true
 			_redraw()
 		return
-	# Second press: the cursor is guaranteed to still be on the target (moving clears
-	# has_target), so resolve the attack.
 	_execute_attack()
 
 # Cancel (Q): first unlocks the target; if there's nothing to unlock, leaves attack mode.
 func _on_attack_cancel() -> void:
 	if has_target:
 		has_target = false
-		_redraw()
+		if PlayerData.is_ranged_weapon_equipped():
+			_redraw_ranged_attack()
+		else:
+			_redraw()
 	else:
 		_exit_attack_mode()
 
@@ -933,6 +1037,11 @@ func _execute_attack() -> void:
 		is_offhand_attack = false
 	
 	bp_remaining -= 1
+	_exit_attack_mode()
+
+func _execute_ranged_attack() -> void:
+	CombatLog.add("Ranged attack — execution not yet implemented.")
+	has_target = false
 	_exit_attack_mode()
 
 func _roll_damage() -> int:
@@ -1012,6 +1121,70 @@ func _redraw_attack() -> void:
 			overlay.paint_purple(cursor_tile)
 		else:
 			overlay.paint_yellow(cursor_tile)
+	_update_floating_labels()
+
+func _redraw_ranged_attack() -> void:
+	overlay.clear_all()
+	ranged_target_tiles.clear()
+	
+	# Paint range outline first (projectile path will overwrite specific tiles on top).
+	for tile in ranged_area_tiles:
+		overlay.paint_light_blue(tile)
+	
+	if cursor_tile == player_tile:
+		overlay.paint_grey(cursor_tile)
+		_update_floating_labels()
+		return
+	
+	if cursor_tile == player_tile:
+		_update_floating_labels()
+		return
+		
+	var weapon: Dictionary = PlayerData.get_equipped_weapon()
+	var weapon_range: int = weapon.get("weapon_range", 1)
+	var penetration_remaining: int = weapon.get("penetration", 0)
+	
+	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
+	var path_blocked: bool = false
+	var range_used: int = 0
+	
+	for i in range(1, line.size()):
+		var tile: Vector2i = line[i]
+		var prev_tile: Vector2i = line[i - 1]
+		var dx: int = abs(tile.x - prev_tile.x)
+		var dy: int = abs(tile.y - prev_tile.y)
+		var step_cost: int = 3 if (dx != 0 and dy != 0) else 2
+		range_used += step_cost
+		
+		# Walls.
+		if path_blocked:
+			overlay.paint_red(tile)
+			continue
+		
+		if world_layer.get_cell_source_id(tile) != -1:
+			overlay.paint_red(tile)
+			path_blocked = true
+			continue
+			
+		# Out of range.
+		if range_used > weapon_range:
+			overlay.paint_red(tile)
+			path_blocked = true
+			continue
+			
+		# Enemy on tile.
+		if _tile_has_combatant(tile):
+			overlay.paint_purple(tile)
+			ranged_target_tiles.append(tile)
+			if penetration_remaining <= 0:
+				path_blocked = true
+			else:
+				penetration_remaining -= 1
+			continue
+			
+		# Clear tile in range.
+		overlay.paint_yellow(tile)
+		
 	_update_floating_labels()
 
 func _redraw_blink_target_select() -> void:
@@ -1167,8 +1340,12 @@ func _get_dodge_chance(target: Node) -> float:
 func _targeted_enemy_tiles() -> Array:
 	var result: Array = []
 	if mode == Mode.ATTACK:
-		if _tile_has_combatant(cursor_tile):
-			result.append(cursor_tile)
+		if PlayerData.is_ranged_weapon_equipped():
+			for tile in ranged_target_tiles:
+				result.append(tile)
+		else:
+			if _tile_has_combatant(cursor_tile):
+				result.append(cursor_tile)
 	elif mode == Mode.ABILITY:
 		if active_ability.get("targeting") == "blink" and has_ability_target:
 			if _tile_has_combatant(cursor_tile):
