@@ -11,10 +11,65 @@ func process(p_combatant: Node, p_combatants: Array, p_world_layer: TileMapLayer
 	combatants = p_combatants
 	world_layer = p_world_layer
 	
+	_process_focus()
 	_process_fire()
 	_process_blink_dodge()
 	
 	return _is_alive()
+	
+# ============================================================
+# FOCUS
+# ============================================================
+func _process_focus() -> void:
+	if not combatant.is_in_group("player"):
+		return
+	if PlayerData.pending_focus.is_empty():
+		return
+		
+	var focus_data: Dictionary = PlayerData.pending_focus
+	PlayerData.pending_focus = {}
+	
+	var target: Node = focus_data.get("target")
+	if target == null or not is_instance_valid(target):
+		CombatLog.add(combatant.name + "'s focused shot finds no target!")
+		return
+		
+	var alive: bool = true
+	if target.is_in_group("player"):
+		alive = PlayerData.current_hp > 0
+	else:
+		alive = target.current_hp > 0
+	if not alive:
+		CombatLog.add(combatant.name + "'s focus target has already fallen!")
+		return
+		
+	var base_damage: int = focus_data.get("base_damage", 1)
+	var damage_percent: float = focus_data.get("damage_percent", 2.0)
+	var crit_chance: float = focus_data.get("crit_chance", 0.10)
+	var crit_percent: float = focus_data.get("crit_percent", 5.0)
+	var hit_modifier: float = focus_data.get("hit_modifier", 0.0)
+	
+	var is_crit: bool = randf() < crit_chance
+	if is_crit:
+		damage_percent = crit_percent
+		
+	var hit_chance: float = CombatantStats.hit_chance_for(target, hit_modifier)
+	if randf() >= hit_chance:
+		CombatLog.add(combatant.name + "'s focused shot misses " + target.name + "!")
+		return
+		
+	var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
+	if is_crit:
+		CombatLog.add("CRITICAL! " + combatant.name + "'s focused shot hits " + target.name + " for " + str(final_damage) + "!")
+	else:
+		CombatLog.add(combatant.name + "'s focused shot hits " + target.name + " for " + str(final_damage) + "!")
+		
+	if target.is_in_group("player"):
+		PlayerData.take_damage(final_damage)
+		if PlayerData.current_hp <= 0:
+			BattleManager.remove_combatant(target)
+	else:
+		target.take_damage(final_damage)
 	
 # ============================================================
 # FIRE

@@ -1,6 +1,5 @@
 [gd_scene format=4 uid="uid://3e78dgkpxish"]
 
-[ext_resource type="PackedScene" uid="uid://cro7mkhrgjj7u" path="res://scenes/entities/player/player.tscn" id="1_tsias"]
 [ext_resource type="Texture2D" uid="uid://bm8efun1xgjce" path="res://assets/sprites/stone_wall_test.png" id="2_7k8c1"]
 [ext_resource type="PackedScene" uid="uid://csowg64ha1rbf" path="res://scenes/items/barrel.tscn" id="3_lfyvx"]
 [ext_resource type="PackedScene" uid="uid://273ex68u0f8v" path="res://scenes/entities/npc/npc.tscn" id="4_w2p53"]
@@ -202,11 +201,6 @@ terrain_set_0/terrain_1/name = "mid_green"
 terrain_set_0/terrain_1/color = Color(0.4980392, 0.6772901, 0.99215686, 1)
 sources/0 = SubResource("TileSetAtlasSource_dp8al")
 
-[sub_resource type="Environment" id="Environment_w2p53"]
-glow_enabled = true
-glow_intensity = 2.77
-glow_bloom = 0.34
-
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_w2p53"]
 closed = false
 polygon = PackedVector2Array(40, -56, 24, -56, 24, -72, -8, -72, -8, -88, -120, -88, -120, -88, -120, -72, -152, -72, -152.00002, -57.971954, -152, -8, -136, -8, -136, 24, -120, 24, -120, 72, -72, 72, -72, 88, -40, 88, -40, 72, 24, 72, 40, 56, 24, 40, 40, 40, 40, 56, 88, 56, 40, 56, 40, 40, 40, 40, 56, 56, 120, 56, 120, 40, 168, 40, 168, 24, 200, 24, 216, 8, 216, -40, 232, -56, 232, -72, 216, -72, 216, -88, 200, -88, 200, -104, 184, -104, 184, -120, 168, -120, 168, -136, 152, -136, 104, -136, 104, -152, 24, -152, 24, -136, 8, -136, 8, -120, -72, -120)
@@ -244,9 +238,6 @@ texture_filter = 1
 material = SubResource("CanvasItemMaterial_0lift")
 tile_set = SubResource("TileSet_f1v6p")
 
-[node name="player" parent="." unique_id=988403666 instance=ExtResource("1_tsias")]
-position = Vector2(-152, -184)
-
 [node name="barrel" parent="." unique_id=1627460681 instance=ExtResource("3_lfyvx")]
 position = Vector2(-120, 8)
 inventory = ["golden_ring", "golden_ring", "golden_ring", "golden_ring", "golden_ring"]
@@ -276,9 +267,6 @@ position = Vector2(-40, -72)
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=1899601071]
 color = Color(0, 0, 0, 1)
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1827157273]
-environment = SubResource("Environment_w2p53")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1892095172]
 occluder = SubResource("OccluderPolygon2D_w2p53")

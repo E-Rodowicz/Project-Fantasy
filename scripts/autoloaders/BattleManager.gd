@@ -141,6 +141,7 @@ func _cleanup() -> void:
 	
 	get_tree().paused = false
 	PlayerData.clear_status_effects()
+	PlayerData.pending_focus = {}
 	combatants.clear()
 	turn_order = null
 	current_combatant = null

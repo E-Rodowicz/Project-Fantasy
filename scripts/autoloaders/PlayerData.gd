@@ -57,6 +57,8 @@ var mp_override: int = -1
 const BASE_MP: int = 5
 const MP_PER_SPEED_PER_LEVEL: float = 0.25
 
+var pending_focus: Dictionary = {}
+
 # ============================================================
 # LIFE SKILLS
 # Each has a level and an XP value.
@@ -106,6 +108,8 @@ func _ready() -> void:
 	hotbar[4] = "bolt"
 	learn_ability("blink")
 	hotbar[5] = "blink"
+	learn_ability("focus")
+	hotbar[6] = "focus"
 	equipped_items["slot_right_weapon"] = ItemDB.get_item("long_bow")
 	ap_max = 3
 	add_quest({

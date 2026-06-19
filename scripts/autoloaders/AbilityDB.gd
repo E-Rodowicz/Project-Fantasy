@@ -2,6 +2,7 @@ extends Node
 
 var abilities: Dictionary = {
 	# ------------ RED ------------
+	# The warrior-barbarian.
 	# ------------ LEVEL 2 ------------
 	"charge": {
 		"id": "charge",
@@ -35,6 +36,7 @@ var abilities: Dictionary = {
 		"description": "Attacks in a horizontal line of 4 tiles for 50% damage. Small chance to insta-kill each target."
 		},
 	# ------------ GREEN ------------
+	# The rogue-ninja.
 	# ------------ LEVEL 2 ------------
 	"blink": {
 		"id": "blink",
@@ -49,7 +51,25 @@ var abilities: Dictionary = {
 		"hit_modifier": 0.0,
 		"description": "Teleport near an enemy and strike for 150% damage. Gain 33% dodge on next attack."
 		},
+	"focus": {
+		"id": "focus",
+		"name": "Focus",
+		"tree": "green",
+		"level_req": 2,
+		"cost": {"ap": 1},
+		"sp_cost": 3,
+		"targeting": "ranged",
+		"penetration": 0,
+		"damage_percent": 2.0,
+		"crit_chance": 0.10,
+		"crit_percent": 5.0,
+		"hit_modifier": 0.0,
+		"ends_turn": true,
+		"description": "Steady aim on a target. Fires a 200% shot at start of next turn. 10% chance for 500% critical."
+		},
+
 	# ------------ BLUE ------------
+	# The mage-trickster.
 	# ------------ LEVEL 2 ------------
 	"bolt": {
 		"id": "bolt",
@@ -105,6 +125,8 @@ func create_ability(ability_id: String) -> BaseAbility:
 			instance = BoltAbility.new()
 		"blink":
 			instance = BlinkAbility.new()
+		"focus":
+			instance = FocusAbility.new()
 	
 	if instance != null:
 		instance.setup(abilities[ability_id])

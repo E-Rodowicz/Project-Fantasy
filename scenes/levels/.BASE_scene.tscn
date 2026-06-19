@@ -1,0 +1,207 @@
+[gd_scene format=3 uid="uid://biyah4pftihd"]
+
+[ext_resource type="Texture2D" uid="uid://g5y5qjk8hbeo" path="res://assets/sprites/combat_overlay.png" id="1_1larw"]
+[ext_resource type="Script" uid="uid://b6ehgsn8cuax5" path="res://scripts/autoloaders/CombatLog.gd" id="2_gjx86"]
+[ext_resource type="PackedScene" uid="uid://c8afkgoc38bw" path="res://scenes/gui/combat_log_display.tscn" id="3_00mhe"]
+
+[sub_resource type="TileSet" id="TileSet_tye4b"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_1h2li"]
+light_mode = 1
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_eaqti"]
+texture = ExtResource("1_1larw")
+0:0/0 = 0
+0:0/0/terrain_set = 0
+0:0/0/terrain = 0
+1:0/0 = 0
+1:0/0/terrain_set = 0
+1:0/0/terrain = 0
+1:0/0/terrains_peering_bit/bottom_side = 0
+2:0/0 = 0
+2:0/0/terrain_set = 0
+2:0/0/terrain = 0
+2:0/0/terrains_peering_bit/left_side = 0
+3:0/0 = 0
+3:0/0/terrain_set = 0
+3:0/0/terrain = 0
+3:0/0/terrains_peering_bit/top_side = 0
+4:0/0 = 0
+4:0/0/terrain_set = 0
+4:0/0/terrain = 0
+4:0/0/terrains_peering_bit/right_side = 0
+0:1/0 = 0
+0:1/0/terrain_set = 0
+0:1/0/terrain = 0
+0:1/0/terrains_peering_bit/bottom_side = 0
+0:1/0/terrains_peering_bit/top_side = 0
+1:1/0 = 0
+1:1/0/terrain_set = 0
+1:1/0/terrain = 0
+1:1/0/terrains_peering_bit/right_side = 0
+1:1/0/terrains_peering_bit/left_side = 0
+2:1/0 = 0
+2:1/0/terrain_set = 0
+2:1/0/terrain = 0
+2:1/0/terrains_peering_bit/right_side = 0
+2:1/0/terrains_peering_bit/bottom_side = 0
+3:1/0 = 0
+3:1/0/terrain_set = 0
+3:1/0/terrain = 0
+3:1/0/terrains_peering_bit/bottom_side = 0
+3:1/0/terrains_peering_bit/left_side = 0
+4:1/0 = 0
+4:1/0/terrain_set = 0
+4:1/0/terrain = 0
+4:1/0/terrains_peering_bit/right_side = 0
+4:1/0/terrains_peering_bit/top_side = 0
+0:2/0 = 0
+0:2/0/terrain_set = 0
+0:2/0/terrain = 0
+0:2/0/terrains_peering_bit/left_side = 0
+0:2/0/terrains_peering_bit/top_side = 0
+1:2/0 = 0
+1:2/0/terrain_set = 0
+1:2/0/terrain = 0
+1:2/0/terrains_peering_bit/right_side = 0
+1:2/0/terrains_peering_bit/bottom_side = 0
+1:2/0/terrains_peering_bit/left_side = 0
+2:2/0 = 0
+2:2/0/terrain_set = 0
+2:2/0/terrain = 0
+2:2/0/terrains_peering_bit/bottom_side = 0
+2:2/0/terrains_peering_bit/left_side = 0
+2:2/0/terrains_peering_bit/top_side = 0
+3:2/0 = 0
+3:2/0/terrain_set = 0
+3:2/0/terrain = 0
+3:2/0/terrains_peering_bit/right_side = 0
+3:2/0/terrains_peering_bit/left_side = 0
+3:2/0/terrains_peering_bit/top_side = 0
+4:2/0 = 0
+4:2/0/terrain_set = 0
+4:2/0/terrain = 0
+4:2/0/terrains_peering_bit/right_side = 0
+4:2/0/terrains_peering_bit/bottom_side = 0
+4:2/0/terrains_peering_bit/top_side = 0
+0:3/0 = 0
+0:3/0/terrain_set = 0
+0:3/0/terrain = 0
+0:3/0/terrains_peering_bit/right_side = 0
+0:3/0/terrains_peering_bit/bottom_side = 0
+0:3/0/terrains_peering_bit/left_side = 0
+0:3/0/terrains_peering_bit/top_side = 0
+0:4/0 = 0
+0:4/0/terrain_set = 0
+0:4/0/terrain = 1
+1:4/0 = 0
+1:4/0/terrain_set = 0
+1:4/0/terrain = 1
+1:4/0/terrains_peering_bit/bottom_side = 1
+2:4/0 = 0
+2:4/0/terrain_set = 0
+2:4/0/terrain = 1
+2:4/0/terrains_peering_bit/left_side = 1
+3:4/0 = 0
+3:4/0/terrain_set = 0
+3:4/0/terrain = 1
+3:4/0/terrains_peering_bit/top_side = 1
+4:4/0 = 0
+4:4/0/terrain_set = 0
+4:4/0/terrain = 1
+4:4/0/terrains_peering_bit/right_side = 1
+0:5/0 = 0
+0:5/0/terrain_set = 0
+0:5/0/terrain = 1
+0:5/0/terrains_peering_bit/bottom_side = 1
+0:5/0/terrains_peering_bit/top_side = 1
+1:5/0 = 0
+1:5/0/terrain_set = 0
+1:5/0/terrain = 1
+1:5/0/terrains_peering_bit/right_side = 1
+1:5/0/terrains_peering_bit/left_side = 1
+2:5/0 = 0
+2:5/0/terrain_set = 0
+2:5/0/terrain = 1
+2:5/0/terrains_peering_bit/right_side = 1
+2:5/0/terrains_peering_bit/bottom_side = 1
+3:5/0 = 0
+3:5/0/terrain_set = 0
+3:5/0/terrain = 1
+3:5/0/terrains_peering_bit/bottom_side = 1
+3:5/0/terrains_peering_bit/left_side = 1
+4:5/0 = 0
+4:5/0/terrain_set = 0
+4:5/0/terrain = 1
+4:5/0/terrains_peering_bit/right_side = 1
+4:5/0/terrains_peering_bit/top_side = 1
+0:6/0 = 0
+0:6/0/terrain_set = 0
+0:6/0/terrain = 1
+0:6/0/terrains_peering_bit/left_side = 1
+0:6/0/terrains_peering_bit/top_side = 1
+1:6/0 = 0
+1:6/0/terrain_set = 0
+1:6/0/terrain = 1
+1:6/0/terrains_peering_bit/right_side = 1
+1:6/0/terrains_peering_bit/bottom_side = 1
+1:6/0/terrains_peering_bit/left_side = 1
+2:6/0 = 0
+2:6/0/terrain_set = 0
+2:6/0/terrain = 1
+2:6/0/terrains_peering_bit/bottom_side = 1
+2:6/0/terrains_peering_bit/left_side = 1
+2:6/0/terrains_peering_bit/top_side = 1
+3:6/0 = 0
+3:6/0/terrain_set = 0
+3:6/0/terrain = 1
+3:6/0/terrains_peering_bit/right_side = 1
+3:6/0/terrains_peering_bit/left_side = 1
+3:6/0/terrains_peering_bit/top_side = 1
+4:6/0 = 0
+4:6/0/terrain_set = 0
+4:6/0/terrain = 1
+4:6/0/terrains_peering_bit/right_side = 1
+4:6/0/terrains_peering_bit/bottom_side = 1
+4:6/0/terrains_peering_bit/top_side = 1
+0:7/0 = 0
+0:7/0/terrain_set = 0
+0:7/0/terrain = 1
+0:7/0/terrains_peering_bit/right_side = 1
+0:7/0/terrains_peering_bit/bottom_side = 1
+0:7/0/terrains_peering_bit/left_side = 1
+0:7/0/terrains_peering_bit/top_side = 1
+0:8/0 = 0
+1:8/0 = 0
+2:8/0 = 0
+3:8/0 = 0
+4:8/0 = 0
+4:7/0 = 0
+3:7/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_3gtxf"]
+terrain_set_0/mode = 2
+terrain_set_0/terrain_0/name = "soft-green"
+terrain_set_0/terrain_0/color = Color(0.6392157, 1, 1, 1)
+terrain_set_0/terrain_1/name = "mid_green"
+terrain_set_0/terrain_1/color = Color(0.4980392, 0.6772901, 0.99215686, 1)
+sources/0 = SubResource("TileSetAtlasSource_eaqti")
+
+[node name="world" type="Node2D" unique_id=1108980983]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=13838271]
+tile_set = SubResource("TileSet_tye4b")
+
+[node name="combat_overlay" type="TileMapLayer" parent="." unique_id=631436370]
+light_mask = 2
+texture_filter = 1
+material = SubResource("CanvasItemMaterial_1h2li")
+tile_set = SubResource("TileSet_3gtxf")
+
+[node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=789515644]
+color = Color(0, 0, 0, 1)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=235790302]
+script = ExtResource("2_gjx86")
+
+[node name="CombatLogDisplay" parent="CanvasLayer" unique_id=947158895 instance=ExtResource("3_00mhe")]

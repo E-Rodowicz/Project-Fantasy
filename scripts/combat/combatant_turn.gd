@@ -233,7 +233,7 @@ func _update_floating_labels() -> void:
 		mp_label.text = str(total_cost) + " MP"
 		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(-8, -6)
 		mp_label.visible = true
-	elif mode == Mode.ATTACK and PlayerData.is_ranged_weapon_equipped() and cursor_tile != player_tile:
+	elif cursor_tile != player_tile and ((mode == Mode.ATTACK and PlayerData.is_ranged_weapon_equipped()) or (mode == Mode.ABILITY and active_ability.get("targeting") == "ranged")):
 		var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
 		var range_cost: int = 0
 		for i in range(1, line.size()):
@@ -385,7 +385,28 @@ func _enter_ability_mode(ability_id: String) -> void:
 		cursor_tile = best_tile
 		overlay.paint_purple(cursor_tile)
 		
+	elif ability_instance.get_targeting_type() == "ranged":
+		var weapon: Dictionary = PlayerData.get_equipped_weapon()
+		var ability_range: int = active_ability.get("ability_range", weapon.get("weapon_range", 12))
+		ranged_area_tiles = _calculate_ranged_area(ability_range)
+		
+		var best_tile: Vector2i = player_tile
+		var best_dist: int = 999
+		for c in combatants:
+			if c == combatant or not is_instance_valid(c):
+				continue
+			if c.is_in_group("player"):
+				continue
+			var c_tile: Vector2i = world_layer.local_to_map(c.global_position)
+			var dist: int = maxi(abs(c_tile.x - player_tile.x), abs(c_tile.y - player_tile.y))
+			if dist < best_dist:
+				best_dist = dist
+				best_tile = c_tile
+		cursor_tile = best_tile
+		_redraw_ranged_ability()
+		
 	_update_floating_labels()
+
 
 func _handle_ability_input() -> void:
 	if active_ability.get("targeting") == "direction":
@@ -565,6 +586,45 @@ func _handle_ability_input() -> void:
 					overlay.paint_purple(cursor_tile)
 				else:
 					overlay.paint_grey(cursor_tile)
+					
+	elif active_ability.get("targeting") == "ranged":
+			var moved: bool = false
+			if Input.is_action_just_pressed("ui_up"):
+				cursor_tile.y -= 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_down"):
+				cursor_tile.y += 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_left"):
+				cursor_tile.x -= 1
+				moved = true
+			elif Input.is_action_just_pressed("ui_right"):
+				cursor_tile.x += 1
+				moved = true
+			
+			if moved:
+				has_ability_target = false
+				_redraw_ranged_ability()
+			
+			if Input.is_action_just_pressed("interact") and cursor_tile in ranged_area_tiles:
+				if not has_ability_target:
+					has_ability_target = true
+					overlay.clear_all()
+					for tile in ranged_area_tiles:
+						overlay.paint_light_blue(tile)
+					for tile in ranged_target_tiles:
+						overlay.paint_bright_green(tile)
+					overlay.paint_bright_green(cursor_tile)
+					_update_floating_labels()
+				else:
+					_execute_ability()
+			
+			if Input.is_action_just_pressed("cancel"):
+				if has_ability_target:
+					has_ability_target = false
+					_redraw_ranged_ability()
+				else:
+					_exit_ability_mode()
 
 func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
@@ -583,6 +643,7 @@ func _build_ability_tiles() -> void:
 	_update_floating_labels()
 	
 func _execute_ability() -> void:
+	var should_end_turn: bool = active_ability.get("ends_turn", false)
 	var cost: Dictionary = active_ability.get("cost", {})
 	for resource in cost.keys():
 		match resource:
@@ -596,18 +657,22 @@ func _execute_ability() -> void:
 	var execute_tiles: Array = ability_tiles
 	if active_ability.get("targeting") == "blink":
 		execute_tiles = [blink_landing_tile, cursor_tile]
-		
-	# Engage any non-combat enemies on targeted tiles before executing.
+	elif active_ability.get("targeting") == "ranged":
+		execute_tiles = overlay.get_line_tiles(player_tile, cursor_tile).slice(1)
+	
 	for tile in execute_tiles:
 		var target: Node = _combatant_on_tile(tile, true)
 		if target != null:
 			_engage_if_needed(target)
-		
+	
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
 	BattleManager.check_for_reinforcements()
 	_exit_ability_mode()
+	
+	if should_end_turn:
+		end_turn()
 	
 func _exit_ability_mode() -> void:
 	mode = Mode.MOVE
@@ -618,6 +683,8 @@ func _exit_ability_mode() -> void:
 	ability_instance = null
 	has_ability_target = false
 	blink_landing_tile = Vector2i.ZERO
+	ranged_area_tiles.clear()
+	ranged_target_tiles.clear()
 	cursor_tile = player_tile
 	_recalculate_reachable()
 	_redraw()
@@ -1177,11 +1244,10 @@ func _redraw_attack() -> void:
 			overlay.paint_yellow(cursor_tile)
 	_update_floating_labels()
 
-func _redraw_ranged_attack() -> void:
+func _draw_ranged_path(path_range: int, penetration: int) -> void:
 	overlay.clear_all()
 	ranged_target_tiles.clear()
 	
-	# Paint range outline first (projectile path will overwrite specific tiles on top).
 	for tile in ranged_area_tiles:
 		overlay.paint_light_blue(tile)
 	
@@ -1190,43 +1256,29 @@ func _redraw_ranged_attack() -> void:
 		_update_floating_labels()
 		return
 	
-	if cursor_tile == player_tile:
-		_update_floating_labels()
-		return
-		
-	var weapon: Dictionary = PlayerData.get_equipped_weapon()
-	var weapon_range: int = weapon.get("weapon_range", 1)
-	var penetration_remaining: int = weapon.get("penetration", 0)
-	
-	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
 	var path_blocked: bool = false
 	var range_used: int = 0
+	var penetration_remaining: int = penetration
+	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
 	
 	for i in range(1, line.size()):
 		var tile: Vector2i = line[i]
-		var prev_tile: Vector2i = line[i - 1]
-		var dx: int = abs(tile.x - prev_tile.x)
-		var dy: int = abs(tile.y - prev_tile.y)
-		var step_cost: int = 3 if (dx != 0 and dy != 0) else 2
-		range_used += step_cost
+		var prev: Vector2i = line[i - 1]
+		var dx: int = abs(tile.x - prev.x)
+		var dy: int = abs(tile.y - prev.y)
+		range_used += 3 if (dx != 0 and dy != 0) else 2
 		
-		# Walls.
 		if path_blocked:
 			overlay.paint_red(tile)
 			continue
-		
 		if world_layer.get_cell_source_id(tile) != -1:
 			overlay.paint_red(tile)
 			path_blocked = true
 			continue
-			
-		# Out of range.
-		if range_used > weapon_range:
+		if range_used > path_range:
 			overlay.paint_red(tile)
 			path_blocked = true
 			continue
-			
-		# Enemy on tile.
 		if _tile_has_combatant(tile, true):
 			overlay.paint_purple(tile)
 			ranged_target_tiles.append(tile)
@@ -1235,11 +1287,19 @@ func _redraw_ranged_attack() -> void:
 			else:
 				penetration_remaining -= 1
 			continue
-			
-		# Clear tile in range.
 		overlay.paint_yellow(tile)
-		
+	
 	_update_floating_labels()
+	
+func _redraw_ranged_attack() -> void:
+	var weapon: Dictionary = PlayerData.get_equipped_weapon()
+	_draw_ranged_path(weapon.get("weapon_range", 12), weapon.get("penetration", 0))
+	
+func _redraw_ranged_ability() -> void: 
+	var weapon: Dictionary = PlayerData.get_equipped_weapon()
+	var ability_range: int = active_ability.get("ability_range", weapon.get("weapon_range", 12))
+	var ability_pen: int = active_ability.get("penetration", 0)
+	_draw_ranged_path(ability_range, ability_pen)
 
 func _redraw_blink_target_select() -> void:
 	overlay.clear_all()
@@ -1404,6 +1464,9 @@ func _targeted_enemy_tiles() -> Array:
 		if active_ability.get("targeting") == "blink" and has_ability_target:
 			if _tile_has_combatant(cursor_tile, true):
 				result.append(cursor_tile)
+		elif active_ability.get("targeting") == "ranged":
+			for tile in ranged_target_tiles:
+				result.append(tile)
 		else:
 			for tile in ability_tiles:
 				if _tile_has_combatant(tile, true):
