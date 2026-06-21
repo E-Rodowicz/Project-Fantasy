@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://c7vwnpsfi60em"]
+
+[ext_resource type="FontFile" uid="uid://bjp1erdqkyma6" path="res://assets/fonts/m5x7.ttf" id="1_bqpf1"]
+[ext_resource type="Script" uid="uid://b62glpig41lro" path="res://scenes/levels/splash_screen.gd" id="1_ho7f6"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_tye4b"]
+font = ExtResource("1_bqpf1")
+font_size = 264
+
+[node name="SplashScreen" type="Control" unique_id=798923916]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_ho7f6")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=827571739]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)
+
+[node name="Label" type="Label" parent="." unique_id=320428243]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+text = "Emec Software"
+label_settings = SubResource("LabelSettings_tye4b")
+horizontal_alignment = 1
+vertical_alignment = 1

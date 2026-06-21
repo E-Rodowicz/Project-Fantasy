@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://g5y5qjk8hbeo" path="res://assets/sprites/combat_overlay.png" id="7_0lift"]
 [ext_resource type="Script" uid="uid://bfuu7yn77lq0m" path="res://scenes/entities/player/light_flicker.gd" id="8_dp8al"]
 [ext_resource type="Script" uid="uid://b6ehgsn8cuax5" path="res://scripts/autoloaders/CombatLog.gd" id="9_csbb7"]
+[ext_resource type="PackedScene" uid="uid://cro7mkhrgjj7u" path="res://scenes/entities/player/player.tscn" id="10_csbb7"]
 [ext_resource type="PackedScene" uid="uid://c8afkgoc38bw" path="res://scenes/gui/combat_log_display.tscn" id="10_mmplq"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lfyvx"]
@@ -266,6 +267,7 @@ inventory = ["health_potion"]
 position = Vector2(-40, -72)
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=1899601071]
+visible = false
 color = Color(0, 0, 0, 1)
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1892095172]
@@ -300,3 +302,6 @@ script = ExtResource("8_dp8al")
 script = ExtResource("9_csbb7")
 
 [node name="CombatLogDisplay" parent="CanvasLayer" unique_id=947158895 instance=ExtResource("10_mmplq")]
+
+[node name="player" parent="." unique_id=988403666 instance=ExtResource("10_csbb7")]
+position = Vector2(-104, -152)

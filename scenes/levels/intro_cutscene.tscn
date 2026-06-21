@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://2vwm8i7jsuoo"]
+
+[ext_resource type="Texture2D" uid="uid://7548cui4vlim" path="res://assets/full_art/intro_scene.png" id="1_1ss81"]
+[ext_resource type="Script" uid="uid://buyt5gyvj2id4" path="res://scenes/levels/intro_cutscene.gd" id="1_doynd"]
+
+[node name="IntroCutscene" type="Control" unique_id=205605832]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_doynd")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=73468378]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="CutsceneImage" type="TextureRect" parent="." unique_id=518905790]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_1ss81")
+stretch_mode = 6

@@ -326,7 +326,7 @@ func _move(dir: Vector2):
 	# exactly 1.0, meaning that the duration is 0.14 seconds. For diagonals, the length is √2 ≈ 1.414
 	# meaning that the duration is extended to around 0.198 seconds. This slows down diagonal
 	# movement so that the speed of tiles-per-second stays consistent with cardinal movement.
-	var duration = 0.14 * dir.length()
+	var duration = 0.16 * dir.length()
 	# tween_property animates the sprite from its current position (old tile) to global_position
 	# (new tile, where the body already snapped to). TRANS_SINE applies a curve making movement
 	# smooth - slow at start, fast in middle, slow at end.
