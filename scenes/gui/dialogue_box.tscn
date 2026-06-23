@@ -2,9 +2,17 @@
 
 [ext_resource type="Texture2D" uid="uid://c2emam4xap1k0" path="res://assets/sprites/dialogue_box.png" id="1_eqmgk"]
 [ext_resource type="Script" uid="uid://bvdsv7p35qmuy" path="res://scenes/gui/dialogue_box.gd" id="1_ir67u"]
+[ext_resource type="FontFile" uid="uid://bjp1erdqkyma6" path="res://assets/fonts/m5x7.ttf" id="3_6p8fv"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_6p8fv"]
-font_size = 25
+font = ExtResource("3_6p8fv")
+font_size = 45
+outline_size = 11
+outline_color = Color(0.23693943, 0.23693943, 0.23693943, 1)
+
+[sub_resource type="Theme" id="Theme_6p8fv"]
+default_font = ExtResource("3_6p8fv")
+default_font_size = 44
 
 [node name="dialogue_box" type="CanvasLayer" unique_id=1520735425]
 process_mode = 3
@@ -15,17 +23,16 @@ texture_filter = 1
 offset_left = 64.0
 offset_top = 640.0
 offset_right = 1856.0
-offset_bottom = 1024.0
+offset_bottom = 1023.99976
 texture = ExtResource("1_eqmgk")
 
 [node name="speaker_label" type="Label" parent="NinePatchRect" unique_id=1441698440]
-texture_filter = 1
 layout_mode = 0
-offset_left = 152.0
-offset_top = 8.0
-offset_right = 464.0
-offset_bottom = 48.0
-text = "Testson McTest"
+offset_left = 136.0
+offset_right = 472.0
+offset_bottom = 49.0
+theme_override_fonts/font = ExtResource("3_6p8fv")
+text = "Testson "
 label_settings = SubResource("LabelSettings_6p8fv")
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -38,22 +45,42 @@ anchor_bottom = 1.0
 offset_left = 56.0
 offset_top = 72.0
 offset_right = -56.0
-offset_bottom = -56.0
+offset_bottom = -55.999756
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 33
 
-[node name="text_label" type="RichTextLabel" parent="NinePatchRect/VBoxContainer" unique_id=72422224]
+[node name="text_label" type="RichTextLabel" parent="NinePatchRect/VBoxContainer" unique_id=1131124145]
 texture_filter = 1
+clip_contents = false
 layout_mode = 2
 size_flags_vertical = 3
-bbcode_enabled = true
+offset_transform_enabled = true
+theme_override_colors/font_outline_color = Color(0.25666898, 0.25666898, 0.25666898, 1)
+theme_override_constants/outline_size = 11
+theme_override_fonts/normal_font = ExtResource("3_6p8fv")
+theme_override_font_sizes/normal_font_size = 44
 text = "fgfgfgdf"
-fit_content = true
+scroll_active = false
+autowrap_mode = 2
+visible_characters_behavior = 1
 
 [node name="choices_container" type="VBoxContainer" parent="NinePatchRect/VBoxContainer" unique_id=674635510]
 visible = false
 texture_filter = 1
 layout_mode = 2
 size_flags_vertical = 0
-theme_override_constants/separation = 16
+theme = SubResource("Theme_6p8fv")
+theme_override_constants/separation = 0
+
+[node name="ArrowIndicator" type="Label" parent="NinePatchRect" unique_id=1017632207]
+layout_mode = 0
+offset_left = 1664.0
+offset_top = 256.0
+offset_right = 1731.0
+offset_bottom = 346.0
+theme_override_colors/font_outline_color = Color(0.25490198, 0.25490198, 0.25490198, 1)
+theme_override_constants/outline_size = 16
+theme_override_fonts/font = ExtResource("3_6p8fv")
+theme_override_font_sizes/font_size = 67
+text = "➥"

@@ -6,9 +6,26 @@ func _ready() -> void:
 	cutscene_image.modulate.a = 0.0
 	
 	var tween: Tween = create_tween()
-	tween.tween_interval(6.0)
-	tween.tween_property(cutscene_image, "modulate:a", 1.0, 15.0)
+	tween.tween_interval(0.1)
+	tween.tween_property(cutscene_image, "modulate:a", 1.0, 0.1)
 	tween.tween_callback(_start_dialogue)
+	pass
 	
 func _start_dialogue() -> void:
-	pass # Placeholder.
+	var intro_dialogue: Dictionary = {
+		"pages": [
+			{
+				"speaker": "Narrator",
+				"text": "The ancient halls stretch endlessly into shadow..."
+			},
+			{
+				"speaker": "Narrator",
+				"text": "A presence stirs in the depths below."
+			},
+			{
+				"speaker": "Narrator",
+				"text": "Your story begins here."
+			}
+		]
+	}
+	DialogueManager.open_dialogue(intro_dialogue)

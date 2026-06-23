@@ -1485,6 +1485,9 @@ func _update_hit_labels() -> void:
 	for i in range(hit_labels.size()):
 		if i < tiles.size():
 			var target: Node = _combatant_on_tile(tiles[i], true)
+			if target == null:
+				hit_labels[i].visible = false
+			continue
 			var hit_chance: float = _hit_chance_against(target)
 			hit_labels[i].text = str(roundi(hit_chance * 100)) + "%"
 			hit_labels[i].position = world_layer.map_to_local(tiles[i]) + Vector2(6, -10)

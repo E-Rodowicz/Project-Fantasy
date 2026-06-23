@@ -9,7 +9,7 @@ var dialogue: Dictionary = {
 	"pages": [
 		{
 			"speaker": "Gary",
-			"text": "Oi! You there! There's a bloody imp living in my attic and he won't budge. I'll pay good coin to whoever gets rid of him."
+			"text": "Oi! You there! There's a bloody imp living in my attic and he won't budge. I'll pay good coin to whoever gets rid ofdwdwdwd him. Hurry now, quickly!"
 		},
 		{
 			"choices": [

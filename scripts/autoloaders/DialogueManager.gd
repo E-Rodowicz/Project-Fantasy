@@ -20,7 +20,10 @@ var is_open: bool = false
 # dialogue (Which uses E for interact) read that input continously as the game unpaused and opened
 # the window again.
 var just_closed: bool = false
-
+# Tracks which fram the dialogue opened on and ignores input from the same frame - thanks to this,
+# nothing is skipped when dialogue is initiated with E (which is the same key press used to skip
+# dialogue.
+var open_frame: int = -1
 # All nodes pause when the dialogue is open. This makes sure that the DialogueManager is always
 # running.
 func _ready() -> void:
@@ -31,6 +34,10 @@ func open_dialogue(dialogue: Dictionary) -> void:
 	# If its open already, it doesnt open again.
 	if is_open:
 		return
+	
+	# Saves current frame so that it can be compared in unhandled input. If it still is the current
+	# frame, it skips input (this happens in unhandled input).
+	open_frame = Engine.get_process_frames()
 	
 	# Resets the dialogue so its always the same once it starts.
 	current_dialogue = dialogue
@@ -47,6 +54,7 @@ func open_dialogue(dialogue: Dictionary) -> void:
 	# box. Its a spawn in, bascially.
 	get_tree().root.add_child(dialogue_box)
 	get_tree().paused = true
+	dialogue_box.slide_in()
 	_show_current_page()
 
 # This is the wrongly named handler of the actions.
@@ -54,12 +62,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Failsafe for is the dialogue box is not open.
 	if not is_open:
 		return
+		
+	# Checks current frame against saved frame so that input is ignored if they match. 
+	if Engine.get_process_frames() == open_frame:
+		return
 	
 	# When pressing input, it either confirms choice or advances page. Echo is used instead of
 	# just_pressed as Input Event objects cannot use just_pressed.
 	if event.is_action_pressed("interact") and not event.is_echo():
 		if in_choices:
 			_confirm_choice()
+		elif dialogue_box and dialogue_box.is_revealing:
+			dialogue_box.skip_reveal()
 		else:
 			_advance()
 	
@@ -72,6 +86,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # Advances a page forward. If there is no next page, closes dialogue.
 func _advance() -> void:
+	if dialogue_box and dialogue_box.has_overflow:
+		dialogue_box.set_text(dialogue_box.overflow_text)
+		return
 	current_page += 1
 	if current_page >= current_dialogue["pages"].size():
 		close_dialogue()
@@ -152,6 +169,12 @@ func _fire_callback(callback_name: String) -> void:
 func close_dialogue() -> void:
 	is_open = false
 	just_closed = true
+	if dialogue_box:
+		dialogue_box.slide_out(_cleanup_dialogue)
+	else:
+		get_tree().paused = false
+
+func _cleanup_dialogue() -> void:
 	get_tree().paused = false
 	if dialogue_box:
 		dialogue_box.queue_free()

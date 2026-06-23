@@ -304,4 +304,4 @@ script = ExtResource("9_csbb7")
 [node name="CombatLogDisplay" parent="CanvasLayer" unique_id=947158895 instance=ExtResource("10_mmplq")]
 
 [node name="player" parent="." unique_id=988403666 instance=ExtResource("10_csbb7")]
-position = Vector2(-104, -152)
+position = Vector2(-72, -40)
