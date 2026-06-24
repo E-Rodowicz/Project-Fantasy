@@ -1,65 +1,13 @@
 {
 	"dialogues": [
 		{
-			"id": "gary_quest_complete",
-			"set_flags": [],
-			"conditions": ["imp_quest_completed"],
-			"pages": [
-				{
-					"speaker": "Gary",
-					"text": "You actually did it! Here's your coin, you madman."
-				}
-			]
-		},
-		{
-			"id": "gary_quest_accepted",
-			"conditions": ["imp_quest_accepted"],
-			"pages": [
-				{
-					"speaker": "Gary",
-					"text": "You still working on that imp? Hurry it up, I can hear him scratching around up there."
-				},
-				{
-					"speaker": "Gary",
-					"text": "Far, far too slow..."
-				}
-			]
-		},
-		{
-			"id": "gary_met",
-			"conditions": ["met_gary"],
-			"set_flags": [],
-			"pages": [
-				{
-					"speaker": "Gary",
-					"text": "So? Ye gonna get rid of that imp or what?"
-				},
-				{
-					"choices": [
-						{
-							"text": "I'll sort it out for you.",
-							"set_flags": ["imp_quest_accepted"]
-						},
-						{
-							"text": "Not my problem, mate.",
-							"set_flags": ["imp_quest_declined"]
-						},
-						{
-							"text": "Feck off!",
-							"set_flags": ["imp_quest_declined"]
-						}
-					]
-				}
-			]
-		},
-		{
 			"id": "gary_intro",
 			"conditions": [],
 			"set_flags": ["met_gary"],
 			"pages": [
 				{
 					"speaker": "Gary",
-					"text": "Oi! You there! There's a bloody imp living in my attic and he won't budge. I'll pay good coin to whoever gets rid of him."
+					"text": "Oi! You there! There's a bloody imp living in my attic..."
 				},
 				{
 					"choices": [
@@ -71,19 +19,39 @@
 									"speaker": "Gary",
 									"text": "Brilliant!"
 								}
-							]
+							],
+							"goto": "gary_directions"
+						},
+						{
+							"text": "Fine, I'll handle it.",
+							"set_flags": ["imp_quest_accepted"],
+							"next_pages": [
+								{
+									"speaker": "Gary",
+									"text": "About time someone stepped up!"
+								}
+							],
+							"goto": "gary_directions"
 						},
 						{
 							"text": "Not my problem, mate.",
-							"set_flags": ["imp_quest_declined"]
-						},
-						{
-							"text": "Feck off!",
 							"set_flags": ["imp_quest_declined"]
 						}
 					]
 				}
 			]
 		}
-	]
+	],
+	"sections": {
+		"gary_directions": [
+			{
+				"speaker": "Gary",
+				"text": "Head up the stairs, door at the end of the hall."
+			},
+			{
+				"speaker": "Gary",
+				"text": "Watch yourself, the little bastard bites."
+			}
+		]
+	}
 }

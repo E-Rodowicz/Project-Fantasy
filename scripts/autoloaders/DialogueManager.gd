@@ -26,9 +26,11 @@ var just_closed: bool = false
 var open_frame: int = -1
 # Cache for current dialogue.
 var dialogue_cache: Dictionary = {}
+
+var current_file_data: Dictionary = {}
+
 # All nodes pause when the dialogue is open. This makes sure that the DialogueManager is always
 # running.
-
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -65,7 +67,8 @@ func load_dialogue(file_name: String) -> Dictionary:
 				break
 		
 		if all_met:
-			return entry
+			current_file_data = file_data
+			return entry.duplicate(true)
 	
 	push_error("No matching dialogue found in: " + file_name)
 	return {}
@@ -75,7 +78,7 @@ func open_dialogue(dialogue: Dictionary) -> void:
 	# If its open already, it doesnt open again.
 	if is_open:
 		return
-	
+		
 	# Saves current frame so that it can be compared in unhandled input. If it still is the current
 	# frame, it skips input (this happens in unhandled input).
 	open_frame = Engine.get_process_frames()
@@ -130,6 +133,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("ui_down") and not event.is_echo():
 			_navigate_choice(1)
 
+	# System for using 1, 2, 3, etc, for picking dialogue choices instead of navigating and pressing
+	# interact.
+	if in_choices and not dialogue_box.is_confirming:
+		if event is InputEventKey and event.pressed and not event.is_echo():
+			var choices: Array = current_dialogue["pages"][current_page]["choices"]
+			# i start at 0, so when you add it to KEY 1, you get the appropraite key number with the
+			# loop.
+			for i in range(choices.size()):
+				if event.keycode == KEY_1 + i:
+					current_choice = i
+					dialogue_box.update_selection(current_choice)
+					dialogue_box.glow_choice(current_choice, _confirm_choice)
+					break
+				
 # Advances a page forward. If there is no next page, closes dialogue.
 func _advance() -> void:
 	if dialogue_box and dialogue_box.has_overflow:
@@ -155,30 +172,39 @@ func _navigate_choice(direction: int) -> void:
 
 # This is what happens when you confirm a choice.
 func _confirm_choice() -> void:
-	# This is big, but bascially its nested. It gets the current_dialogue dictionary, then finds
-	# the pages, then gets one specific page from the pages, then gets the choices from that page,
-	# and finally gets one specific choice from those choices.
 	var choice = current_dialogue["pages"][current_page]["choices"][current_choice]
 	
 	var flags_to_set: Array = choice.get("set_flags", [])
 	for flag in flags_to_set:
 		PlayerData.set_flag(flag)
 	
-	# If choice leads to more pages, it shows them.
 	if choice.has("next_pages"):
-		current_dialogue["pages"] = choice["next_pages"]
+		var pages: Array = choice["next_pages"].duplicate(true)
+		
+		if choice.has("goto"):
+			var section_id: String = choice["goto"]
+			var sections: Dictionary = current_file_data.get("sections", {})
+			if sections.has(section_id):
+				pages.append_array(sections[section_id])
+			else:
+				push_error("Section not found: " + section_id)
+		
+		current_dialogue["pages"] = pages
 		current_page = 0
 		in_choices = false
 		_show_current_page()
+	elif choice.has("goto"):
+		var section_id: String = choice["goto"]
+		var sections: Dictionary = current_file_data.get("sections", {})
+		if sections.has(section_id):
+			current_dialogue["pages"] = sections[section_id].duplicate(true)
+			current_page = 0
+			in_choices = false
+			_show_current_page()
+		else:
+			push_error("Section not found: " + section_id)
+			close_dialogue()
 	else:
-		# When a player picks a dialogue choice, something needs to happen in the game world as a
-		# result. A quest starts, an item is given etc. Rather than the dialogue system knowing
-		# about every possible quest and item in the game, it just stores a string like
-		# "accept_imp_quest" and fires it to _fire_callback, which then handles what that string
-		# actually means. It keeps the dialogue system ignorant of game logic. In this case, its
-		# for accepting or declining quests.
-		if choice.has("callback"):
-			_fire_callback(choice["callback"])
 		close_dialogue()
 
 # Reads the current page and decides what to display. If the page has choices, switches to choice

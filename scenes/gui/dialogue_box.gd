@@ -284,25 +284,41 @@ func glow_choice(index: int, callback: Callable) -> void:
 			t.kill()
 	choice_tweens.clear()
 	
+	for i in range(choice_labels.size()):
+		if i != index:
+			choice_labels[i].modulate = Color.WHITE
+			choice_labels[i].scale = Vector2(1.0, 1.0)
+	
+	# This block finds the centre of the actual visible text. The Label node itself stretches the
+	# full width of its container, but the text string might only be 120px wide inside a 300px
+	# label. get_string_size measures the pixel width of the text using the label's font and font
+	# size. The pivot is then set to half that width horizontally and half the label height
+	# vertically which is the true centre of the text the player sees.
 	var font: Font = label.get_theme_font("font")
 	var font_size: int = label.get_theme_font_size("font_size")
 	var text_width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	label.pivot_offset = Vector2(text_width / 2.0, label.size.y / 2.0)
 	
 	var tween: Tween = create_tween()
+	# In parallel mode, every tween_property call starts at the same time rather than waiting for
+	# the previous one to finish.
 	tween.set_parallel(true)
 	tween.tween_property(label, "modulate", Color(2.0, 1.977, 0.0, 1.0), 0.1)
-	tween.tween_property(label, "scale", Vector2(1.02, 1.02), 0.08).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(label, "scale", Vector2(1.05, 1.05), 0.08).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	
 	tween.chain()
 	tween.tween_interval(0.15)
 	
+	# Waits for above to finish.
 	tween.chain()
+	# Parallel again.
 	tween.set_parallel(true)
 	tween.tween_property(label, "modulate", Color.WHITE, 0.12)
 	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	
+	
 	tween.chain()
+	# Actually continues with the choice confirmation.
 	tween.tween_callback(callback)
 
 # Loops through choices, making the picked option yellow, the other's white.
@@ -313,11 +329,19 @@ func update_selection(selected_index: int) -> void:
 	choice_tweens.clear()
 	
 	for i in range(choice_labels.size()):
-		var tween: Tween = create_tween()
+		var label: Label = choice_labels[i]
+		var font: Font = label.get_theme_font("font")
+		var font_size: int = label.get_theme_font_size("font_size")
+		var text_width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		label.pivot_offset = Vector2(text_width / 2.0, label.size.y / 2.0)
+		
+		var tween: Tween = create_tween().set_parallel()
 		if i == selected_index:
-			tween.tween_property(choice_labels[i], "modulate", Color.YELLOW, 0.15)
+			tween.tween_property(label, "modulate", Color.YELLOW, 0.15)
+			tween.tween_property(label, "scale", Vector2(1.02, 1.02), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 		else:
-			tween.tween_property(choice_labels[i], "modulate", Color.WHITE, 0.15)
+			tween.tween_property(label, "modulate", Color.WHITE, 0.15)
+			tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 		choice_tweens.append(tween)
 
 # Hides choices when normal dialogue is showing.
