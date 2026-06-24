@@ -4,33 +4,10 @@ extends StaticBody2D
 @export var interactable_name: String = "Gary"
 var interact_action: String = "Talk"
 
-# A dictionary of all the dialogue and player choices when talking to Gary.
-var dialogue: Dictionary = {
-	"pages": [
-		{
-			"speaker": "Gary",
-			"text": "Oi! You there! There's a bloody imp living in my attic and he won't budge. I'll pay good coin to whoever gets rid ofdwdwdwd him. Hurry now, quickly!"
-		},
-		{
-			"choices": [
-				{
-					"text": "I'll sort it out for you.",
-					"callback": "accept_imp_quest"
-				},
-				{
-					"text": "Not my problem, mate.",
-					"callback": "decline_imp_quest"
-				},
-				{
-					"text": "Feck off!",
-					"callback": "decline_imp_quest"
-				}
-			]
-		}
-	]
-}
+@export var dialogue_file: String = "gary"
 
-# This is just a trigger. When triggered, its sends off the above dictionary info to the
-# DialogueManager, which handles the rest.
 func interact() -> void:
+	var dialogue: Dictionary = DialogueManager.load_dialogue(dialogue_file)
+	if dialogue.is_empty():
+		return
 	DialogueManager.open_dialogue(dialogue)

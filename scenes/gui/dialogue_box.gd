@@ -28,6 +28,7 @@ var is_revealing: bool = false
 var text_fully_revealed: bool = false
 var waiting: bool = false
 var wait_timer: float = 0.0
+var is_confirming: bool = false
 
 # Arrow bob.
 var arrow_tween: Tween = null
@@ -273,6 +274,36 @@ func show_choices(choices: Array, selected_index: int) -> void:
 		choice_labels.append(label)
 	
 	update_selection(selected_index)
+
+func glow_choice(index: int, callback: Callable) -> void:
+	is_confirming = true
+	var label: Label = choice_labels[index]
+	
+	for t in choice_tweens:
+		if t:
+			t.kill()
+	choice_tweens.clear()
+	
+	var font: Font = label.get_theme_font("font")
+	var font_size: int = label.get_theme_font_size("font_size")
+	var text_width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	label.pivot_offset = Vector2(text_width / 2.0, label.size.y / 2.0)
+	
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "modulate", Color(2.0, 1.977, 0.0, 1.0), 0.1)
+	tween.tween_property(label, "scale", Vector2(1.02, 1.02), 0.08).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	
+	tween.chain()
+	tween.tween_interval(0.15)
+	
+	tween.chain()
+	tween.set_parallel(true)
+	tween.tween_property(label, "modulate", Color.WHITE, 0.12)
+	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	
+	tween.chain()
+	tween.tween_callback(callback)
 
 # Loops through choices, making the picked option yellow, the other's white.
 func update_selection(selected_index: int) -> void:

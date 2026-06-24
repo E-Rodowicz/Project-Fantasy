@@ -18,6 +18,10 @@ var luck: int = 1
 
 const NATURAL_STAT_CAP: int = 10
 
+# Important for save/load as well as many other state related things. Its the knowledge of the game
+# world.
+var flags: Dictionary = {}
+
 # ============================================================
 # COMBAT SKILLS
 # Holds what combat level you are and how much XP to next level.
@@ -136,6 +140,13 @@ func _ready() -> void:
 		"status": "failed",
 		"description": "The baker's cellar was overrun. You took too long — he hired someone else and made his feelings very clear."
 	})
+
+func set_flag(flag_name: String) -> void:
+	flags[flag_name] = true
+
+
+func has_flag(flag_name: String) -> bool:
+	return flags.has(flag_name)
 
 func get_equipped_weapon() -> Dictionary:
 	var right: Dictionary = equipped_items.get("slot_right_weapon", {})

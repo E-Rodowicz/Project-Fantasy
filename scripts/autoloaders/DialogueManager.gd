@@ -24,11 +24,52 @@ var just_closed: bool = false
 # nothing is skipped when dialogue is initiated with E (which is the same key press used to skip
 # dialogue.
 var open_frame: int = -1
+# Cache for current dialogue.
+var dialogue_cache: Dictionary = {}
 # All nodes pause when the dialogue is open. This makes sure that the DialogueManager is always
 # running.
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
+func load_dialogue(file_name: String) -> Dictionary:
+	if not dialogue_cache.has(file_name):
+		var path: String = "res://data/dialogues/" + file_name + ".json"
+		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+		
+		if file == null:
+			push_error("Could not open dialogue file: " + path)
+			return {}
+		
+		var text: String = file.get_as_text()
+		file.close()
+		
+		var result = JSON.parse_string(text)
+		
+		if result == null:
+			push_error("Failed to parse dialogue JSON: " + path)
+			return {}
+		
+		dialogue_cache[file_name] = result
+	
+	var file_data: Dictionary = dialogue_cache[file_name]
+	var dialogues: Array = file_data.get("dialogues", [])
+	
+	for entry in dialogues:
+		var conditions: Array = entry.get("conditions", [])
+		var all_met: bool = true
+		
+		for condition in conditions:
+			if not PlayerData.has_flag(condition):
+				all_met = false
+				break
+		
+		if all_met:
+			return entry
+	
+	push_error("No matching dialogue found in: " + file_name)
+	return {}
+		
 # Opens dialogue.
 func open_dialogue(dialogue: Dictionary) -> void:
 	# If its open already, it doesnt open again.
@@ -56,6 +97,10 @@ func open_dialogue(dialogue: Dictionary) -> void:
 	get_tree().paused = true
 	dialogue_box.slide_in()
 	_show_current_page()
+	# Sets all dialogue flags so the correct dialogue is read from the JSON file.
+	var flags_to_set: Array = dialogue.get("set_flags", [])
+	for flag in flags_to_set:
+		PlayerData.set_flag(flag)
 
 # This is the wrongly named handler of the actions.
 func _unhandled_input(event: InputEvent) -> void:
@@ -71,14 +116,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# just_pressed as Input Event objects cannot use just_pressed.
 	if event.is_action_pressed("interact") and not event.is_echo():
 		if in_choices:
-			_confirm_choice()
+			if not dialogue_box.is_confirming:
+				dialogue_box.glow_choice(current_choice, _confirm_choice)
 		elif dialogue_box and dialogue_box.is_revealing:
 			dialogue_box.skip_reveal()
 		else:
 			_advance()
 	
 	# Navigates choices, up or down.
-	if in_choices:
+	if in_choices and not dialogue_box.is_confirming:
 		if event.is_action_pressed("ui_up") and not event.is_echo():
 			_navigate_choice(-1)
 		if event.is_action_pressed("ui_down") and not event.is_echo():
@@ -114,6 +160,10 @@ func _confirm_choice() -> void:
 	# and finally gets one specific choice from those choices.
 	var choice = current_dialogue["pages"][current_page]["choices"][current_choice]
 	
+	var flags_to_set: Array = choice.get("set_flags", [])
+	for flag in flags_to_set:
+		PlayerData.set_flag(flag)
+	
 	# If choice leads to more pages, it shows them.
 	if choice.has("next_pages"):
 		current_dialogue["pages"] = choice["next_pages"]
@@ -136,6 +186,10 @@ func _confirm_choice() -> void:
 func _show_current_page() -> void:
 	var page = current_dialogue["pages"][current_page]
 	
+	var flags_to_set: Array = page.get("set_flags", [])
+	for flag in flags_to_set:
+		PlayerData.set_flag(flag)
+	
 	if page.has("choices"):
 		in_choices = true
 		current_choice = 0
@@ -155,13 +209,13 @@ func _show_current_page() -> void:
 func _fire_callback(callback_name: String) -> void:
 	match callback_name:
 		"accept_imp_quest":
-			print("Imp quest accepted")
+			PlayerData.set_flag("imp_quest_accepted")
 		"decline_imp_quest":
-			print("Imp quest declined")
+			PlayerData.set_flag("imp_quest_declined")
 		# This is a default case, meaning that it catches andything that doesnt fit the above and
 		# warns me.
 		_:
-			print("Unknown callback: ", callback_name)
+			push_error("Unknown callback: " + callback_name)
 
 # Resets the state of the dialogue box, unpauses game, destroys dialogue box. The null at the end
 # is important. Without it the car would hold a deleted object and the game would crash if we 

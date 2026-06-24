@@ -12,20 +12,5 @@ func _ready() -> void:
 	pass
 	
 func _start_dialogue() -> void:
-	var intro_dialogue: Dictionary = {
-		"pages": [
-			{
-				"speaker": "Narrator",
-				"text": "The ancient halls stretch endlessly into shadow..."
-			},
-			{
-				"speaker": "Narrator",
-				"text": "A presence stirs in the depths below."
-			},
-			{
-				"speaker": "Narrator",
-				"text": "Your story begins here."
-			}
-		]
-	}
-	DialogueManager.open_dialogue(intro_dialogue)
+	var dialogue: Dictionary = DialogueManager.load_dialogue("narrator")
+	DialogueManager.open_dialogue(dialogue)

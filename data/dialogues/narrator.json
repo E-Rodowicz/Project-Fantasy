@@ -1,0 +1,22 @@
+{
+	"dialogues": [
+		{
+			"id": "intro",
+			"conditions": [],
+			"pages": [
+				{
+					"speaker": "Narrator",
+					"text": "The ancient halls stretch endlessly into shadow..."
+				},
+				{
+					"speaker": "Narrator",
+					"text": "A presence stirs in the depths below."
+				},
+				{
+					"speaker": "Narrator",
+					"text": "Your story begins here."
+				}
+			]
+		}
+	]
+}
