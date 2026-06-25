@@ -14,11 +14,15 @@ const TAB_INVENTORY = 1
 const TAB_JOURNAL = 2
 const TAB_MAP = 3
 
+var menus_enabled: bool = true
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 # Inputs for menu.
 func _unhandled_input(event: InputEvent) -> void:
+	if not menus_enabled:
+		return
 	if not event is InputEventKey:
 		return
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():

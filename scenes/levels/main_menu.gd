@@ -1,37 +1,28 @@
 extends Control
 
-@onready var new_game_button: Button = $VBoxContainer/NewGame
-@onready var load_game_button: Button = $VBoxContainer/LoadGame
-@onready var options_button: Button = $VBoxContainer/Options
-@onready var quit_button: Button = $VBoxContainer/Quit
+@onready var choice_list: ChoiceList = $ChoiceList
 
 func _ready() -> void:
-	# Fades in the menu from black.
+	GameMenuManager.menus_enabled = false
 	modulate.a = 0.0
 	var fade_tween: Tween = create_tween()
 	fade_tween.tween_property(self, "modulate:a", 1.0, 1.0)
-	
-	# Connect each button's "pressed" signal to its handler
-	new_game_button.pressed.connect(_on_new_game_pressed)
-	load_game_button.pressed.connect(_on_load_game_pressed)
-	options_button.pressed.connect(_on_options_pressed)
-	quit_button.pressed.connect(_on_quit_pressed)
-	
-	# Gives the first button keyboard focus so arrow keys work immediately
-	new_game_button.grab_focus()
 
+	choice_list.set_choices(["New Game", "Load Game", "Options", "Quit"])
 
-func _on_new_game_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/levels/intro_cutscene.tscn")
+func _unhandled_input(event: InputEvent) -> void:
+	if not event is InputEventKey or event.is_echo():
+		return
+	if event.is_action_pressed("ui_up"):
+		choice_list.navigate(-1)
+	elif event.is_action_pressed("ui_down"):
+		choice_list.navigate(1)
+	elif event.is_action_pressed("interact"):
+		choice_list.glow_confirm(_on_confirmed)
 
-
-func _on_load_game_pressed() -> void:
-	pass  # Placeholder
-
-
-func _on_options_pressed() -> void:
-	pass  # Placeholder
-
-
-func _on_quit_pressed() -> void:
-	get_tree().quit()
+func _on_confirmed() -> void:
+	match choice_list.current_index:
+		0: get_tree().change_scene_to_file("res://scenes/levels/intro_cutscene.tscn")
+		1: pass
+		2: pass
+		3: get_tree().quit()

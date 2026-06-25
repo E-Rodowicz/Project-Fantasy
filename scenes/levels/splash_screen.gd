@@ -6,6 +6,7 @@ var tween: Tween
 var skipped: bool = false
 
 func _ready() -> void:
+	GameMenuManager.menus_enabled = false
 	# Label fully visible.
 	label.modulate.a = 0.0
 	

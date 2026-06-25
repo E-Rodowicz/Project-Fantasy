@@ -3,6 +3,9 @@
 [ext_resource type="FontFile" uid="uid://bjp1erdqkyma6" path="res://assets/fonts/m5x7.ttf" id="1_bqpf1"]
 [ext_resource type="Script" uid="uid://b62glpig41lro" path="res://scenes/levels/splash_screen.gd" id="1_ho7f6"]
 
+[sub_resource type="Theme" id="Theme_ho7f6"]
+default_font = ExtResource("1_bqpf1")
+
 [sub_resource type="LabelSettings" id="LabelSettings_tye4b"]
 font = ExtResource("1_bqpf1")
 font_size = 264
@@ -10,6 +13,7 @@ font_size = 264
 [node name="SplashScreen" type="Control" unique_id=798923916]
 layout_mode = 3
 anchors_preset = 0
+theme = SubResource("Theme_ho7f6")
 script = ExtResource("1_ho7f6")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=827571739]

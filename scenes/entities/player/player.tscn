@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://cro7mkhrgjj7u"]
 
-[ext_resource type="Texture2D" uid="uid://dqc5o2g4ldlh4" path="res://assets/sprites/player_test.png" id="1_1hmtu"]
 [ext_resource type="Script" uid="uid://ijcqoktfhaw3" path="res://scenes/entities/player/player.gd" id="1_bjvvg"]
 [ext_resource type="Texture2D" uid="uid://dahxtat8db0gf" path="res://assets/sprites/arrow_move-Sheet.png" id="2_635qg"]
+[ext_resource type="Texture2D" uid="uid://daqnuagkys5xy" path="res://assets/sprites/mc.png" id="2_bj7e2"]
 [ext_resource type="Texture2D" uid="uid://d17x8jmg61sbm" path="res://assets/sprites/cross_block-Sheet.png" id="3_58kc7"]
 [ext_resource type="Script" uid="uid://bfuu7yn77lq0m" path="res://scenes/entities/player/light_flicker.gd" id="3_bj7e2"]
 [ext_resource type="Texture2D" uid="uid://mimdkakucpd0" path="res://assets/sprites/arrow_interact-Sheet.png" id="4_nh4ur"]
@@ -135,7 +135,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_pcd0u")
 }],
-"loop": true,
+"loop": 1,
 "name": &"arrow",
 "speed": 5.0
 }]
@@ -157,7 +157,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_knby6")
 }],
-"loop": true,
+"loop": 1,
 "name": &"cross",
 "speed": 5.0
 }]
@@ -200,7 +200,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_wghkl")
 }],
-"loop": true,
+"loop": 1,
 "name": &"gold_arrow",
 "speed": 5.0
 }]
@@ -215,13 +215,13 @@ script = ExtResource("1_bjvvg")
 [node name="player_sprite" type="Sprite2D" parent="." unique_id=1406068136]
 z_index = 9
 texture_filter = 1
-texture = ExtResource("1_1hmtu")
+texture = ExtResource("2_bj7e2")
 
 [node name="RemoteTransform2D" type="RemoteTransform2D" parent="player_sprite" unique_id=1957741297]
 remote_path = NodePath("../../player_camera")
 
 [node name="PointLight2D" type="PointLight2D" parent="player_sprite" unique_id=1247808915]
-color = Color(1, 0.6811249, 0.3215686, 1)
+color = Color(0.83540225, 0.59559387, 0.28035027, 1)
 energy = 2.0
 shadow_enabled = true
 shadow_filter = 2

@@ -5,6 +5,7 @@ extends CanvasLayer
 var slot_labels: Array = []
 # Text on each slot.
 var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+var hud_enabled: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -12,6 +13,9 @@ func _ready() -> void:
 	_update_display()
 	
 func _process(_delta: float) -> void:
+	if not hud_enabled:
+		visible = false
+		return
 	# Hides hotbar when menu is open.
 	visible = not GameMenuManager.is_open
 	if visible:
