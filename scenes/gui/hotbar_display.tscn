@@ -1,28 +1,18 @@
 [gd_scene format=3 uid="uid://dglkqqhv3gaip"]
 
 [ext_resource type="Script" uid="uid://cgh6376sfmnq7" path="res://scenes/gui/hotbar_display.gd" id="1_q8gy2"]
+[ext_resource type="Texture2D" uid="uid://bie8scqujsmnj" path="res://assets/sprites/gui/ability_hotbar.png" id="2_a2ttq"]
+[ext_resource type="Texture2D" uid="uid://bqle02i73td3j" path="res://assets/sprites/gui/ability_neutral_attack.png" id="2_bxgwf"]
 
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
+basic_attack_icon = ExtResource("2_bxgwf")
 
-[node name="anchor" type="Control" parent="." unique_id=1650653445]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="hotbar_container" type="HBoxContainer" parent="anchor" unique_id=858619990]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.63100004
-anchor_top = 1.0
-anchor_right = 0.63100004
-anchor_bottom = 1.0
-offset_left = -19.52002
-offset_top = -40.0
-offset_right = 20.47998
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_constants/separation = 4
+[node name="Background" type="TextureRect" parent="." unique_id=1941790021]
+offset_left = 856.0
+offset_top = 936.0
+offset_right = 1905.6001
+offset_bottom = 1064.0
+texture = ExtResource("2_a2ttq")
+expand_mode = 1
+stretch_mode = 5

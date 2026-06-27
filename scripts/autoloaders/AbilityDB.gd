@@ -7,6 +7,7 @@ var abilities: Dictionary = {
 	"charge": {
 		"id": "charge",
 		"name": "Charge",
+		"icon": preload("res://assets/sprites/gui/ability_red_charge.png"),
 		"tree": "red",
 		"level_req": 2,
 		"cost": {"ap": 1},
@@ -23,6 +24,7 @@ var abilities: Dictionary = {
 	"cleave": {
 		"id": "cleave",
 		"name": "Cleave",
+		"icon": preload("res://assets/sprites/gui/ability_red_cleave.png"),
 		"tree": "red",
 		"level_req": 2,
 		"cost": {"ap": 1},
@@ -41,6 +43,7 @@ var abilities: Dictionary = {
 	"blink": {
 		"id": "blink",
 		"name": "Blink",
+		"icon": preload("res://assets/sprites/gui/ability_green_blink.png"),
 		"tree": "green",
 		"level_req": 2,
 		"cost": {"ap": 1, "mp": 3},
@@ -54,6 +57,7 @@ var abilities: Dictionary = {
 	"focus": {
 		"id": "focus",
 		"name": "Focus",
+		"icon": preload("res://assets/sprites/gui/ability_green_focus.png"),
 		"tree": "green",
 		"level_req": 2,
 		"cost": {"ap": 1},
@@ -74,6 +78,7 @@ var abilities: Dictionary = {
 	"bolt": {
 		"id": "bolt",
 		"name": "Bolt",
+		"icon": preload("res://assets/sprites/gui/ability_blue_bolt.png"),
 		"tree": "blue",
 		"level_req": 2,
 		"cost": {"bp": 1, "sc": 1},
@@ -90,6 +95,7 @@ var abilities: Dictionary = {
 	"flametouch": {
 		"id": "flametouch",
 		"name": "Flametouch",
+		"icon": preload("res://assets/sprites/gui/ability_blue_flametouch.png"),
 		"tree": "blue",
 		"level_req": 2,
 		"cost": {"bp": 1, "sc": 1},

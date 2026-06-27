@@ -1,13 +1,27 @@
 extends CanvasLayer
 
-@onready var hotbar_container: HBoxContainer = $anchor/hotbar_container
-# Slots. Index 0 = Key 1, etc.
-var slot_labels: Array = []
-# Text on each slot.
-var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+@onready var background: TextureRect = $Background
+
+@export var basic_attack_icon: Texture2D
+
+var first_slot_offset: Vector2 = Vector2(4, 4)
+var slot_spacing: float = 20.0
+var icon_size: Vector2 = Vector2(18, 18)
+
+# Animation settings for when an ability is selected.
+var selected_offset: float = 1.0
+var tween_speed: float = 0.12
+
+# Stores the TextureRect nodes that display ability icons.
+var slot_icons: Array = []
+# Stores each icon's resting Y position so we know where to tween back to.
+var slot_rest_y: Array = []
+# Tracks which slot was active last frame so we only animate on change.
+var previous_active_slot: int = -1
+
 var hud_enabled: bool = true
 
-func _ready() -> void:
+func read() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_slots()
 	_update_display()
@@ -16,39 +30,52 @@ func _process(_delta: float) -> void:
 	if not hud_enabled:
 		visible = false
 		return
-	# Hides hotbar when menu is open.
 	visible = not GameMenuManager.is_open
 	if visible:
 		_update_display()
-
+	
 func _build_slots() -> void:
 	for i in range(10):
-		var slot: Label = Label.new()
-		slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		# Each slot gets a fixed width so they line up evenly.
-		slot.custom_minimum_size = Vector2(100, 0)
-		hotbar_container.add_child(slot)
-		slot_labels.append(slot)
+		var icon: TextureRect = TextureRect.new()
+		# Makes sure icon does not force the frame to fit it.
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		# stretch_mode KEEP_ASPECT_CENTERED scales the texture to fit within the node's size without
+		# distortion and centered.
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size = icon_size
+		
+		# Calculates this icon's position on the background. Each slot is spaced evenly along the
+		# horizontal axis. The x position starts at first_slot_offset.x and adds (slot_spacing * i)
+		# for each subsequent slot.The y position is the same for all slots.
+		var pos_x: float = first_slot_offset.x + (slot_spacing * i)
+		var pos_y: float = first_slot_offset.y
+		icon.position = Vector2(pos_x, pos_y)
 
-func _update_display () -> void:
+		background.add_child(icon)
+		slot_icons.append(icon)
+		slot_rest_y.append(pos_y)
+
+func _update_display() -> void:
+	var current_active_slot: int = -1
+	if BattleManager.active and BattleManager.player_turn != null:
+		current_active_slot = BattleManager.player_turn.active_hotbar_slot
+		
+	# Refreshes each slot's icon texture.
 	for i in range(10):
 		var ability_id: String = PlayerData.get_hotbar_ability(i)
-		var display_name: String = "---"
 		
 		if ability_id == "basic_attack":
-			display_name = "Attack"
+			slot_icons[i].texture = basic_attack_icon
 		elif ability_id != "":
 			var data: Dictionary = AbilityDB.get_ability(ability_id)
-			display_name = data.get("name", ability_id)
-			
-		slot_labels[i].text = "[" + key_names[i] + "]" + display_name
-		
-		# During combat, check if this slot is the one currently being used/aimed.
-		var is_active: bool = false
-		if BattleManager.active and BattleManager.player_turn != null:
-			is_active = (BattleManager.player_turn.active_hotbar_slot == i)
-		
-		if is_active:
-			slot_labels[i].modulate = Color.YELLOW
+			slot_icons[i].texture = data.get("icon", null)
 		else:
-			slot_labels[i].modulate = Color.WHITE
+			slot_icons[i].texture = null
+
+	# Only animates when the active slot changes, not every frame.
+	if current_active_slot != previous_active_slot:
+		_animate_selection(previous_active_slot, current_active_slot)
+		previous_active_slot = current_active_slot
+
+func _animate_selection(old_slot: int, new_slot: int) -> void:
+	######################################################
