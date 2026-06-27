@@ -3,7 +3,7 @@ extends Control
 @onready var cutscene_image: TextureRect = $CutsceneImage
 
 func _ready() -> void:
-	GameMenuManager.menus_enabled = false
+	# GameMenuManager.menus_enabled = false
 	cutscene_image.modulate.a = 0.0
 	
 	var tween: Tween = create_tween()

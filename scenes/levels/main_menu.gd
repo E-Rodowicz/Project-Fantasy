@@ -3,7 +3,7 @@ extends Control
 @onready var choice_list: ChoiceList = $ChoiceList
 
 func _ready() -> void:
-	GameMenuManager.menus_enabled = false
+	# GameMenuManager.menus_enabled = false
 	modulate.a = 0.0
 	var fade_tween: Tween = create_tween()
 	fade_tween.tween_property(self, "modulate:a", 1.0, 1.0)

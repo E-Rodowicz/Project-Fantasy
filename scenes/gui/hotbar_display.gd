@@ -5,7 +5,7 @@ extends CanvasLayer
 var slot_labels: Array = []
 # Text on each slot.
 var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-var hud_enabled: bool = false
+var hud_enabled: bool = true
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

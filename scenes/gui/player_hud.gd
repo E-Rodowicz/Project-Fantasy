@@ -26,7 +26,6 @@ const MP_FLASH_FPS: float = 10.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	hide()
 	var frame_width: float = mp_flash_sheet.get_width() / MP_FLASH_FRAME_COUNT
 	var frame_height: float = mp_flash_sheet.get_height()
 	for i in range(MP_FLASH_FRAME_COUNT):
