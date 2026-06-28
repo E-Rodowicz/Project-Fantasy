@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://c87a6allqlk04"]
+
+[ext_resource type="Texture2D" uid="uid://conmdhbi8k8hm" path="res://assets/sprites/gui/ability_highlight_select/ability_highlight_select_sheet.png" id="1_ffnb3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eut5v"]
+atlas = ExtResource("1_ffnb3")
+region = Rect2(0, 0, 18, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uukeg"]
+atlas = ExtResource("1_ffnb3")
+region = Rect2(18, 0, 18, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_82uq6"]
+atlas = ExtResource("1_ffnb3")
+region = Rect2(36, 0, 18, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iv2jg"]
+atlas = ExtResource("1_ffnb3")
+region = Rect2(54, 0, 18, 18)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_eut5v")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uukeg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_82uq6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_iv2jg")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 8.0
+}]

@@ -3,13 +3,15 @@ extends CanvasLayer
 @onready var background: TextureRect = $Background
 
 @export var basic_attack_icon: Texture2D
+@export var highlight_frames_select: SpriteFrames
 
-var first_slot_offset: Vector2 = Vector2(4, 4)
-var slot_spacing: float = 20.0
-var icon_size: Vector2 = Vector2(18, 18)
+var highlight_sprite_select: AnimatedSprite2D = null
+var first_slot_offset: Vector2 = Vector2(8, 8)
+var slot_spacing: float = 32.0
+var icon_size: Vector2 = Vector2(24, 24)
 
 # Animation settings for when an ability is selected.
-var selected_offset: float = 1.0
+var select_offset: float = 1.0
 var tween_speed: float = 0.12
 
 # Stores the TextureRect nodes that display ability icons.
@@ -21,7 +23,7 @@ var previous_active_slot: int = -1
 
 var hud_enabled: bool = true
 
-func read() -> void:
+func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_slots()
 	_update_display()
@@ -78,4 +80,20 @@ func _update_display() -> void:
 		previous_active_slot = current_active_slot
 
 func _animate_selection(old_slot: int, new_slot: int) -> void:
-	######################################################
+	# Slide the old icon back into position.
+	if old_slot >= 0 and old_slot < slot_icons.size():
+		var tween_down: Tween = create_tween()
+		tween_down.tween_property(
+			slot_icons[old_slot], "position:y",
+			slot_rest_y[old_slot], tween_speed
+		)
+		slot_icons[old_slot].modulate = Color.WHITE
+	
+	# Slide the new slot's icon upward.
+	if new_slot >= 0 and new_slot < slot_icons.size():
+		var tween_up: Tween = create_tween()
+		tween_up.tween_property(
+			slot_icons[new_slot], "position:y",
+			slot_rest_y[new_slot] - select_offset, tween_speed
+		)
+		slot_icons[new_slot].modulate = Color.YELLOW

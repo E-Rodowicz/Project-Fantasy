@@ -3,16 +3,19 @@
 [ext_resource type="Script" uid="uid://cgh6376sfmnq7" path="res://scenes/gui/hotbar_display.gd" id="1_q8gy2"]
 [ext_resource type="Texture2D" uid="uid://bie8scqujsmnj" path="res://assets/sprites/gui/ability_hotbar.png" id="2_a2ttq"]
 [ext_resource type="Texture2D" uid="uid://bqle02i73td3j" path="res://assets/sprites/gui/ability_neutral_attack.png" id="2_bxgwf"]
+[ext_resource type="SpriteFrames" uid="uid://c87a6allqlk04" path="res://scenes/gui/hotbar_highlight_select.tres" id="3_mlamd"]
 
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
 basic_attack_icon = ExtResource("2_bxgwf")
+highlight_frames_select = ExtResource("3_mlamd")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1941790021]
-offset_left = 856.0
-offset_top = 936.0
-offset_right = 1905.6001
-offset_bottom = 1064.0
+[node name="Background" type="TextureRect" parent="." unique_id=140855505]
+offset_left = 592.0
+offset_top = 904.0
+offset_right = 920.0
+offset_bottom = 944.0
+scale = Vector2(4, 4)
 texture = ExtResource("2_a2ttq")
-expand_mode = 1
+expand_mode = 3
 stretch_mode = 5
