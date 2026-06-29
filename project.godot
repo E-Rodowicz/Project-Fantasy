@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Project Fantasy"
-run/main_scene="uid://2vwm8i7jsuoo"
+run/main_scene="uid://dowdgat7icemg"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/max_fps=83
 config/icon="res://icon.svg"

@@ -8,14 +8,14 @@
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
 basic_attack_icon = ExtResource("2_bxgwf")
-highlight_frames_select = ExtResource("3_mlamd")
+highlight_frames = ExtResource("3_mlamd")
 
 [node name="Background" type="TextureRect" parent="." unique_id=140855505]
-offset_left = 592.0
-offset_top = 904.0
-offset_right = 920.0
-offset_bottom = 944.0
-scale = Vector2(4, 4)
+offset_left = 760.0
+offset_top = 927.99994
+offset_right = 1088.0
+offset_bottom = 967.99994
+scale = Vector2(3.5, 3.5)
 texture = ExtResource("2_a2ttq")
 expand_mode = 3
 stretch_mode = 5

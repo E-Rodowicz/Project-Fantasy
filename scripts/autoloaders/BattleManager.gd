@@ -9,6 +9,7 @@ var player_turn: CombatantTurn = null
 # E to kill something then the game checking for interactables as there is no delay between battle
 # mode and regular mode.
 var just_closed: bool = false
+var rejected_hotbar_slot: int = -1
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

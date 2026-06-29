@@ -2,7 +2,6 @@
 
 [ext_resource type="Texture2D" uid="uid://d0vrax5h8jcgp" path="res://assets/sprites/hp_bar_bg.png" id="1_gtiwb"]
 [ext_resource type="Script" uid="uid://dqxk5t5c18umh" path="res://scenes/gui/player_hud.gd" id="1_lbg3w"]
-[ext_resource type="Texture2D" uid="uid://djvf8pef48hdd" path="res://assets/sprites/hp_bar_frame - Copy.png" id="2_lbg3w"]
 [ext_resource type="Texture2D" uid="uid://bjhwngwhspkgg" path="res://assets/sprites/hp_bar_fill.png" id="2_qxd7q"]
 [ext_resource type="Texture2D" uid="uid://dmbn8hdau3v04" path="res://assets/sprites/mp_bar_bg.png" id="5_pfsq8"]
 [ext_resource type="Texture2D" uid="uid://b75unn5doufq4" path="res://assets/sprites/mp_bar_fill.png" id="6_iouey"]
@@ -23,24 +22,23 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ap_container" type="HBoxContainer" parent="anchor" unique_id=1075018109]
-layout_direction = 2
 layout_mode = 0
-offset_left = 8.0
-offset_top = 912.0
-offset_right = 648.0
-offset_bottom = 920.0
+offset_left = 96.0
+offset_top = 936.0
+offset_right = 496.0
+offset_bottom = 944.0
+layout_direction = 2
 theme_override_constants/separation = 4
 
 [node name="hp_bar" type="TextureProgressBar" parent="anchor" unique_id=1162361743]
 texture_filter = 1
 layout_mode = 0
-offset_top = 936.0
+offset_top = 928.0
 offset_right = 608.0
-offset_bottom = 1080.0
+offset_bottom = 1072.0
 max_value = 200.0
 nine_patch_stretch = true
 texture_under = ExtResource("1_gtiwb")
-texture_over = ExtResource("2_lbg3w")
 texture_progress = ExtResource("2_qxd7q")
 
 [node name="hp_label" type="Label" parent="anchor/hp_bar" unique_id=1755078183]
@@ -69,9 +67,9 @@ anchor_top = 0.609
 anchor_right = 0.518
 anchor_bottom = 0.609
 offset_left = -738.56
-offset_top = 318.27997
+offset_top = 310.27997
 offset_right = -642.56
-offset_bottom = 341.27997
+offset_bottom = 333.27997
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1
@@ -81,27 +79,27 @@ autowrap_mode = 2
 [node name="mp_bar_preview" type="TextureProgressBar" parent="anchor" unique_id=1289843670]
 layout_mode = 0
 offset_left = 72.0
-offset_top = 968.0
+offset_top = 960.0
 offset_right = 520.0
-offset_bottom = 1000.0
+offset_bottom = 992.0
 nine_patch_stretch = true
 texture_under = ExtResource("5_pfsq8")
 
 [node name="mp_bar" type="TextureProgressBar" parent="anchor" unique_id=186894263]
 layout_mode = 0
 offset_left = 72.0
-offset_top = 968.0
+offset_top = 960.0
 offset_right = 520.0
-offset_bottom = 1000.0
+offset_bottom = 992.0
 nine_patch_stretch = true
 texture_progress = ExtResource("6_iouey")
 
 [node name="bp_icon" type="TextureRect" parent="anchor" unique_id=1878919694]
 layout_mode = 0
 offset_left = 536.0
-offset_top = 960.0
+offset_top = 952.0
 offset_right = 568.0
-offset_bottom = 992.0
+offset_bottom = 984.0
 texture = ExtResource("7_iouey")
 
 [node name="bp_label" type="Label" parent="anchor/bp_icon" unique_id=1995028823]

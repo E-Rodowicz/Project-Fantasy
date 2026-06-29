@@ -198,6 +198,8 @@ func _handle_hotbar_press(slot: int) -> void:
 		_enter_attack_mode()
 		if mode == Mode.ATTACK:
 			active_hotbar_slot = slot
+		else:
+			BattleManager.rejected_hotbar_slot = slot
 		
 	else:
 		_enter_ability_mode(ability_id)
@@ -205,6 +207,8 @@ func _handle_hotbar_press(slot: int) -> void:
 		# or something else.
 		if mode == Mode.ABILITY:
 			active_hotbar_slot = slot
+		else:
+			BattleManager.rejected_hotbar_slot = slot
 
 func _create_floating_label() -> Label:
 	var label: Label = Label.new()
