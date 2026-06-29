@@ -228,19 +228,37 @@ func _animate_selection(old_slot: int, new_slot: int) -> void:
 func _play_reject(slot: int) -> void:
 	var icon: TextureRect = slot_icons[slot]
 	var rest_x: float = first_slot_offset.x + (slot_spacing * slot)
+	var label_x: float = rest_x - 1.0
 
 	var shake_tween: Tween = create_tween()
 	shake_tween.set_parallel(true)
 
+	# Step 1: everything moves left.
 	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
-	shake_tween.chain().tween_property(icon, "position:x", rest_x + 1.0, 0.05)
-	shake_tween.chain().tween_property(icon, "position:x", rest_x - 1.0, 0.05)
-	shake_tween.chain().tween_property(icon, "position:x", rest_x, 0.05)
-
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
-	shake_tween.chain().tween_property(reject_sprite, "position:x", rest_x + 1.0, 0.05)
-	shake_tween.chain().tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
-	shake_tween.chain().tween_property(reject_sprite, "position:x", rest_x, 0.05)
+	shake_tween.tween_property(slot_labels[slot], "position:x", label_x - 1.0, 0.05)
+	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x - 1.0, 0.05)
+
+	# Step 2: everything moves right.
+	shake_tween.chain()
+	shake_tween.tween_property(icon, "position:x", rest_x + 1.0, 0.05)
+	shake_tween.tween_property(reject_sprite, "position:x", rest_x + 1.0, 0.05)
+	shake_tween.tween_property(slot_labels[slot], "position:x", label_x + 1.0, 0.05)
+	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x + 1.0, 0.05)
+
+	# Step 3: everything moves left again.
+	shake_tween.chain()
+	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
+	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
+	shake_tween.tween_property(slot_labels[slot], "position:x", label_x - 1.0, 0.05)
+	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x - 1.0, 0.05)
+
+	# Step 4: everything returns to rest.
+	shake_tween.chain()
+	shake_tween.tween_property(icon, "position:x", rest_x, 0.05)
+	shake_tween.tween_property(reject_sprite, "position:x", rest_x, 0.05)
+	shake_tween.tween_property(slot_labels[slot], "position:x", label_x, 0.05)
+	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x, 0.05)
 
 	reject_plays_remaining = 2
 	reject_sprite.position = icon.position

@@ -5,7 +5,7 @@ class_name BattleOverlay
 var overlay_layer: TileMapLayer = null
 
 # For AStarGrid.
-const FINAL_WAYPOINT_COORDS := Vector2i(4, 7)
+const FINAL_WAYPOINT_COORDS := Vector2i(2, 7)
 
 # Cost constants.
 const COST_ORTHOGONAL: int = 2
@@ -18,7 +18,7 @@ const YELLOW_COORDS := Vector2i(1, 8)
 const GREY_COORDS := Vector2i(2, 8)
 const RED_COORDS := Vector2i(3, 8)
 const PURPLE_COORDS := Vector2i(4, 8)
-const LIGHT_BLUE_COORDS := Vector2i(3, 7)
+const LIGHT_BLUE_COORDS := Vector2i(2, 7)
 
 # Terrain set and terrain indices for autotiled colours.
 const TERRAIN_SET: int = 0

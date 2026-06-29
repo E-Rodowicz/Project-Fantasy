@@ -387,7 +387,7 @@ func _enter_ability_mode(ability_id: String) -> void:
 				best_dist = dist
 				best_tile = tile
 		cursor_tile = best_tile
-		overlay.paint_purple(cursor_tile)
+		_redraw_blink_movement()
 		
 	elif ability_instance.get_targeting_type() == "ranged":
 		var weapon: Dictionary = PlayerData.get_equipped_weapon()
@@ -531,10 +531,7 @@ func _handle_ability_input() -> void:
 			
 			if moved:
 				_build_ability_tiles()
-				if cursor_tile in ability_tiles:
-					overlay.paint_purple(cursor_tile)
-				else:
-					overlay.paint_grey(cursor_tile)
+				_redraw_blink_movement()
 			
 			if Input.is_action_just_pressed("interact") and cursor_tile in ability_tiles:
 				has_ability_target = true
@@ -586,10 +583,7 @@ func _handle_ability_input() -> void:
 				has_ability_target = false
 				_build_ability_tiles()
 				cursor_tile = blink_landing_tile
-				if cursor_tile in ability_tiles:
-					overlay.paint_purple(cursor_tile)
-				else:
-					overlay.paint_grey(cursor_tile)
+				_redraw_blink_movement()
 					
 	elif active_ability.get("targeting") == "ranged":
 			var moved: bool = false
@@ -755,6 +749,15 @@ func _is_tile_on_screen(tile: Vector2i) -> bool:
 		# So the current screen (cursor) position for x must be between 32 and 1888, and for y
 		# between 32 and 1048
 	)
+
+func _redraw_blink_movement() -> void:
+	overlay.clear_all()
+	overlay.paint_soft_green(ability_tiles)
+	if cursor_tile in ability_tiles:
+		overlay.paint_yellow(cursor_tile)
+	else:
+		overlay.paint_grey(cursor_tile)
+	_update_floating_labels()
 
 # Gives the last waypoint, if nothing there, gives player position. This lets us move from that
 # point.
