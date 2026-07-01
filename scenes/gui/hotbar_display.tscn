@@ -4,18 +4,89 @@
 [ext_resource type="Texture2D" uid="uid://bie8scqujsmnj" path="res://assets/sprites/gui/ability_hotbar.png" id="2_a2ttq"]
 [ext_resource type="Texture2D" uid="uid://bqle02i73td3j" path="res://assets/sprites/gui/ability_neutral_attack.png" id="2_bxgwf"]
 [ext_resource type="SpriteFrames" uid="uid://c87a6allqlk04" path="res://scenes/gui/hotbar_highlight_select.tres" id="3_mlamd"]
+[ext_resource type="Texture2D" uid="uid://d4hjgk4721d7v" path="res://assets/sprites/gui/ability_inactive.png" id="4_qg201"]
+[ext_resource type="Texture2D" uid="uid://ceotyk3v4oh8t" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc-sheet.png" id="5_7kw60"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7kw60"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(0, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hh02c"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(8, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w21tg"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(16, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rqwpo"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(24, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_64ry1"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(32, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gj6vh"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(40, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7ya64"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(48, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6nae8"]
+atlas = ExtResource("5_7kw60")
+region = Rect2(56, 0, 8, 8)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_qg201"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7kw60")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hh02c")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w21tg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rqwpo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_64ry1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gj6vh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7ya64")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6nae8")
+}, {
+"duration": 12.0,
+"texture": SubResource("AtlasTexture_7kw60")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 24.0
+}]
 
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
 basic_attack_icon = ExtResource("2_bxgwf")
 highlight_frames = ExtResource("3_mlamd")
+reject_cross_texture = ExtResource("4_qg201")
+sc_orb_frames = SubResource("SpriteFrames_qg201")
 
 [node name="Background" type="TextureRect" parent="." unique_id=140855505]
-offset_left = 760.0
-offset_top = 927.99994
-offset_right = 1088.0
-offset_bottom = 967.99994
-scale = Vector2(3.5, 3.5)
+offset_left = 928.0
+offset_top = 952.0
+offset_right = 1256.0
+offset_bottom = 992.0
+scale = Vector2(3, 3)
 texture = ExtResource("2_a2ttq")
 expand_mode = 3
 stretch_mode = 5

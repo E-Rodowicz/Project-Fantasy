@@ -51,7 +51,7 @@ var ability_tiles: Array = []
 var ability_instance: BaseAbility = null
 var has_ability_target: bool = false
 var status_processor: StatusEffectProcessor = StatusEffectProcessor.new()
-
+var has_acted_this_turn: bool = false
 var blink_landing_tile: Vector2i = Vector2i.ZERO
 
 var active_hotbar_slot: int = -1
@@ -78,6 +78,8 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 	else:
 		bp_remaining = 1
 		ap_remaining = 0
+	
+	has_acted_this_turn = false
 	
 	if combatant.is_in_group("player"):
 		CombatLog.add(combatant.name + "'s turn. (" + str(bp_remaining) + " BP, " + str(ap_remaining) + " AP)")
@@ -269,6 +271,10 @@ func _update_floating_labels() -> void:
 func _enter_ability_mode(ability_id: String) -> void:
 	var ability: Dictionary = AbilityDB.get_ability(ability_id)
 	if ability.is_empty():
+		return
+	if ability.get("requires_first_action", false) and has_acted_this_turn:
+		return
+	if ability.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
 		return
 	if not PlayerData.has_ability(ability_id):
 		return
@@ -515,24 +521,28 @@ func _handle_ability_input() -> void:
 	elif active_ability.get("targeting") == "blink":
 		if not has_ability_target:
 			# Phase 1: selecting landing tile.
-			var moved: bool = false
-			if Input.is_action_just_pressed("ui_up"):
-				cursor_tile.y -= 1
-				moved = true
-			elif Input.is_action_just_pressed("ui_down"):
-				cursor_tile.y += 1
-				moved = true
-			elif Input.is_action_just_pressed("ui_left"):
-				cursor_tile.x -= 1
-				moved = true
-			elif Input.is_action_just_pressed("ui_right"):
-				cursor_tile.x += 1
-				moved = true
-			
-			if moved:
-				_build_ability_tiles()
-				_redraw_blink_movement()
-			
+			if cursor_move_timer <= 0.0:
+				var moved: bool = false
+				var target_tile: Vector2i = cursor_tile
+				if Input.is_action_pressed("ui_up"):
+					target_tile.y -= 1
+					moved = true
+				elif Input.is_action_pressed("ui_down"):
+					target_tile.y += 1
+					moved = true
+				elif Input.is_action_pressed("ui_left"):
+					target_tile.x -= 1
+					moved = true
+				elif Input.is_action_pressed("ui_right"):
+					target_tile.x += 1
+					moved = true
+
+				if moved and _is_tile_on_screen(target_tile):
+					cursor_tile = target_tile
+					cursor_move_timer = CURSOR_MOVE_RATE
+					_build_ability_tiles()
+					_redraw_blink_movement()
+
 			if Input.is_action_just_pressed("interact") and cursor_tile in ability_tiles:
 				has_ability_target = true
 				blink_landing_tile = cursor_tile
@@ -550,79 +560,84 @@ func _handle_ability_input() -> void:
 						cursor_tile = tile
 						break
 				_redraw_blink_target_select()
-			
+
 			if Input.is_action_just_pressed("cancel"):
 				_exit_ability_mode()
-		
+
 		else:
-			# Phase 2: aim attack direction from landing tile.
-			var any_pressed: bool = (
-				Input.is_action_just_pressed("ui_up") or
-				Input.is_action_just_pressed("ui_down") or
-				Input.is_action_just_pressed("ui_left") or
-				Input.is_action_just_pressed("ui_right")
-			)
-			
-			if any_pressed:
-				var dir: Vector2i = Vector2i.ZERO
-				if Input.is_action_pressed("ui_up"): dir.y -= 1
-				if Input.is_action_pressed("ui_down"): dir.y += 1
-				if Input.is_action_pressed("ui_left"): dir.x -= 1
-				if Input.is_action_pressed("ui_right"): dir.x += 1
-				
-				if dir != Vector2i.ZERO:
-					var wanted: Vector2i = blink_landing_tile + dir
-					if world_layer.get_cell_source_id(wanted) == -1:
-						cursor_tile = wanted
-						_redraw_blink_target_select()
-			
+			if cursor_move_timer <= 0.0:
+				var any_pressed: bool = (
+					Input.is_action_pressed("ui_up") or
+					Input.is_action_pressed("ui_down") or
+					Input.is_action_pressed("ui_left") or
+					Input.is_action_pressed("ui_right")
+				)
+
+				if any_pressed:
+					var dir: Vector2i = Vector2i.ZERO
+					if Input.is_action_pressed("ui_up"): dir.y -= 1
+					if Input.is_action_pressed("ui_down"): dir.y += 1
+					if Input.is_action_pressed("ui_left"): dir.x -= 1
+					if Input.is_action_pressed("ui_right"): dir.x += 1
+
+					if dir != Vector2i.ZERO:
+						var wanted: Vector2i = blink_landing_tile + dir
+						if world_layer.get_cell_source_id(wanted) == -1 and _is_tile_on_screen(wanted):
+							cursor_tile = wanted
+							cursor_move_timer = CURSOR_MOVE_RATE
+							_redraw_blink_target_select()
+
 			if Input.is_action_just_pressed("interact"):
 				_execute_ability()
-			
+
 			if Input.is_action_just_pressed("cancel"):
 				has_ability_target = false
 				_build_ability_tiles()
 				cursor_tile = blink_landing_tile
 				_redraw_blink_movement()
-					
+
 	elif active_ability.get("targeting") == "ranged":
+		if cursor_move_timer <= 0.0:
 			var moved: bool = false
-			if Input.is_action_just_pressed("ui_up"):
-				cursor_tile.y -= 1
+			var target_tile: Vector2i = cursor_tile
+			if Input.is_action_pressed("ui_up"):
+				target_tile.y -= 1
 				moved = true
-			elif Input.is_action_just_pressed("ui_down"):
-				cursor_tile.y += 1
+			elif Input.is_action_pressed("ui_down"):
+				target_tile.y += 1
 				moved = true
-			elif Input.is_action_just_pressed("ui_left"):
-				cursor_tile.x -= 1
+			elif Input.is_action_pressed("ui_left"):
+				target_tile.x -= 1
 				moved = true
-			elif Input.is_action_just_pressed("ui_right"):
-				cursor_tile.x += 1
+			elif Input.is_action_pressed("ui_right"):
+				target_tile.x += 1
 				moved = true
-			
-			if moved:
+
+			if moved and _is_tile_on_screen(target_tile):
+				cursor_tile = target_tile
+				cursor_move_timer = CURSOR_MOVE_RATE
 				has_ability_target = false
 				_redraw_ranged_ability()
-			
-			if Input.is_action_just_pressed("interact") and cursor_tile in ranged_area_tiles:
-				if not has_ability_target:
-					has_ability_target = true
-					overlay.clear_all()
-					for tile in ranged_area_tiles:
-						overlay.paint_light_blue(tile)
-					for tile in ranged_target_tiles:
-						overlay.paint_bright_green(tile)
-					overlay.paint_bright_green(cursor_tile)
-					_update_floating_labels()
-				else:
-					_execute_ability()
-			
-			if Input.is_action_just_pressed("cancel"):
-				if has_ability_target:
-					has_ability_target = false
-					_redraw_ranged_ability()
-				else:
-					_exit_ability_mode()
+
+		if Input.is_action_just_pressed("interact") and cursor_tile in ranged_area_tiles:
+			if not has_ability_target:
+				has_ability_target = true
+				overlay.clear_all()
+				for tile in ranged_area_tiles:
+					overlay.paint_light_blue(tile)
+				for tile in ranged_target_tiles:
+					overlay.paint_bright_green(tile)
+				overlay.paint_bright_green(cursor_tile)
+				_update_floating_labels()
+			else:
+				_execute_ability()
+
+		if Input.is_action_just_pressed("cancel"):
+			if has_ability_target:
+				has_ability_target = false
+				_redraw_ranged_ability()
+			else:
+				_exit_ability_mode()
 
 func _redraw_ability_confirm() -> void:
 	overlay.clear_all()
@@ -649,7 +664,8 @@ func _execute_ability() -> void:
 			"bp": bp_remaining -= cost[resource]
 			"mp": mp_budget -= cost[resource]
 			"sc": PlayerData.use_spell_charge(active_ability.get("id", ""))
-	
+			
+	has_acted_this_turn = true
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
 	animating = true
 	var execute_tiles: Array = ability_tiles
@@ -695,6 +711,56 @@ func _get_attack_range() -> int:
 		return weapon.get("weapon_range", 1)
 	else:
 		return 1
+
+func get_slot_block_reasons(slot: int) -> Array:
+	var reasons: Array = []
+	var ability_id: String = PlayerData.get_hotbar_ability(slot)
+
+	if ability_id == "":
+		return reasons
+
+	if ability_id == "basic_attack":
+		if bp_remaining <= 0:
+			reasons.append("Not enough BP")
+		return reasons
+
+	if not PlayerData.has_ability(ability_id):
+		reasons.append("Not learned")
+		return reasons
+
+	var ability: Dictionary = AbilityDB.get_ability(ability_id)
+
+	if ability.get("requires_first_action", false) and has_acted_this_turn:
+		reasons.append("Already acted this turn")
+
+	if ability.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
+		reasons.append("Requires ranged weapon")
+
+	var cost: Dictionary = ability.get("cost", {})
+	for resource in cost.keys():
+		var amount: int = cost[resource]
+		match resource:
+			"ap":
+				if ap_remaining < amount:
+					reasons.append("Not enough AP")
+			"bp":
+				if bp_remaining < amount:
+					reasons.append("Not enough BP")
+			"mp":
+				if mp_budget < amount:
+					reasons.append("Not enough MP")
+			"sc":
+				if PlayerData.get_spell_charges(ability.get("id", "")) < amount:
+					reasons.append("No spell charges")
+
+	if ability.get("targeting", "") == "blink":
+		var temp_instance: BaseAbility = AbilityDB.create_ability(ability_id)
+		if temp_instance != null:
+			var tiles: Array = temp_instance.get_target_tiles(player_tile, Vector2i.ZERO, world_layer)
+			if tiles.is_empty():
+				reasons.append("No valid targets")
+
+	return reasons
 
 func _is_tile_on_screen(tile: Vector2i) -> bool:
 	# Converts the tile to its world position.
@@ -866,6 +932,8 @@ func _execute_move() -> void:
 	
 	# Take away the MP used.
 	mp_budget -= path_cost
+	
+	has_acted_this_turn = true
 	
 	CombatLog.add(combatant.name + " moves. (" + str(path_cost) + " MP, " + str(mp_budget) + " MP remaining)")
 	
@@ -1124,6 +1192,7 @@ func _execute_attack() -> void:
 		_try_attack(target)
 		is_offhand_attack = false
 	
+	has_acted_this_turn = true
 	bp_remaining -= 1
 	_exit_attack_mode()
 
@@ -1162,6 +1231,7 @@ func _execute_ranged_attack() -> void:
 			_engage_if_needed(target)
 			_try_attack(target)
 	
+	has_acted_this_turn = true
 	bp_remaining -= 1
 	has_target = false
 	_exit_attack_mode()

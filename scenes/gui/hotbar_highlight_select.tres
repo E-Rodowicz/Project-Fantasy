@@ -24,17 +24,9 @@ region = Rect2(54, 0, 18, 18)
 atlas = ExtResource("1_eut5v")
 region = Rect2(72, 0, 18, 18)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_8tpwh"]
-atlas = ExtResource("1_eut5v")
-region = Rect2(90, 0, 18, 18)
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_p0gt7"]
 atlas = ExtResource("1_eut5v")
 region = Rect2(108, 0, 18, 18)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_fd4m5"]
-atlas = ExtResource("1_eut5v")
-region = Rect2(126, 0, 18, 18)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_txj7e"]
 atlas = ExtResource("1_eut5v")
@@ -111,57 +103,51 @@ region = Rect2(90, 0, 18, 18)
 [resource]
 animations = [{
 "frames": [{
-"duration": 0.6,
+"duration": 0.3,
 "texture": SubResource("AtlasTexture_uukeg")
 }, {
-"duration": 0.6,
+"duration": 0.3,
 "texture": SubResource("AtlasTexture_82uq6")
 }, {
-"duration": 0.6,
+"duration": 0.3,
 "texture": SubResource("AtlasTexture_iv2jg")
 }, {
-"duration": 0.6,
+"duration": 0.3,
 "texture": SubResource("AtlasTexture_n3gtr")
 }, {
-"duration": 0.6,
+"duration": 0.3,
 "texture": SubResource("AtlasTexture_sgepb")
 }, {
-"duration": 0.8,
-"texture": SubResource("AtlasTexture_8tpwh")
-}, {
-"duration": 1.0,
+"duration": 4.0,
 "texture": SubResource("AtlasTexture_p0gt7")
 }, {
-"duration": 0.8,
-"texture": SubResource("AtlasTexture_fd4m5")
-}, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_txj7e")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_2qnhm")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_lkyfx")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_t2wbp")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_hmyl5")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_k0mgb")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_57413")
 }, {
-"duration": 1.6,
+"duration": 1.8,
 "texture": SubResource("AtlasTexture_aes78")
 }],
 "loop": 1,
 "name": &"confirm",
-"speed": 18.0
+"speed": 20.0
 }, {
 "frames": [{
 "duration": 1.0,

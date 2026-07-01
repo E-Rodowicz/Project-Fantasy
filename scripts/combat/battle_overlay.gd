@@ -152,7 +152,7 @@ func path_mp_cost(path: Array) -> int:
 	return total
 
 func paint_final_waypoint(tile: Vector2i) -> void:
-	paint_single(tile, FINAL_WAYPOINT_COORDS)
+	paint_single(tile, BRIGHT_GREEN_COORDS)
 	
 func setup(layer: TileMapLayer) -> void:
 	overlay_layer = layer

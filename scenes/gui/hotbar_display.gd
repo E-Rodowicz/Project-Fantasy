@@ -4,6 +4,8 @@ extends CanvasLayer
 
 @export var basic_attack_icon: Texture2D
 @export var highlight_frames: SpriteFrames
+@export var reject_cross_texture: Texture2D
+@export var sc_orb_frames: SpriteFrames
 
 var highlight_sprite: AnimatedSprite2D = null
 var reject_sprite: AnimatedSprite2D = null
@@ -11,8 +13,17 @@ var reject_plays_remaining: int = 0
 var first_slot_offset: Vector2 = Vector2(8, 8)
 var slot_spacing: float = 32.0
 var icon_size: Vector2 = Vector2(24, 24)
+var reason_label: Label = null
+var reason_tween: Tween = null
+var slot_overlays: Array = []
+var slot_blocked: Array = []
+var overlay_tween_speed: float = 0.25
 var slot_charge_labels: Array = []
+var slot_charge_fade_labels: Array = []
+var slot_charge_values: Array = []
+var charge_fade_speed: float = 0.3
 var slot_labels: Array = []
+var slot_orbs: Array = []
 var label_rest_y: Array = []
 var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 
@@ -83,15 +94,69 @@ func _build_slots() -> void:
 		var charge_font: Font = preload("res://assets/fonts/m3x6.ttf")
 		charge_label.add_theme_font_override("font", charge_font)
 		charge_label.add_theme_font_size_override("font_size", 16)
-		charge_label.add_theme_color_override("font_color", Color.WHITE)
+		charge_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 		charge_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_label.add_theme_constant_override("outline_size", 1)
 		charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		charge_label.size = Vector2(icon_size.x, 12)
-		charge_label.position = Vector2(pos_x, pos_y + icon_size.y - 8)
-		charge_label.z_index = 2
+		charge_label.position = Vector2(pos_x, pos_y + icon_size.y - 6)
+		charge_label.z_index = 3
 		background.add_child(charge_label)
 		slot_charge_labels.append(charge_label)
+		
+		var charge_fade_label: Label = Label.new()
+		charge_fade_label.add_theme_font_override("font", charge_font)
+		charge_fade_label.add_theme_font_size_override("font_size", 16)
+		charge_fade_label.add_theme_color_override("font_color", Color.WHITE)
+		charge_fade_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		charge_fade_label.add_theme_constant_override("outline_size", 1)
+		charge_fade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		charge_fade_label.size = Vector2(icon_size.x, 12)
+		charge_fade_label.position = Vector2(pos_x, pos_y + icon_size.y - 6)
+		charge_fade_label.z_index = 3
+		charge_fade_label.modulate = Color(1, 1, 1, 0)
+		background.add_child(charge_fade_label)
+		slot_charge_fade_labels.append(charge_fade_label)
+		slot_charge_values.append("")
+		
+		var orb: AnimatedSprite2D = AnimatedSprite2D.new()
+		orb.sprite_frames = sc_orb_frames
+		orb.visible = true
+		orb.stop()
+		orb.frame = 0
+		orb.centered = false
+		orb.modulate = Color(1, 1, 1, 0)
+		orb.offset = Vector2(0, 0)
+		orb.position = Vector2(pos_x + 5.5, pos_y + icon_size.y - 4)
+		orb.scale = Vector2(1.5, 1.5)
+		orb.z_index = 2
+		orb.stop()
+		orb.frame = 0
+		background.add_child(orb)
+		slot_orbs.append(orb)
+		
+		var overlay_rect: TextureRect = TextureRect.new()
+		overlay_rect.texture = reject_cross_texture
+		overlay_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		overlay_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		overlay_rect.size = icon_size
+		overlay_rect.position = Vector2(pos_x, pos_y)
+		overlay_rect.modulate = Color(1, 1, 1, 0)
+		overlay_rect.z_index = 1
+		background.add_child(overlay_rect)
+		slot_overlays.append(overlay_rect)
+		slot_blocked.append(false)
+		
+		reason_label = Label.new()
+		var reason_font: Font = preload("res://assets/fonts/m3x6.ttf")
+		reason_label.add_theme_font_override("font", reason_font)
+		reason_label.add_theme_font_size_override("font_size", 32)
+		reason_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+		reason_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		reason_label.add_theme_constant_override("outline_size", 3)
+		reason_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		reason_label.visible = false
+		add_child(reason_label)
 
 	highlight_sprite = AnimatedSprite2D.new()
 	highlight_sprite.scale = Vector2(icon_size.x / 18.0, icon_size.y / 18.0)
@@ -142,16 +207,57 @@ func _update_display() -> void:
 			slot_icons[i].texture = null
 			slot_labels[i].visible = ability_id != ""
 			
+		var wanted_charge: String = ""
 		if ability_id != "" and ability_id != "basic_attack":
 			var data: Dictionary = AbilityDB.get_ability(ability_id)
 			var cost: Dictionary = data.get("cost", {})
 			if cost.has("sc"):
-				var charges: int = PlayerData.get_spell_charges(ability_id)
-				slot_charge_labels[i].text = str(charges)
+				wanted_charge = str(PlayerData.get_spell_charges(ability_id))
+
+		if wanted_charge != slot_charge_values[i]:
+			_fade_charge_value(i, slot_charge_values[i], wanted_charge)
+			slot_charge_values[i] = wanted_charge
+			
+		if ability_id != "" and ability_id != "basic_attack":
+			var data2: Dictionary = AbilityDB.get_ability(ability_id)
+			var cost2: Dictionary = data2.get("cost", {})
+			if cost2.has("sc"):
+				slot_orbs[i].modulate = Color(1, 1, 1, 1)
+				if current_active_slot == i:
+					slot_charge_labels[i].add_theme_color_override("font_color", Color(1, 1, 1))
+					slot_charge_fade_labels[i].add_theme_color_override("font_color", Color(1, 1, 1))
+					if not slot_orbs[i].is_playing():
+						slot_orbs[i].play("default")
+				else:
+					slot_charge_labels[i].add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+					slot_charge_fade_labels[i].add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+					slot_orbs[i].stop()
+					slot_orbs[i].frame = 0
 			else:
-				slot_charge_labels[i].text = ""
+				slot_orbs[i].modulate = Color(1, 1, 1, 0)
 		else:
-			slot_charge_labels[i].text = ""
+			slot_orbs[i].modulate = Color(1, 1, 1, 0)
+			
+		if BattleManager.active and BattleManager.player_turn != null and ability_id != "":
+			var reasons: Array = BattleManager.player_turn.get_slot_block_reasons(i)
+			var is_blocked: bool = not reasons.is_empty()
+			if is_blocked != slot_blocked[i]:
+				slot_blocked[i] = is_blocked
+				var target_alpha: float = 1.0 if is_blocked else 0.0
+				var tween: Tween = create_tween()
+				tween.tween_property(slot_overlays[i], "modulate:a", target_alpha, overlay_tween_speed)
+		else:
+			# Out of combat: still cross out abilities blocked by non-combat requirements.
+			var out_blocked: bool = false
+			if ability_id != "" and ability_id != "basic_attack":
+				var data3: Dictionary = AbilityDB.get_ability(ability_id)
+				if data3.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
+					out_blocked = true
+			if out_blocked != slot_blocked[i]:
+				slot_blocked[i] = out_blocked
+				var target_alpha: float = 1.0 if out_blocked else 0.0
+				var tween: Tween = create_tween()
+				tween.tween_property(slot_overlays[i], "modulate:a", target_alpha, overlay_tween_speed)
 
 	# Only animates when the active slot changes, not every frame.
 	if current_active_slot != previous_active_slot:
@@ -194,10 +300,6 @@ func _animate_selection(old_slot: int, new_slot: int) -> void:
 			slot_labels[old_slot], "position:y",
 			label_rest_y[old_slot], tween_speed
 		)
-		tween_down.tween_property(
-			slot_charge_labels[old_slot], "position:y",
-			slot_rest_y[old_slot] + icon_size.y - 8, tween_speed
-		)
 		slot_icons[old_slot].modulate = Color.WHITE
 
 	if new_slot >= 0 and new_slot < slot_icons.size():
@@ -211,11 +313,6 @@ func _animate_selection(old_slot: int, new_slot: int) -> void:
 			slot_labels[new_slot], "position:y",
 			label_rest_y[new_slot] - select_offset, tween_speed
 		)
-		tween_up.tween_property(
-			slot_charge_labels[new_slot], "position:y",
-			slot_rest_y[new_slot] + icon_size.y - 8 - select_offset,
-		tween_speed
-		)
 		slot_icons[new_slot].modulate = Color(1.241, 1.225, 1.055, 1.0)	
 		highlight_sprite.position = slot_icons[new_slot].position
 		highlight_sprite.visible = true
@@ -223,12 +320,28 @@ func _animate_selection(old_slot: int, new_slot: int) -> void:
 	else:
 		highlight_sprite.visible = false
 
+func _fade_charge_value(slot: int, old_value: String, new_value: String) -> void:
+	var main_label: Label = slot_charge_labels[slot]
+	var fade_label: Label = slot_charge_fade_labels[slot]
 
+	# Old value appears on the twin label and fades out.
+	fade_label.text = old_value
+	fade_label.modulate = Color(1, 1, 1, 1)
+	var out_tween: Tween = create_tween()
+	out_tween.tween_property(fade_label, "modulate:a", 0.0, charge_fade_speed)
+
+	# New value goes on the main label and fades in.
+	main_label.text = new_value
+	main_label.modulate = Color(1, 1, 1, 0)
+	var in_tween: Tween = create_tween()
+	in_tween.tween_property(main_label, "modulate:a", 1.0, charge_fade_speed)
 
 func _play_reject(slot: int) -> void:
+	_show_reject_reason(slot)
 	var icon: TextureRect = slot_icons[slot]
 	var rest_x: float = first_slot_offset.x + (slot_spacing * slot)
 	var label_x: float = rest_x - 1.0
+	var orb_x: float = rest_x
 
 	var shake_tween: Tween = create_tween()
 	shake_tween.set_parallel(true)
@@ -237,30 +350,58 @@ func _play_reject(slot: int) -> void:
 	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x - 1.0, 0.05)
-	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x - 1.0, 0.05)
+	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x - 1.0, 0.05)
 
 	# Step 2: everything moves right.
 	shake_tween.chain()
 	shake_tween.tween_property(icon, "position:x", rest_x + 1.0, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x + 1.0, 0.05)
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x + 1.0, 0.05)
-	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x + 1.0, 0.05)
+	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x + 1.0, 0.05)
 
 	# Step 3: everything moves left again.
 	shake_tween.chain()
 	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x - 1.0, 0.05)
-	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x - 1.0, 0.05)
+	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x - 1.0, 0.05)
 
 	# Step 4: everything returns to rest.
 	shake_tween.chain()
 	shake_tween.tween_property(icon, "position:x", rest_x, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x, 0.05)
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x, 0.05)
-	shake_tween.tween_property(slot_charge_labels[slot], "position:x", rest_x, 0.05)
+	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x, 0.05)
 
 	reject_plays_remaining = 2
 	reject_sprite.position = icon.position
 	reject_sprite.visible = true
 	reject_sprite.play("reject")
+	
+func _show_reject_reason(slot: int) -> void:
+	var pt: CombatantTurn = BattleManager.player_turn
+	if pt == null:
+		return
+
+	var reasons: Array = pt.get_slot_block_reasons(slot)
+	if reasons.is_empty():
+		return
+
+	reason_label.text = ", ".join(reasons)
+	reason_label.size = Vector2(400, 40)
+
+	var slot_local_x: float = first_slot_offset.x + (slot_spacing * slot) + (icon_size.x / 2)
+	var slot_screen_x: float = background.global_position.x + (slot_local_x * background.scale.x)
+	reason_label.position = Vector2(slot_screen_x - 200, background.global_position.y - 50)
+
+	if reason_tween != null and reason_tween.is_valid():
+		reason_tween.kill()
+
+	reason_label.modulate = Color(1, 1, 1, 0)
+	reason_label.visible = true
+
+	reason_tween = create_tween()
+	reason_tween.tween_property(reason_label, "modulate:a", 1.0, 0.15)
+	reason_tween.tween_interval(0.8)
+	reason_tween.tween_property(reason_label, "modulate:a", 0.0, 0.5)
+	reason_tween.tween_callback(func(): reason_label.visible = false)
