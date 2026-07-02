@@ -6,6 +6,8 @@
 [ext_resource type="SpriteFrames" uid="uid://c87a6allqlk04" path="res://scenes/gui/hotbar_highlight_select.tres" id="3_mlamd"]
 [ext_resource type="Texture2D" uid="uid://d4hjgk4721d7v" path="res://assets/sprites/gui/ability_inactive.png" id="4_qg201"]
 [ext_resource type="Texture2D" uid="uid://ceotyk3v4oh8t" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc-sheet.png" id="5_7kw60"]
+[ext_resource type="Texture2D" uid="uid://djuq6ssmsgt4q" path="res://assets/sprites/gui/ability_indicator_ranged/ability_indicator_ranged-sheet.png" id="6_hh02c"]
+[ext_resource type="Texture2D" uid="uid://wfc2so1qeimg" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc_empty.png" id="7_w21tg"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_7kw60"]
 atlas = ExtResource("5_7kw60")
@@ -74,12 +76,49 @@ animations = [{
 "speed": 24.0
 }]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_ya212"]
+atlas = ExtResource("6_hh02c")
+region = Rect2(0, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nqog2"]
+atlas = ExtResource("6_hh02c")
+region = Rect2(8, 0, 8, 8)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_258ni"]
+atlas = ExtResource("6_hh02c")
+region = Rect2(16, 0, 8, 8)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_7kw60"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ya212")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nqog2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_258ni")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nqog2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ya212")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 24.0
+}]
+
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
 basic_attack_icon = ExtResource("2_bxgwf")
 highlight_frames = ExtResource("3_mlamd")
 reject_cross_texture = ExtResource("4_qg201")
 sc_orb_frames = SubResource("SpriteFrames_qg201")
+ranged_required_icon = SubResource("SpriteFrames_7kw60")
+empty_orb_texture = ExtResource("7_w21tg")
 
 [node name="Background" type="TextureRect" parent="." unique_id=140855505]
 offset_left = 928.0

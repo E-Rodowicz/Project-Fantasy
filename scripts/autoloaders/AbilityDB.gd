@@ -105,7 +105,7 @@ var abilities: Dictionary = {
 		"targeting": "touch",
 		"damage_percent": 2.0,
 		"hit_modifier": 0.0,
-		"max_sc": 8,
+		"max_sc": 1,
 		"description": "Touch an opponent, setting them aflame for 200% damage. Applies Fire (1)."
 		},
 }

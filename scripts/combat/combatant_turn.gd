@@ -131,8 +131,11 @@ func _physics_process(delta: float) -> void:
 					cursor_move_timer = CURSOR_MOVE_RATE
 					_redraw_ranged_attack()
 				else:
-					var wanted := player_tile + dir
-					if wanted in attack_range_tiles and _is_tile_on_screen(wanted):
+					var wanted: Vector2i = player_tile + dir
+					var dist_x: int = abs(wanted.x - player_tile.x)
+					var dist_y: int = abs(wanted.y - player_tile.y)
+					var attack_range: int = _get_attack_range()
+					if dist_x <= attack_range and dist_y <= attack_range and _is_tile_on_screen(wanted):
 						cursor_tile = wanted
 						has_target = false
 					cursor_move_timer = CURSOR_MOVE_RATE
@@ -1133,7 +1136,7 @@ func _build_attack_range() -> void:
 		for dy in range(-attack_range, attack_range + 1):
 			if dx == 0 and dy == 0:
 				continue
-			var t := player_tile + Vector2i(dx, dy)
+			var t: Vector2i = player_tile + Vector2i(dx, dy)
 			if world_layer.get_cell_source_id(t) != -1:
 				continue
 			attack_range_tiles.append(t)
@@ -1158,7 +1161,7 @@ func _on_attack_confirm() -> void:
 	
 	# Melee attack.
 	if not has_target:
-		if cursor_tile in attack_range_tiles and _tile_has_combatant(cursor_tile, true):
+		if cursor_tile in attack_range_tiles:
 			attack_target = cursor_tile
 			has_target = true
 			_redraw()
@@ -1178,22 +1181,23 @@ func _on_attack_cancel() -> void:
 
 # Apply the damage and end the turn.
 func _execute_attack() -> void:
-	var target := _combatant_on_tile(attack_target, true)
+	var target: Node = _combatant_on_tile(attack_target, true)
 	if target == null:
+		CombatLog.add(combatant.name + " attacks but hits nothing!")
+		bp_remaining -= 1
+		has_acted_this_turn = true
 		_exit_attack_mode()
 		return
-	
-	# Main hand attack.
+
 	_try_attack(target)
-	
-	# Off-hand attack if dual wielding.
+
 	if combatant.is_in_group("player") and PlayerData.is_dual_wielding():
 		is_offhand_attack = true
 		_try_attack(target)
 		is_offhand_attack = false
-	
-	has_acted_this_turn = true
+
 	bp_remaining -= 1
+	has_acted_this_turn = true
 	_exit_attack_mode()
 
 func _execute_ranged_attack() -> void:
@@ -1315,7 +1319,9 @@ func _redraw_attack() -> void:
 	if has_target:
 		overlay.paint_bright_green(attack_target)
 	elif cursor_tile != player_tile:
-		if _tile_has_combatant(cursor_tile, true):
+		if cursor_tile not in attack_range_tiles:
+			return
+		elif _tile_has_combatant(cursor_tile, true):
 			overlay.paint_purple(cursor_tile)
 		else:
 			overlay.paint_yellow(cursor_tile)
