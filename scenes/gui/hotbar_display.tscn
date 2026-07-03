@@ -4,55 +4,47 @@
 [ext_resource type="Texture2D" uid="uid://bie8scqujsmnj" path="res://assets/sprites/gui/ability_hotbar.png" id="2_a2ttq"]
 [ext_resource type="Texture2D" uid="uid://bqle02i73td3j" path="res://assets/sprites/gui/ability_neutral_attack.png" id="2_bxgwf"]
 [ext_resource type="SpriteFrames" uid="uid://c87a6allqlk04" path="res://scenes/gui/hotbar_highlight_select.tres" id="3_mlamd"]
+[ext_resource type="Texture2D" uid="uid://b00tor5n7bt46" path="res://assets/sprites/gui/ability_neutral_ranged.png" id="3_rqwpo"]
 [ext_resource type="Texture2D" uid="uid://d4hjgk4721d7v" path="res://assets/sprites/gui/ability_inactive.png" id="4_qg201"]
-[ext_resource type="Texture2D" uid="uid://ceotyk3v4oh8t" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc-sheet.png" id="5_7kw60"]
+[ext_resource type="Texture2D" uid="uid://b8silrhcbpsxw" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc_8x8-sheet.png" id="5_w21tg"]
 [ext_resource type="Texture2D" uid="uid://djuq6ssmsgt4q" path="res://assets/sprites/gui/ability_indicator_ranged/ability_indicator_ranged-sheet.png" id="6_hh02c"]
 [ext_resource type="Texture2D" uid="uid://wfc2so1qeimg" path="res://assets/sprites/gui/ability_highlight_sc/ability_highlight_sc_empty.png" id="7_w21tg"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_7kw60"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_rqwpo"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(0, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_hh02c"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_64ry1"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(8, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_w21tg"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_gj6vh"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(16, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_rqwpo"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_7ya64"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(24, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_64ry1"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_6nae8"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(32, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_gj6vh"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_s8ruu"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(40, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_7ya64"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_vt04i"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(48, 0, 8, 8)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_6nae8"]
-atlas = ExtResource("5_7kw60")
+[sub_resource type="AtlasTexture" id="AtlasTexture_8doc3"]
+atlas = ExtResource("5_w21tg")
 region = Rect2(56, 0, 8, 8)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_qg201"]
 animations = [{
 "frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_7kw60")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_hh02c")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_w21tg")
-}, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_rqwpo")
 }, {
@@ -68,8 +60,17 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_6nae8")
 }, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s8ruu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vt04i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8doc3")
+}, {
 "duration": 12.0,
-"texture": SubResource("AtlasTexture_7kw60")
+"texture": SubResource("AtlasTexture_rqwpo")
 }],
 "loop": 1,
 "name": &"default",
@@ -114,6 +115,7 @@ animations = [{
 [node name="hotbar_display" type="CanvasLayer" unique_id=1096995637]
 script = ExtResource("1_q8gy2")
 basic_attack_icon = ExtResource("2_bxgwf")
+ranged_attack_icon = ExtResource("3_rqwpo")
 highlight_frames = ExtResource("3_mlamd")
 reject_cross_texture = ExtResource("4_qg201")
 sc_orb_frames = SubResource("SpriteFrames_qg201")

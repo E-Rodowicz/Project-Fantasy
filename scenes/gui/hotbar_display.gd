@@ -3,6 +3,7 @@ extends CanvasLayer
 @onready var background: TextureRect = $Background
 
 @export var basic_attack_icon: Texture2D
+@export var ranged_attack_icon: Texture2D
 @export var highlight_frames: SpriteFrames
 @export var reject_cross_texture: Texture2D
 @export var sc_orb_frames: SpriteFrames
@@ -17,6 +18,8 @@ var slot_spacing: float = 32.0
 var icon_size: Vector2 = Vector2(24, 24)
 var reason_label: Label = null
 var reason_tween: Tween = null
+var name_label: Label = null
+var name_tween: Tween = null
 var slot_overlays: Array = []
 var slot_blocked: Array = []
 var overlay_tween_speed: float = 0.25
@@ -97,28 +100,27 @@ func _build_slots() -> void:
 		
 		var charge_label: Label = Label.new()
 		charge_label.text = ""
-		var charge_font: Font = preload("res://assets/fonts/m3x6.ttf")
+		var charge_font: Font = preload("res://assets/fonts/pixel-font-height-5.ttf")
 		charge_label.add_theme_font_override("font", charge_font)
-		charge_label.add_theme_font_size_override("font_size", 16)
+		charge_label.add_theme_font_size_override("font_size", 6)
 		charge_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 		charge_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_label.add_theme_constant_override("outline_size", 1)
 		charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		charge_label.size = Vector2(icon_size.x + 1, 12)
-		charge_label.position = Vector2(pos_x + 0.25, pos_y + icon_size.y - 6)
+		charge_label.size = Vector2(12, 12)
+		charge_label.position = Vector2(pos_x + 17, pos_y + icon_size.y - 27)
 		charge_label.z_index = 3
 		background.add_child(charge_label)
 		slot_charge_labels.append(charge_label)
 		
 		var charge_fade_label: Label = Label.new()
-		charge_fade_label.add_theme_font_override("font", charge_font)
-		charge_fade_label.add_theme_font_size_override("font_size", 16)
+		charge_fade_label.add_theme_font_size_override("font_size", 6)
 		charge_fade_label.add_theme_color_override("font_color", Color.WHITE)
 		charge_fade_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_fade_label.add_theme_constant_override("outline_size", 1)
 		charge_fade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		charge_fade_label.size = Vector2(icon_size.x + 1, 12)
-		charge_fade_label.position = Vector2(pos_x, pos_y + icon_size.y - 6)
+		charge_fade_label.size = Vector2(12, 12)
+		charge_fade_label.position = Vector2(pos_x + 17, pos_y + icon_size.y - 27)
 		charge_fade_label.z_index = 3
 		charge_fade_label.modulate = Color(1, 1, 1, 0)
 		background.add_child(charge_fade_label)
@@ -133,20 +135,19 @@ func _build_slots() -> void:
 		orb.centered = false
 		orb.modulate = Color(1, 1, 1, 0)
 		orb.offset = Vector2(0, 0)
-		orb.position = Vector2(pos_x + 5.5, pos_y + icon_size.y - 4)
-		orb.scale = Vector2(1.5, 1.5)
+		orb.position = Vector2(pos_x + 17, pos_y + icon_size.y - 29)
+		orb.scale = Vector2(1.35, 1.35)
 		orb.z_index = 2
 		orb.stop()
 		orb.frame = 0
 		background.add_child(orb)
 		slot_orbs.append(orb)
 		
-		var empty_orb: TextureRect = TextureRect.new()
+		var empty_orb: Sprite2D = Sprite2D.new()
 		empty_orb.texture = empty_orb_texture
-		empty_orb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		empty_orb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		empty_orb.size = Vector2(12, 12)
-		empty_orb.position = Vector2(pos_x + 5.5, pos_y + icon_size.y - 4)
+		empty_orb.centered = false
+		empty_orb.position = Vector2(pos_x + 17, pos_y + icon_size.y - 29)
+		empty_orb.scale = Vector2(1.35, 1.35)
 		empty_orb.modulate = Color(1, 1, 1, 0)
 		empty_orb.z_index = 2
 		background.add_child(empty_orb)
@@ -190,6 +191,18 @@ func _build_slots() -> void:
 		reason_label.visible = false
 		add_child(reason_label)
 
+	name_label = Label.new()
+	var name_font: Font = preload("res://assets/fonts/m3x6.ttf")
+	name_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	name_label.add_theme_font_override("font", name_font)
+	name_label.add_theme_font_size_override("font_size", 32)
+	name_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	name_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	name_label.add_theme_constant_override("outline_size", 3)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.visible = false
+	add_child(name_label)
+
 	highlight_sprite = AnimatedSprite2D.new()
 	highlight_sprite.scale = Vector2(icon_size.x / 18.0, icon_size.y / 18.0)
 	highlight_sprite.sprite_frames = highlight_frames
@@ -229,7 +242,10 @@ func _update_display() -> void:
 		var ability_id: String = PlayerData.get_hotbar_ability(i)
 		
 		if ability_id == "basic_attack":
-			slot_icons[i].texture = basic_attack_icon
+			if PlayerData.is_ranged_weapon_equipped():
+				slot_icons[i].texture = ranged_attack_icon
+			else:
+				slot_icons[i].texture = basic_attack_icon
 			slot_labels[i].visible = ability_id != ""
 		elif ability_id != "":
 			var data: Dictionary = AbilityDB.get_ability(ability_id)
@@ -321,6 +337,10 @@ func _update_display() -> void:
 	# Only animates when the active slot changes, not every frame.
 	if current_active_slot != previous_active_slot:
 		_animate_selection(previous_active_slot, current_active_slot)
+		if current_active_slot >= 0:
+			_show_ability_name(current_active_slot)
+		else:
+			_hide_ability_name()
 		previous_active_slot = current_active_slot
 	
 	# Switche's highlight animation based on confirm state.
@@ -459,21 +479,69 @@ func _play_reject(slot: int) -> void:
 		label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
 		label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 1, 1, 1), 0.1)
 	
+func _show_ability_name(slot: int) -> void:
+	var ability_id: String = PlayerData.get_hotbar_ability(slot)
+	if reason_tween != null and reason_tween.is_valid():
+		reason_tween.kill()
+	reason_label.visible = false
+	if ability_id == "":
+		return
+
+	var display_name: String = ""
+	if ability_id == "basic_attack":
+		display_name = "Attack"
+	else:
+		var data: Dictionary = AbilityDB.get_ability(ability_id)
+		display_name = data.get("name", "")
+
+	if display_name == "":
+		return
+
+	name_label.text = display_name
+	_position_label_above_slot(name_label, slot, -35)
+
+	if name_tween != null and name_tween.is_valid():
+		name_tween.kill()
+
+	name_label.modulate = Color(1, 1, 1, 0)
+	name_label.visible = true
+
+	name_tween = create_tween()
+	name_tween.tween_property(name_label, "modulate:a", 1.0, 0.15)
+
+func _hide_ability_name() -> void:
+	if name_label == null or not name_label.visible:
+		return
+
+	if name_tween != null and name_tween.is_valid():
+		name_tween.kill()
+
+	name_tween = create_tween()
+	name_tween.tween_property(name_label, "modulate:a", 0.0, 0.3)
+	name_tween.tween_callback(func(): name_label.visible = false)
+	
 func _show_reject_reason(slot: int) -> void:
 	var pt: CombatantTurn = BattleManager.player_turn
+	if name_tween != null and name_tween.is_valid():
+		name_tween.kill()
+	name_label.visible = false
 	if pt == null:
 		return
 
 	var reasons: Array = pt.get_slot_block_reasons(slot)
 	if reasons.is_empty():
 		return
+		
+	var ability_id: String = PlayerData.get_hotbar_ability(slot)
+	var display_name: String = ""
+	if ability_id == "basic_attack":
+		display_name = "Attack"
+	else:
+		var data: Dictionary = AbilityDB.get_ability(ability_id)
+		display_name = data.get("name", "")
 
-	reason_label.text = ", ".join(reasons)
-	reason_label.size = Vector2(400, 40)
-
-	var slot_local_x: float = first_slot_offset.x + (slot_spacing * slot) + (icon_size.x / 2)
-	var slot_screen_x: float = background.global_position.x + (slot_local_x * background.scale.x)
-	reason_label.position = Vector2(slot_screen_x - 200, background.global_position.y - 50)
+	reason_label.text = display_name + ": " + ", ".join(reasons)
+	_position_label_above_slot(reason_label, slot, -35)
 
 	if reason_tween != null and reason_tween.is_valid():
 		reason_tween.kill()
@@ -486,3 +554,18 @@ func _show_reject_reason(slot: int) -> void:
 	reason_tween.tween_interval(0.8)
 	reason_tween.tween_property(reason_label, "modulate:a", 0.0, 0.5)
 	reason_tween.tween_callback(func(): reason_label.visible = false)
+
+func _position_label_above_slot(label: Label, slot: int, y_offset: float) -> void:
+	var font: Font = label.get_theme_font("font")
+	var font_size: int = label.get_theme_font_size("font_size")
+	var text_width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var label_width: float = text_width + 16.0
+	label.size = Vector2(label_width, 40)
+
+	var slot_local_x: float = first_slot_offset.x + (slot_spacing * slot) + (icon_size.x / 2)
+	var slot_screen_x: float = background.global_position.x + (slot_local_x * background.scale.x)
+
+	var margin: float = 4.0
+	var viewport_width: float = get_viewport().get_visible_rect().size.x
+	var label_x: float = clampf(slot_screen_x - (label_width / 2.0), margin, viewport_width - label_width - margin)
+	label.position = Vector2(label_x, background.global_position.y + y_offset)
