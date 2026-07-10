@@ -31,7 +31,7 @@ rounded = true
 texture_under = ExtResource("2_u7tms")
 texture_progress = ExtResource("3_hui0s")
 
-[node name="mp_bar" type="TextureProgressBar" parent="StatusBar_bg" unique_id=65726306]
+[node name="mp_bar_preview" type="TextureProgressBar" parent="StatusBar_bg" unique_id=598674479]
 layout_mode = 0
 offset_left = 7.75
 offset_top = 18.75
@@ -42,4 +42,15 @@ max_value = 99.0
 value = 1.0
 rounded = true
 texture_under = ExtResource("5_4hlvf")
+
+[node name="mp_bar" type="TextureProgressBar" parent="StatusBar_bg" unique_id=65726306]
+layout_mode = 0
+offset_left = 7.75
+offset_top = 18.75
+offset_right = 106.75
+offset_bottom = 21.75
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
 texture_progress = ExtResource("6_2ur1o")
