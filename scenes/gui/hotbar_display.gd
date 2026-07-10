@@ -13,9 +13,9 @@ extends CanvasLayer
 var highlight_sprite: AnimatedSprite2D = null
 var reject_sprite: AnimatedSprite2D = null
 var reject_plays_remaining: int = 0
-var first_slot_offset: Vector2 = Vector2(8, 8)
-var slot_spacing: float = 32.0
-var icon_size: Vector2 = Vector2(24, 24)
+var first_slot_offset: Vector2 = Vector2(6, 6)
+var slot_spacing: float = 24.0
+var icon_size: Vector2 = Vector2(18, 18)
 var reason_label: Label = null
 var reason_tween: Tween = null
 var name_label: Label = null
@@ -88,10 +88,11 @@ func _build_slots() -> void:
 		var font: Font = preload("res://assets/fonts/m3x6.ttf")
 		key_label.add_theme_font_override("font", font)
 		key_label.add_theme_font_size_override("font_size", 16)
+		key_label.scale = Vector2(0.75, 0.75)
 		key_label.add_theme_color_override("font_color", Color.WHITE)
 		key_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		key_label.add_theme_constant_override("outline_size", 1)
-		key_label.position = Vector2(pos_x - 1, pos_y - 7)
+		key_label.position = Vector2(pos_x - 1, pos_y - 5)
 		label_rest_y.append(key_label.position.y)
 		key_label.z_index = 2
 		key_label.visible = false
@@ -107,9 +108,10 @@ func _build_slots() -> void:
 		charge_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_label.add_theme_constant_override("outline_size", 1)
 		charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		charge_label.size = Vector2(12, 12)
-		charge_label.position = Vector2(pos_x + 17, pos_y + icon_size.y - 27)
+		charge_label.size = Vector2(9, 9)
+		charge_label.position = Vector2(pos_x + 14, pos_y + icon_size.y - 21)
 		charge_label.z_index = 3
+		charge_label.scale = Vector2(0.82, 0.82)
 		background.add_child(charge_label)
 		slot_charge_labels.append(charge_label)
 		
@@ -119,9 +121,10 @@ func _build_slots() -> void:
 		charge_fade_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_fade_label.add_theme_constant_override("outline_size", 1)
 		charge_fade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		charge_fade_label.size = Vector2(12, 12)
-		charge_fade_label.position = Vector2(pos_x + 17, pos_y + icon_size.y - 27)
+		charge_fade_label.size = Vector2(9, 9)
+		charge_fade_label.position = Vector2(pos_x + 14, pos_y + icon_size.y - 21)
 		charge_fade_label.z_index = 3
+		charge_fade_label.scale = Vector2(0.82, 0.82)
 		charge_fade_label.modulate = Color(1, 1, 1, 0)
 		background.add_child(charge_fade_label)
 		slot_charge_fade_labels.append(charge_fade_label)
@@ -135,8 +138,8 @@ func _build_slots() -> void:
 		orb.centered = false
 		orb.modulate = Color(1, 1, 1, 0)
 		orb.offset = Vector2(0, 0)
-		orb.position = Vector2(pos_x + 17, pos_y + icon_size.y - 29)
-		orb.scale = Vector2(1.35, 1.35)
+		orb.position = Vector2(pos_x + 13, pos_y + icon_size.y - 22)
+		orb.scale = Vector2(1, 1)
 		orb.z_index = 2
 		orb.stop()
 		orb.frame = 0
@@ -146,8 +149,8 @@ func _build_slots() -> void:
 		var empty_orb: Sprite2D = Sprite2D.new()
 		empty_orb.texture = empty_orb_texture
 		empty_orb.centered = false
-		empty_orb.position = Vector2(pos_x + 17, pos_y + icon_size.y - 29)
-		empty_orb.scale = Vector2(1.35, 1.35)
+		empty_orb.position = Vector2(pos_x + 13, pos_y + icon_size.y - 22)
+		empty_orb.scale = Vector2(1, 1)
 		empty_orb.modulate = Color(1, 1, 1, 0)
 		empty_orb.z_index = 2
 		background.add_child(empty_orb)
@@ -172,7 +175,7 @@ func _build_slots() -> void:
 		ranged_icon.stop()
 		ranged_icon.frame = 0
 		ranged_icon.offset = Vector2(0, 0)
-		ranged_icon.position = Vector2(pos_x +- 16 + icon_size.x, pos_y - 3.2)
+		ranged_icon.position = Vector2(pos_x +- 12 + icon_size.x, pos_y - 2)
 		ranged_icon.scale = Vector2(icon_size.x / 24.0, icon_size.y / 24.0)
 		ranged_icon.modulate = Color(1, 1, 1, 0)
 		ranged_icon.z_index = 3
@@ -207,7 +210,7 @@ func _build_slots() -> void:
 	highlight_sprite.scale = Vector2(icon_size.x / 18.0, icon_size.y / 18.0)
 	highlight_sprite.sprite_frames = highlight_frames
 	highlight_sprite.visible = false
-	highlight_sprite.offset = Vector2(9, 8.2)
+	highlight_sprite.offset = Vector2(9, 8)
 	highlight_sprite.z_index = 1
 	highlight_sprite.animation_finished.connect(_on_highlight_animation_finished)
 	background.add_child(highlight_sprite)
@@ -420,7 +423,7 @@ func _play_reject(slot: int) -> void:
 	var icon: TextureRect = slot_icons[slot]
 	var rest_x: float = first_slot_offset.x + (slot_spacing * slot)
 	var label_x: float = rest_x - 1.0
-	var ranged_x: float = rest_x + icon_size.x - 16
+	var ranged_x: float = rest_x + icon_size.x - 12
 
 	var shake_tween: Tween = create_tween()
 	shake_tween.set_parallel(true)

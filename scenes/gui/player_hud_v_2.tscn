@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://bbe8wllcmdub7"]
+
+[ext_resource type="Texture2D" uid="uid://c2saxrf5xrvd1" path="res://assets/sprites/gui/status_bar/status_bar_background.png" id="1_03t8n"]
+[ext_resource type="Script" uid="uid://2l5i6jx6vefk" path="res://scenes/gui/player_hud_v_2.gd" id="1_hui0s"]
+[ext_resource type="Texture2D" uid="uid://b1vjgcpbkkf5u" path="res://assets/sprites/gui/status_bar/status_bar_hp_empty.png" id="2_u7tms"]
+[ext_resource type="Texture2D" uid="uid://cs42conpfkoak" path="res://assets/sprites/gui/status_bar/status_bar_hp_full.png" id="3_hui0s"]
+[ext_resource type="Texture2D" uid="uid://d1f1crllm0snx" path="res://assets/sprites/gui/status_bar/status_bar_mp_empty.png" id="5_4hlvf"]
+[ext_resource type="Texture2D" uid="uid://b5sj8dldqt7g1" path="res://assets/sprites/gui/status_bar/status_bar_mp_full.png" id="6_2ur1o"]
+
+[node name="player_hud_v2" type="CanvasLayer" unique_id=348476759]
+script = ExtResource("1_hui0s")
+
+[node name="StatusBar_bg" type="TextureRect" parent="." unique_id=324415401]
+offset_left = 8.0
+offset_top = 952.0
+offset_right = 143.0
+offset_bottom = 982.0
+scale = Vector2(4, 4)
+texture = ExtResource("1_03t8n")
+
+[node name="hp_bar" type="TextureProgressBar" parent="StatusBar_bg" unique_id=428783667]
+layout_mode = 1
+offset_left = 8.0
+offset_top = 9.000001
+offset_right = 107.0
+offset_bottom = 15.000001
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
+texture_under = ExtResource("2_u7tms")
+texture_progress = ExtResource("3_hui0s")
+
+[node name="mp_bar" type="TextureProgressBar" parent="StatusBar_bg" unique_id=65726306]
+layout_mode = 0
+offset_left = 7.75
+offset_top = 18.75
+offset_right = 106.75
+offset_bottom = 21.75
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
+texture_under = ExtResource("5_4hlvf")
+texture_progress = ExtResource("6_2ur1o")
