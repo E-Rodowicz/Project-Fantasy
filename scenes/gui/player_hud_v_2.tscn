@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://2l5i6jx6vefk" path="res://scenes/gui/player_hud_v_2.gd" id="1_hui0s"]
 [ext_resource type="Texture2D" uid="uid://b1vjgcpbkkf5u" path="res://assets/sprites/gui/status_bar/status_bar_hp_empty.png" id="2_u7tms"]
 [ext_resource type="Texture2D" uid="uid://cs42conpfkoak" path="res://assets/sprites/gui/status_bar/status_bar_hp_full.png" id="3_hui0s"]
+[ext_resource type="Texture2D" uid="uid://b0ekw8ei735m" path="res://assets/sprites/gui/status_bar/status_bar_hp_hit.png" id="4_2ur1o"]
 [ext_resource type="Texture2D" uid="uid://d1f1crllm0snx" path="res://assets/sprites/gui/status_bar/status_bar_mp_empty.png" id="5_4hlvf"]
 [ext_resource type="Texture2D" uid="uid://b5sj8dldqt7g1" path="res://assets/sprites/gui/status_bar/status_bar_mp_full.png" id="6_2ur1o"]
 
@@ -18,6 +19,19 @@ offset_bottom = 982.0
 scale = Vector2(4, 4)
 texture = ExtResource("1_03t8n")
 
+[node name="hp_bar_trail" type="TextureProgressBar" parent="StatusBar_bg" unique_id=1503119528]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 9.0
+offset_right = 107.0
+offset_bottom = 15.0
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
+texture_under = ExtResource("2_u7tms")
+texture_progress = ExtResource("4_2ur1o")
+
 [node name="hp_bar" type="TextureProgressBar" parent="StatusBar_bg" unique_id=428783667]
 layout_mode = 1
 offset_left = 8.0
@@ -28,7 +42,6 @@ min_value = 1.0
 max_value = 99.0
 value = 1.0
 rounded = true
-texture_under = ExtResource("2_u7tms")
 texture_progress = ExtResource("3_hui0s")
 
 [node name="mp_bar_preview" type="TextureProgressBar" parent="StatusBar_bg" unique_id=598674479]

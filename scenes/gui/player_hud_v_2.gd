@@ -3,6 +3,7 @@ extends CanvasLayer
 @onready var hp_bar: TextureProgressBar = $StatusBar_bg/hp_bar
 @onready var mp_bar: TextureProgressBar = $StatusBar_bg/mp_bar
 @onready var mp_bar_preview: TextureProgressBar = $StatusBar_bg/mp_bar_preview
+@onready var hp_bar_trail: TextureProgressBar = $StatusBar_bg/hp_bar_trail
 
 var mp_flash_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_mp_animated-sheet.png")
 var mp_flash_frames: Array = []
@@ -12,7 +13,12 @@ var mp_preview_current: int = 100
 var mp_drain_timer: float = 0.0
 var mp_display_current: int = 100
 var mp_display_timer: float = 0.0
+var hp_trail_current: int = 100
+var hp_drain_timer: float = 0.0
+var hp_drain_delay: float = 0.0
 
+const HP_DRAIN_RATE: float = 0.08
+const HP_DRAIN_DELAY: float = 0.4
 const MP_DRAIN_RATE: float = 0.008
 const MP_FLASH_FRAME_COUNT: int = 4
 const MP_FLASH_FPS: float = 10.0
@@ -42,13 +48,37 @@ func _process(delta: float) -> void:
 func _update_display(delta: float) -> void:
 	# HP
 	hp_bar.max_value = 100
-
-	var hp_display: int = round(float(PlayerData.current_hp) / PlayerData.max_hp * 100.0)
-
+	hp_bar_trail.max_value = 100
+	
+	var hp_display_target: int = round(float(PlayerData.current_hp) / PlayerData.max_hp * 100)
+	
 	if PlayerData.current_hp > 0:
-		hp_display = max(hp_display, 2)
-
-	hp_bar.value = hp_display
+		hp_display_target = max(hp_display_target, 2)
+		
+	# Snaps front bar to current target HP.
+	hp_bar.value = hp_display_target
+	
+	# Trail lingers at old value then aniamtes to meet the new one.
+	if hp_display_target < hp_trail_current:
+		hp_drain_delay += delta
+		if hp_drain_delay >= HP_DRAIN_DELAY:
+			# Delay is over, drain starts.
+			hp_drain_timer += delta
+			while hp_drain_timer >= HP_DRAIN_RATE and hp_trail_current > hp_display_target:
+				hp_drain_timer -= HP_DRAIN_RATE
+				hp_trail_current -= 1
+	elif hp_display_target > hp_trail_current:
+		# Healing.
+		hp_trail_current = hp_display_target
+		hp_drain_timer = 0.0
+		hp_drain_delay = 0.0
+	else:
+		# Resets timers if they match.
+		hp_drain_timer = 0.0
+		hp_drain_delay = 0.0
+		
+	hp_bar_trail.value = hp_trail_current
+			
 
 	# MP
 	var max_mp: int = PlayerData.get_max_mp()
