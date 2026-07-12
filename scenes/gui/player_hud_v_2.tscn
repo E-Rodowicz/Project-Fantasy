@@ -67,3 +67,10 @@ max_value = 99.0
 value = 1.0
 rounded = true
 texture_progress = ExtResource("6_2ur1o")
+
+[node name="bp_icon" type="Sprite2D" parent="StatusBar_bg" unique_id=811886263]
+
+[node name="bp_label" type="Label" parent="StatusBar_bg" unique_id=1314740067]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0

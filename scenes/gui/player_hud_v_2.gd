@@ -4,8 +4,16 @@ extends CanvasLayer
 @onready var mp_bar: TextureProgressBar = $StatusBar_bg/mp_bar
 @onready var mp_bar_preview: TextureProgressBar = $StatusBar_bg/mp_bar_preview
 @onready var hp_bar_trail: TextureProgressBar = $StatusBar_bg/hp_bar_trail
+@onready var bp_icon: Sprite2D = $StatusBar_bg/bp_icon
+@onready var bp_label: Label = $StatusBar_bg/bp_label
 
 var mp_flash_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_mp_animated-sheet.png")
+var hp_damage_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_hit.png")
+var hp_heal_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_heal.png")
+var bp_active_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_full.png")
+var bp_inactive_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_empty.png")
+var bp_shine_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_full-sheet.png")
+
 var mp_flash_frames: Array = []
 var mp_flash_frame: int = 0
 var mp_flash_timer: float = 0.0
@@ -16,12 +24,19 @@ var mp_display_timer: float = 0.0
 var hp_trail_current: int = 100
 var hp_drain_timer: float = 0.0
 var hp_drain_delay: float = 0.0
+var hp_display_current: int = 100
+var hp_is_healing: bool = false
+var bp_shine_frames: Array = []
+var bp_shine_frame: int = 0
+var bp_shine_timer: float = 0.0
 
-const HP_DRAIN_RATE: float = 0.08
+const HP_DRAIN_RATE: float = 0.04
 const HP_DRAIN_DELAY: float = 0.4
 const MP_DRAIN_RATE: float = 0.008
-const MP_FLASH_FRAME_COUNT: int = 4
+const MP_FLASH_FRAME_COUNT: int = 8
 const MP_FLASH_FPS: float = 10.0
+const BP_SHINE_FRAME_COUNT: int = 7
+const BP_SHINE_FPS: float = 10.0
 
 var hud_enabled: bool = true
 
@@ -35,6 +50,14 @@ func _ready() -> void:
 		atlas.atlas = mp_flash_sheet
 		atlas.region = Rect2(i * frame_width, 0, frame_width, frame_height)
 		mp_flash_frames.append(atlas)
+		
+	var bp_frame_width: float = bp_shine_sheet.get_width() / BP_SHINE_FRAME_COUNT
+	var bp_frame_height: float = bp_shine_sheet.get_height()
+	for i in range(BP_SHINE_FRAME_COUNT):
+		var atlas: AtlasTexture = AtlasTexture.new()
+		atlas.atlas = bp_shine_sheet
+		atlas.region = Rect2(i * bp_frame_width, 0, bp_frame_width, bp_frame_height)
+		bp_shine_frames.append(atlas)
 	
 func _process(delta: float) -> void:
 	if not hud_enabled:
@@ -55,31 +78,63 @@ func _update_display(delta: float) -> void:
 	if PlayerData.current_hp > 0:
 		hp_display_target = max(hp_display_target, 2)
 		
-	# Snaps front bar to current target HP.
-	hp_bar.value = hp_display_target
-	
-	# Trail lingers at old value then aniamtes to meet the new one.
-	if hp_display_target < hp_trail_current:
+	if hp_display_target < hp_display_current:
+		hp_display_current = hp_display_target
+		hp_bar_trail.texture_progress = hp_damage_texture
+		hp_drain_delay = 0.0
+		hp_drain_timer = 0.0
+		hp_is_healing = false
+		
+	elif hp_display_target > hp_display_current: 
+		hp_trail_current = hp_display_target
+		hp_bar_trail.texture_progress = hp_heal_texture
+		if not hp_is_healing:
+			hp_drain_delay = 0.0
+			hp_drain_timer = 0.0
+			hp_is_healing = true
+		
+	if hp_trail_current > hp_display_current:
 		hp_drain_delay += delta
 		if hp_drain_delay >= HP_DRAIN_DELAY:
-			# Delay is over, drain starts.
 			hp_drain_timer += delta
-			while hp_drain_timer >= HP_DRAIN_RATE and hp_trail_current > hp_display_target:
-				hp_drain_timer -= HP_DRAIN_RATE
-				hp_trail_current -= 1
-	elif hp_display_target > hp_trail_current:
-		# Healing.
-		hp_trail_current = hp_display_target
-		hp_drain_timer = 0.0
-		hp_drain_delay = 0.0
+			if hp_is_healing:
+				while hp_drain_timer >= HP_DRAIN_RATE and hp_display_current < hp_trail_current:
+					hp_drain_timer -= HP_DRAIN_RATE
+					hp_display_current += 1
+			else:
+				while hp_drain_timer >= HP_DRAIN_RATE and hp_trail_current > hp_display_current:
+					hp_drain_timer -= HP_DRAIN_RATE
+					hp_trail_current -= 1
 	else:
-		# Resets timers if they match.
+		hp_trail_current = hp_display_current
 		hp_drain_timer = 0.0
 		hp_drain_delay = 0.0
-		
-	hp_bar_trail.value = hp_trail_current
-			
 
+	hp_bar.value = hp_display_current
+	hp_bar_trail.value = hp_trail_current
+		
+	# BP
+	var bp_current: int = PlayerData.bp_max
+	if BattleManager.active and BattleManager.player_turn != null:
+		bp_current = BattleManager.player_turn.bp_remaining
+		
+	# This checks if a BP-using ability is selected (BP abilities always use 1 BP, but it is
+	# future-proofed in case that changes).
+	var bp_ability_selected: bool = false
+	if BattleManager.active and BattleManager.player_turn != null:
+		var active_slot: int = BattleManager.player_turn.active_hotbar_slot
+		if active_slot >= 0:
+			var slot_ability_id: String = PlayerData.get_hotbar_ability(active_slot)
+			if slot_ability_id == "basic_attack":
+				bp_ability_selected = true
+			elif slot_ability_id != "":
+				var slot_ability: Dictionary = AbilityDB.get_ability(slot_ability_id)
+				var slot_cost: Dictionary = slot_ability.get("cost", {})
+				bp_ability_selected = slot_cost.has("bp")
+				
+	# Shine animation when BP ability is selected and BP is available.
+	########################################################################
+	
 	# MP
 	var max_mp: int = PlayerData.get_max_mp()
 	mp_bar.max_value = 100
