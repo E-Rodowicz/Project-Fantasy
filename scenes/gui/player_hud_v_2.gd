@@ -11,14 +11,28 @@ enum ApState { FULL, SELECT, USED, DEPLETED, REFILL }
 @onready var bp_label: Label = $StatusBar_bg/bp_label
 
 # Preloads.
-var mp_flash_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_mp_animated-sheet.png")
 var hp_damage_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_hit.png")
 var hp_heal_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_heal.png")
+
+var mp_flash_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_mp_animated-sheet.png")
+
 var bp_active_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_full.png")
 var bp_inactive_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_empty.png")
 var bp_shine_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_full-sheet.png")
 
+var ap_full_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_ap_full.png")
+var ap_depleted_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_ap_empty.png")
+var ap_select_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_ap_selected-sheet.png")
+var ap_used_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_ap_used-sheet.png")
+var ap_refill_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_ap_animated-sheet.png")
+
 # Basic vars.
+var hp_trail_current: int = 100
+var hp_drain_timer: float = 0.0
+var hp_drain_delay: float = 0.0
+var hp_display_current: int = 100
+var hp_is_healing: bool = false
+
 var mp_flash_frames: Array = []
 var mp_flash_frame: int = 0
 var mp_flash_timer: float = 0.0
@@ -26,12 +40,6 @@ var mp_preview_current: int = 100
 var mp_drain_timer: float = 0.0
 var mp_display_current: int = 100
 var mp_display_timer: float = 0.0
-
-var hp_trail_current: int = 100
-var hp_drain_timer: float = 0.0
-var hp_drain_delay: float = 0.0
-var hp_display_current: int = 100
-var hp_is_healing: bool = false
 
 var bp_shine_frames: Array = []
 var bp_shine_frame: int = 0
@@ -47,19 +55,38 @@ var bp_shine_hold_timer: float = 0.0
 
 var ap_pips: Array = []
 var ap_pip_states: Array = []
-###############################################################
+var ap_pip_frames: Array = []
+var ap_pip_timers: Array = []
+var ap_pip_delays: Array = []
+var ap_previous_count: int = -1
+var ap_previous_remaining: int = -1
+var ap_select_frames: Array = []
+var ap_used_frames: Array = []
+var ap_refill_frames: Array = []
 
 # Consts.
 const HP_DRAIN_RATE: float = 0.04
 const HP_DRAIN_DELAY: float = 0.4
+
 const MP_DRAIN_RATE: float = 0.008
 const MP_FLASH_FRAME_COUNT: int = 8
 const MP_FLASH_FPS: float = 10.0
+
 const BP_SHINE_FRAME_COUNT: int = 8
 const BP_SHINE_FPS: float = 10.0
 const BP_FADE_SPEED: float = 0.25
 const BP_ICON_FADE_SPEED: float = 0.15
 const BP_SHINE_HOLD: float = 0.35
+
+const AP_SELECT_FRAME_COUNT: int = 9
+const AP_USED_FRAME_COUNT: int = 7
+const AP_REFILL_FRAME_COUNT: int = 3
+const AP_SELECT_FPS: float = 10.0
+const AP_USED_FPS: float = 10.0
+const AP_REFILL_FPS: float = 10.0
+const AP_REFILL_STAGGER: float = 0.25
+const AP_PIP_SPACING: int = 6
+const AP_PIP_START: Vector2 = Vector2(13, 5)
 
 var hud_enabled: bool = true
 
@@ -81,6 +108,30 @@ func _ready() -> void:
 		atlas.atlas = bp_shine_sheet
 		atlas.region = Rect2(i * bp_frame_width, 0, bp_frame_width, bp_frame_height)
 		bp_shine_frames.append(atlas)
+		
+	var ap_sel_w: float = ap_select_sheet.get_width() / AP_SELECT_FRAME_COUNT
+	var ap_sel_h: float = ap_select_sheet.get_height()
+	for i in range(AP_SELECT_FRAME_COUNT):
+		var atlas: AtlasTexture = AtlasTexture.new()
+		atlas.atlas = ap_select_sheet
+		atlas.region = Rect2(i * ap_sel_w, 0, ap_sel_w, ap_sel_h)
+		ap_select_frames.append(atlas)
+		
+	var ap_used_w: float = ap_used_sheet.get_width() / AP_USED_FRAME_COUNT
+	var ap_used_h: float = ap_used_sheet.get_height()
+	for i in range(AP_USED_FRAME_COUNT):
+		var atlas: AtlasTexture = AtlasTexture.new()
+		atlas.atlas = ap_used_sheet
+		atlas.region = Rect2(i * ap_used_w, 0, ap_used_w, ap_used_h)
+		ap_used_frames.append(atlas)
+
+	var ap_ref_w: float = ap_refill_sheet.get_width() / AP_REFILL_FRAME_COUNT
+	var ap_ref_h: float = ap_refill_sheet.get_height()
+	for i in range(AP_REFILL_FRAME_COUNT):
+		var atlas: AtlasTexture = AtlasTexture.new()
+		atlas.atlas = ap_refill_sheet
+		atlas.region = Rect2(i * ap_ref_w, 0, ap_ref_w, ap_ref_h)
+		ap_refill_frames.append(atlas)
 		
 	bp_label_fade = bp_label.duplicate()
 	bp_label.get_parent().add_child(bp_label_fade)
@@ -249,6 +300,126 @@ func _update_display(delta: float) -> void:
 		BattleManager.bp_rejected = false
 		_bp_shake()
 	
+	# AP
+	var ap_max: int = PlayerData.ap_max
+	var ap_remaining: int = PlayerData.ap_max
+	if BattleManager.active and BattleManager.player_turn != null:
+		ap_remaining = BattleManager.player_turn.ap_remaining
+	elif BattleManager.active:
+		ap_remaining = ap_previous_remaining if ap_previous_remaining >= 0 else PlayerData.ap_max
+		
+	# Rebuilds pips if max AP changed.
+	if ap_max != ap_previous_count:
+		_build_ap_pips(ap_max)
+		ap_previous_count = ap_max
+		ap_previous_remaining = ap_remaining
+		
+	if ap_max == 0:
+		ap_previous_remaining = 0
+	else:
+		# Detects AP cost of selected ability.
+		var ap_cost_selected: int = 0
+		if BattleManager.active and BattleManager.player_turn != null:
+			var ap_active_slot: int = BattleManager.player_turn.active_hotbar_slot
+			if ap_active_slot >= 0:
+				var ap_slot_id: String = PlayerData.get_hotbar_ability(ap_active_slot)
+				if ap_slot_id != "" and ap_slot_id != "basic_attack":
+					var ap_slot_ability: Dictionary = AbilityDB.get_ability(ap_slot_id)
+					var ap_slot_cost: Dictionary = ap_slot_ability.get("cost", {})
+					ap_cost_selected = ap_slot_cost.get("ap", 0)
+					
+		# Detects spent AP.
+		if BattleManager.active and BattleManager.player_turn != null:
+			if ap_remaining < ap_previous_remaining:
+				var spent: int = ap_previous_remaining - ap_remaining
+				for i in range(spent):
+					var pip_index: int = ap_previous_remaining - 1 - i
+					if pip_index >= 0 and pip_index < ap_pips.size():
+						ap_pip_states[pip_index] = ApState.USED
+						ap_pip_frames[pip_index] = 0
+						ap_pip_timers[pip_index] = 0.0
+						
+			# Detects if AP was refilled.
+			elif ap_remaining > ap_previous_remaining:
+				var refill_index: int = 0
+				for i in range(ap_remaining):
+					if i < ap_pips.size() and ap_pip_states[i] != ApState.FULL:
+						ap_pip_states[i] = ApState.REFILL
+						ap_pip_frames[i] = 0
+						ap_pip_timers[i] = 0.0
+						ap_pip_delays[i] = refill_index * AP_REFILL_STAGGER
+						refill_index += 1
+						
+			ap_previous_remaining = ap_remaining
+		elif not BattleManager.active:
+			ap_previous_remaining = ap_remaining
+			
+		# Handles AP rejection.
+		if BattleManager.ap_rejected_cost > 0:
+			var rejected_cost: int = BattleManager.ap_rejected_cost
+			BattleManager.ap_rejected_cost = 0
+			if rejected_cost > ap_max:
+				for i in range(ap_pips.size()):
+					_ap_flash_red(i)
+					
+			else: 
+				var missing: int = rejected_cost - ap_remaining
+				for i in range(missing):
+					var pip_index: int = ap_remaining + i
+					if pip_index < ap_pips.size():
+						_ap_flash_red(pip_index)
+						
+		# Updates each pips state and texture.
+		for i in range(ap_pips.size()):
+			match ap_pip_states[i]:
+				ApState.FULL:
+					if ap_cost_selected > 0 and i >= ap_remaining - ap_cost_selected and i < ap_remaining:
+						ap_pip_states[i] = ApState.SELECT
+						ap_pip_frames[i] = 0
+						ap_pip_timers[i] = 0.0
+					else:
+						ap_pips[i].texture = ap_full_texture
+
+				ApState.SELECT:
+					if ap_cost_selected == 0 or i < ap_remaining - ap_cost_selected or i >= ap_remaining:
+						ap_pip_states[i] = ApState.FULL
+						ap_pips[i].texture = ap_full_texture
+					else:
+						ap_pip_timers[i] += delta
+						if ap_pip_timers[i] >= 1.0 / AP_SELECT_FPS:
+							ap_pip_timers[i] -= 1.0 / AP_SELECT_FPS
+							ap_pip_frames[i] = (ap_pip_frames[i] + 1) % AP_SELECT_FRAME_COUNT
+						ap_pips[i].texture = ap_select_frames[ap_pip_frames[i]]
+
+				ApState.USED:
+					ap_pip_timers[i] += delta
+					if ap_pip_timers[i] >= 1.0 / AP_USED_FPS:
+						ap_pip_timers[i] -= 1.0 / AP_USED_FPS
+						ap_pip_frames[i] += 1
+						if ap_pip_frames[i] >= AP_USED_FRAME_COUNT:
+							ap_pip_states[i] = ApState.DEPLETED
+							ap_pips[i].texture = ap_depleted_texture
+							continue
+					ap_pips[i].texture = ap_used_frames[ap_pip_frames[i]]
+
+				ApState.DEPLETED:
+					ap_pips[i].texture = ap_depleted_texture
+
+				ApState.REFILL:
+					if ap_pip_delays[i] > 0:
+						ap_pip_delays[i] -= delta
+						ap_pips[i].texture = ap_depleted_texture
+					else:
+						ap_pip_timers[i] += delta
+						if ap_pip_timers[i] >= 1.0 / AP_REFILL_FPS:
+							ap_pip_timers[i] -= 1.0 / AP_REFILL_FPS
+							ap_pip_frames[i] += 1
+							if ap_pip_frames[i] >= AP_REFILL_FRAME_COUNT:
+								ap_pip_states[i] = ApState.FULL
+								ap_pips[i].texture = ap_full_texture
+								continue
+						ap_pips[i].texture = ap_refill_frames[ap_pip_frames[i]]
+		
 	# MP
 	var max_mp: int = PlayerData.get_max_mp()
 	mp_bar.max_value = 100
@@ -322,3 +493,32 @@ func _bp_shake() -> void:
 	flash_tween.tween_property(bp_icon, "modulate", Color.WHITE, 0.08)
 	flash_tween.tween_property(bp_icon, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
 	flash_tween.tween_property(bp_icon, "modulate", Color.WHITE, 0.08)
+	
+func _build_ap_pips(count: int) -> void:
+	for pip in ap_pips:
+		pip.queue_free()
+	ap_pips.clear()
+	ap_pip_states.clear()
+	ap_pip_frames.clear()
+	ap_pip_timers.clear()
+	ap_pip_delays.clear()
+	
+	for i in range(count):
+		var pip: Sprite2D = Sprite2D.new()
+		pip.texture = ap_full_texture
+		pip.centered = false
+		pip.position = Vector2(AP_PIP_START.x + (i * AP_PIP_SPACING), AP_PIP_START.y)
+		$StatusBar_bg.add_child(pip)
+		ap_pips.append(pip)
+		ap_pip_states.append(ApState.FULL)
+		ap_pip_frames.append(0)
+		ap_pip_timers.append(0.0)
+		ap_pip_delays.append(0.0)
+		
+func _ap_flash_red(pip_index: int) -> void:
+	var pip: Sprite2D = ap_pips[pip_index]
+	var flash_tween: Tween = create_tween()
+	flash_tween.tween_property(pip, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(pip, "modulate", Color.WHITE, 0.08)
+	flash_tween.tween_property(pip, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(pip, "modulate", Color.WHITE, 0.08)
