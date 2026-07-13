@@ -7,6 +7,13 @@
 [ext_resource type="Texture2D" uid="uid://b0ekw8ei735m" path="res://assets/sprites/gui/status_bar/status_bar_hp_hit.png" id="4_2ur1o"]
 [ext_resource type="Texture2D" uid="uid://d1f1crllm0snx" path="res://assets/sprites/gui/status_bar/status_bar_mp_empty.png" id="5_4hlvf"]
 [ext_resource type="Texture2D" uid="uid://b5sj8dldqt7g1" path="res://assets/sprites/gui/status_bar/status_bar_mp_full.png" id="6_2ur1o"]
+[ext_resource type="Texture2D" uid="uid://cqqffr6cca25m" path="res://assets/sprites/gui/status_bar/status_bar_bp_full.png" id="8_w7ua0"]
+[ext_resource type="FontFile" uid="uid://dj368wjpoum8l" path="res://assets/fonts/m3x6.ttf" id="9_w7ua0"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_uukeg"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
 
 [node name="player_hud_v2" type="CanvasLayer" unique_id=348476759]
 script = ExtResource("1_hui0s")
@@ -69,8 +76,16 @@ rounded = true
 texture_progress = ExtResource("6_2ur1o")
 
 [node name="bp_icon" type="Sprite2D" parent="StatusBar_bg" unique_id=811886263]
+position = Vector2(119.5, 14.75)
+texture = ExtResource("8_w7ua0")
 
 [node name="bp_label" type="Label" parent="StatusBar_bg" unique_id=1314740067]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+offset_left = 114.97
+offset_top = 2.25
+offset_right = 124.97
+offset_bottom = 25.25
+scale = Vector2(1.01, 1.01)
+label_settings = SubResource("LabelSettings_uukeg")
+horizontal_alignment = 1
+vertical_alignment = 1

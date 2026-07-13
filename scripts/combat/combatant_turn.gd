@@ -288,9 +288,11 @@ func _enter_ability_mode(ability_id: String) -> void:
 		match resource:
 			"ap":
 				if ap_remaining < amount:
+					BattleManager.ap_rejected_cost = amount
 					return
 			"bp":
 				if bp_remaining < amount:
+					BattleManager.bp_rejected = true
 					return
 			"mp":
 				if mp_budget < amount:
@@ -1048,6 +1050,7 @@ func _combatant_tiles() -> Array:
 # Switch from movement planning into attack aiming.
 func _enter_attack_mode() -> void:
 	if bp_remaining <= 0:
+		BattleManager.bp_rejected = true
 		return
 	# Abandon any half-planned movement; choosing to attack is a different action.
 	waypoints.clear()

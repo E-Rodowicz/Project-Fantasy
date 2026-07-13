@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+enum ApState { FULL, SELECT, USED, DEPLETED, REFILL }
+
+# Onready's.
 @onready var hp_bar: TextureProgressBar = $StatusBar_bg/hp_bar
 @onready var mp_bar: TextureProgressBar = $StatusBar_bg/mp_bar
 @onready var mp_bar_preview: TextureProgressBar = $StatusBar_bg/mp_bar_preview
@@ -7,6 +10,7 @@ extends CanvasLayer
 @onready var bp_icon: Sprite2D = $StatusBar_bg/bp_icon
 @onready var bp_label: Label = $StatusBar_bg/bp_label
 
+# Preloads.
 var mp_flash_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_mp_animated-sheet.png")
 var hp_damage_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_hit.png")
 var hp_heal_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_heal.png")
@@ -14,6 +18,7 @@ var bp_active_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/
 var bp_inactive_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_empty.png")
 var bp_shine_sheet: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_bp_full-sheet.png")
 
+# Basic vars.
 var mp_flash_frames: Array = []
 var mp_flash_frame: int = 0
 var mp_flash_timer: float = 0.0
@@ -21,22 +26,40 @@ var mp_preview_current: int = 100
 var mp_drain_timer: float = 0.0
 var mp_display_current: int = 100
 var mp_display_timer: float = 0.0
+
 var hp_trail_current: int = 100
 var hp_drain_timer: float = 0.0
 var hp_drain_delay: float = 0.0
 var hp_display_current: int = 100
 var hp_is_healing: bool = false
+
 var bp_shine_frames: Array = []
 var bp_shine_frame: int = 0
 var bp_shine_timer: float = 0.0
+var bp_label_fade: Label = null
+var bp_previous_display: int = -1
+var bp_was_active: bool = true
+var bp_fading: bool = false
+var bp_icon_back: Sprite2D = null
+var bp_was_selected: bool = false
+var bp_shine_holding: bool = false
+var bp_shine_hold_timer: float = 0.0
 
+var ap_pips: Array = []
+var ap_pip_states: Array = []
+###############################################################
+
+# Consts.
 const HP_DRAIN_RATE: float = 0.04
 const HP_DRAIN_DELAY: float = 0.4
 const MP_DRAIN_RATE: float = 0.008
 const MP_FLASH_FRAME_COUNT: int = 8
 const MP_FLASH_FPS: float = 10.0
-const BP_SHINE_FRAME_COUNT: int = 7
+const BP_SHINE_FRAME_COUNT: int = 8
 const BP_SHINE_FPS: float = 10.0
+const BP_FADE_SPEED: float = 0.25
+const BP_ICON_FADE_SPEED: float = 0.15
+const BP_SHINE_HOLD: float = 0.35
 
 var hud_enabled: bool = true
 
@@ -58,6 +81,13 @@ func _ready() -> void:
 		atlas.atlas = bp_shine_sheet
 		atlas.region = Rect2(i * bp_frame_width, 0, bp_frame_width, bp_frame_height)
 		bp_shine_frames.append(atlas)
+		
+	bp_label_fade = bp_label.duplicate()
+	bp_label.get_parent().add_child(bp_label_fade)
+	bp_label_fade.modulate = Color(1, 1, 1, 0)
+	bp_icon_back = bp_icon.duplicate()
+	bp_icon.get_parent().add_child(bp_icon_back)
+	bp_icon.get_parent().move_child(bp_icon_back, bp_icon.get_index())
 	
 func _process(delta: float) -> void:
 	if not hud_enabled:
@@ -117,9 +147,7 @@ func _update_display(delta: float) -> void:
 	var bp_current: int = PlayerData.bp_max
 	if BattleManager.active and BattleManager.player_turn != null:
 		bp_current = BattleManager.player_turn.bp_remaining
-		
-	# This checks if a BP-using ability is selected (BP abilities always use 1 BP, but it is
-	# future-proofed in case that changes).
+
 	var bp_ability_selected: bool = false
 	if BattleManager.active and BattleManager.player_turn != null:
 		var active_slot: int = BattleManager.player_turn.active_hotbar_slot
@@ -131,9 +159,95 @@ func _update_display(delta: float) -> void:
 				var slot_ability: Dictionary = AbilityDB.get_ability(slot_ability_id)
 				var slot_cost: Dictionary = slot_ability.get("cost", {})
 				bp_ability_selected = slot_cost.has("bp")
-				
-	# Shine animation when BP ability is selected and BP is available.
-	########################################################################
+
+	if not bp_ability_selected and bp_was_selected:
+		bp_shine_frame = 0
+		bp_shine_timer = 0.0
+		bp_shine_holding = false
+		bp_shine_hold_timer = 0.0
+	bp_was_selected = bp_ability_selected
+
+	# Fade purple to grey (or grey to purple) when BP state changes.
+	var bp_is_active: bool = bp_current > 0
+	if bp_is_active != bp_was_active:
+		bp_was_active = bp_is_active
+		bp_fading = true
+		var new_texture: Texture2D = bp_active_texture if bp_is_active else bp_inactive_texture
+		bp_icon_back.texture = bp_icon.texture
+		bp_icon_back.modulate.a = 1.0
+		bp_icon.texture = new_texture
+		bp_icon.modulate.a = 0.0
+		var crossfade_tween: Tween = create_tween()
+		crossfade_tween.set_parallel(true)
+		crossfade_tween.tween_property(bp_icon, "modulate:a", 1.0, BP_ICON_FADE_SPEED)
+		crossfade_tween.tween_property(bp_icon_back, "modulate:a", 0.0, BP_ICON_FADE_SPEED)
+		crossfade_tween.chain()
+		crossfade_tween.tween_callback(func(): bp_fading = false)
+
+	# Icon texture (shine, purple, or grey).
+	if not bp_fading:
+		if bp_ability_selected and bp_current > 0:
+			if bp_shine_holding:
+				bp_shine_hold_timer += delta
+				if bp_shine_hold_timer >= BP_SHINE_HOLD:
+					bp_shine_holding = false
+					bp_shine_hold_timer = 0.0
+					bp_shine_frame = 0
+			else:
+				bp_shine_timer += delta
+				if bp_shine_timer >= 1.0 / BP_SHINE_FPS:
+					bp_shine_timer -= 1.0 / BP_SHINE_FPS
+					bp_shine_frame += 1
+					if bp_shine_frame >= BP_SHINE_FRAME_COUNT:
+						bp_shine_frame = BP_SHINE_FRAME_COUNT - 1
+						bp_shine_holding = true
+						bp_shine_hold_timer = 0.0
+			bp_icon.texture = bp_shine_frames[bp_shine_frame]
+		else:
+			if bp_current > 0:
+				bp_icon.texture = bp_active_texture
+			else:
+				bp_icon.texture = bp_inactive_texture
+
+	# Label fades between values like SC charges on hotbar.
+	var bp_label_target: int = bp_current if bp_current > 1 else 0
+	if bp_label_target != bp_previous_display:
+		if bp_previous_display > 1 and bp_label_target > 1:
+			# Both visible: crossfade old value out, new value in.
+			bp_label_fade.text = str(bp_previous_display)
+			bp_label_fade.modulate = Color(1, 1, 1, 1)
+			var out_tween: Tween = create_tween()
+			out_tween.tween_property(bp_label_fade, "modulate:a", 0.0, BP_FADE_SPEED)
+			bp_label.text = str(bp_label_target)
+			bp_label.modulate = Color(1, 1, 1, 0)
+			bp_label.visible = true
+			var in_tween: Tween = create_tween()
+			in_tween.tween_property(bp_label, "modulate:a", 1.0, BP_FADE_SPEED)
+		elif bp_label_target > 1:
+			# Was hidden, now visible: fade in.
+			bp_label.text = str(bp_label_target)
+			bp_label.modulate = Color(1, 1, 1, 0)
+			bp_label.visible = true
+			var in_tween: Tween = create_tween()
+			in_tween.tween_property(bp_label, "modulate:a", 1.0, BP_FADE_SPEED)
+		else:
+			# Was visible, now hidden: fade out.
+			var out_tween: Tween = create_tween()
+			out_tween.tween_property(bp_label, "modulate:a", 0.0, BP_FADE_SPEED)
+			out_tween.tween_callback(func(): bp_label.visible = false)
+		bp_previous_display = bp_label_target
+
+	# Label colour: bright when BP ability selected, dim otherwise.
+	if bp_ability_selected:
+		bp_label.self_modulate = Color.WHITE
+		bp_label_fade.self_modulate = Color.WHITE
+	else:
+		bp_label.self_modulate = Color(0.9, 0.9, 0.9)
+		bp_label_fade.self_modulate = Color(0.9, 0.9, 0.9)
+	# Shake + red pulse on BP rejection
+	if BattleManager.bp_rejected:
+		BattleManager.bp_rejected = false
+		_bp_shake()
 	
 	# MP
 	var max_mp: int = PlayerData.get_max_mp()
@@ -175,7 +289,7 @@ func _update_display(delta: float) -> void:
 	else:
 		mp_display_timer = 0.0
 
-	# Preview bar: snaps during planning, drains toward green, tracks green when matched
+	# Preview bar snaps during planning, drains toward green, tracks green when matched.
 	if planned_cost > 0:
 		mp_preview_current = mp_preview_target
 		mp_drain_timer = 0.0
@@ -201,3 +315,10 @@ func _update_display(delta: float) -> void:
 	else:
 		mp_flash_timer = 0.0
 		mp_flash_frame = 0
+
+func _bp_shake() -> void:
+	var flash_tween: Tween = create_tween()
+	flash_tween.tween_property(bp_icon, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(bp_icon, "modulate", Color.WHITE, 0.08)
+	flash_tween.tween_property(bp_icon, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(bp_icon, "modulate", Color.WHITE, 0.08)

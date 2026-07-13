@@ -48,7 +48,7 @@ var learned_abilities: Array = []
 
 var max_hp: int = 30
 var current_hp: int = 30
-var bp_max: int = 10
+var bp_max: int = 12
 var ap_max: int = 0
 # Spell Charges. Per-ability charge pools for blue tree spells.
 # Key: ability_id (String), Value: current charges remaining (int).
