@@ -56,7 +56,7 @@ var spell_charges: Dictionary = {}
 # Status effects active on the player.
 # Key: effect_id (String), Value: number of stacks (int).
 var status_effects: Dictionary = {}
-var mp_override: int = -1
+var mp_override: int = 60
 
 const BASE_MP: int = 5
 const MP_PER_SPEED_PER_LEVEL: float = 0.25

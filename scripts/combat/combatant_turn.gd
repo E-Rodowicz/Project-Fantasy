@@ -275,31 +275,36 @@ func _enter_ability_mode(ability_id: String) -> void:
 	var ability: Dictionary = AbilityDB.get_ability(ability_id)
 	if ability.is_empty():
 		return
-	if ability.get("requires_first_action", false) and has_acted_this_turn:
-		return
-	if ability.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
-		return
 	if not PlayerData.has_ability(ability_id):
 		return
-	
+		
 	var cost: Dictionary = ability.get("cost", {})
+	var can_afford: bool = true
 	for resource in cost.keys():
 		var amount: int = cost[resource]
 		match resource:
 			"ap":
 				if ap_remaining < amount:
 					BattleManager.ap_rejected_cost = amount
-					return
+					can_afford = false
 			"bp":
 				if bp_remaining < amount:
 					BattleManager.bp_rejected = true
-					return
+					can_afford = false
 			"mp":
 				if mp_budget < amount:
-					return
+					BattleManager.mp_rejected = true
+					can_afford = false
 			"sc":
 				if PlayerData.get_spell_charges(ability.get("id", "")) < amount:
-					return
+					can_afford = false
+					
+	if ability.get("requires_first_action", false) and has_acted_this_turn:
+		return
+	if ability.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
+		return
+	if not can_afford:
+		return
 	
 	waypoints.clear()
 	full_path.clear()

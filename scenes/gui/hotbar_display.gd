@@ -325,12 +325,31 @@ func _update_display() -> void:
 				var tween: Tween = create_tween()
 				tween.tween_property(slot_overlays[i], "modulate:a", target_alpha, overlay_tween_speed)
 		else:
-			# Out of combat: still cross out abilities blocked by non-combat requirements.
 			var out_blocked: bool = false
-			if ability_id != "" and ability_id != "basic_attack":
+			if ability_id == "basic_attack":
+				if PlayerData.bp_max <= 0:
+					out_blocked = true
+			elif ability_id != "":
 				var data3: Dictionary = AbilityDB.get_ability(ability_id)
 				if data3.get("requires_ranged_weapon", false) and not PlayerData.is_ranged_weapon_equipped():
 					out_blocked = true
+				if not out_blocked:
+					var cost3: Dictionary = data3.get("cost", {})
+					for resource3 in cost3.keys():
+						var amount3: int = cost3[resource3]
+						match resource3:
+							"ap":
+								if PlayerData.ap_max < amount3:
+									out_blocked = true
+							"bp":
+								if PlayerData.bp_max < amount3:
+									out_blocked = true
+							"mp":
+								if PlayerData.get_max_mp() < amount3:
+									out_blocked = true
+							"sc":
+								if PlayerData.get_spell_charges(data3.get("id", "")) < amount3:
+									out_blocked = true
 			if out_blocked != slot_blocked[i]:
 				slot_blocked[i] = out_blocked
 				var target_alpha: float = 1.0 if out_blocked else 0.0
