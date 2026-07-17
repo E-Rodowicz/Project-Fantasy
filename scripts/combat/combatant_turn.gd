@@ -301,6 +301,10 @@ func _enter_ability_mode(ability_id: String) -> void:
 				if PlayerData.get_spell_charges(ability.get("id", "")) < amount:
 					return
 	
+	waypoints.clear()
+	full_path.clear()
+	path_cost = 0
+	
 	ability_instance = AbilityDB.create_ability(ability_id)
 	if ability_instance == null:
 		return

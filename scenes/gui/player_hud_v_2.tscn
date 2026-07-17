@@ -15,6 +15,36 @@ font = ExtResource("9_w7ua0")
 outline_size = 3
 outline_color = Color(0, 0, 0, 1)
 
+[sub_resource type="LabelSettings" id="LabelSettings_tye4b"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_g4wbh"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_5gcps"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_esgjl"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_57i3h"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_i5s70"]
+font = ExtResource("9_w7ua0")
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
 [node name="player_hud_v2" type="CanvasLayer" unique_id=348476759]
 script = ExtResource("1_hui0s")
 
@@ -88,4 +118,68 @@ offset_bottom = 25.25
 scale = Vector2(1.01, 1.01)
 label_settings = SubResource("LabelSettings_uukeg")
 horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="hp_current_label" type="Label" parent="StatusBar_bg" unique_id=832490995]
+layout_mode = 0
+offset_left = 7.25
+offset_top = 4.0
+offset_right = 55.0
+offset_bottom = 17.0
+text = "1"
+label_settings = SubResource("LabelSettings_tye4b")
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="hp_slash_label" type="Label" parent="StatusBar_bg" unique_id=699164163]
+layout_mode = 0
+offset_left = 56.25
+offset_top = 3.75
+offset_right = 60.25
+offset_bottom = 16.75
+text = "/"
+label_settings = SubResource("LabelSettings_g4wbh")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="hp_max_label" type="Label" parent="StatusBar_bg" unique_id=211713981]
+layout_mode = 0
+offset_left = 62.0
+offset_top = 4.25
+offset_right = 109.25
+offset_bottom = 17.25
+text = "1"
+label_settings = SubResource("LabelSettings_5gcps")
+vertical_alignment = 1
+
+[node name="mp_current_label" type="Label" parent="StatusBar_bg" unique_id=692287794]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 12.75
+offset_right = 54.5
+offset_bottom = 25.75
+text = "1"
+label_settings = SubResource("LabelSettings_esgjl")
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="mp_slash_label" type="Label" parent="StatusBar_bg" unique_id=1560341970]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 12.75
+offset_right = 60.0
+offset_bottom = 25.75
+text = "/"
+label_settings = SubResource("LabelSettings_57i3h")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="mp_max_label" type="Label" parent="StatusBar_bg" unique_id=422082151]
+layout_mode = 0
+offset_left = 61.75
+offset_top = 13.0
+offset_right = 109.5
+offset_bottom = 26.0
+text = "1"
+label_settings = SubResource("LabelSettings_i5s70")
 vertical_alignment = 1

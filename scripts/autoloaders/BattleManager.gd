@@ -12,6 +12,7 @@ var just_closed: bool = false
 var rejected_hotbar_slot: int = -1
 var bp_rejected: bool = false
 var ap_rejected_cost: int = 0
+var mp_rejected: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

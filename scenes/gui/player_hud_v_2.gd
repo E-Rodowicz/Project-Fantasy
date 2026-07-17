@@ -9,6 +9,12 @@ enum ApState { FULL, SELECT, USED, DEPLETED, REFILL }
 @onready var hp_bar_trail: TextureProgressBar = $StatusBar_bg/hp_bar_trail
 @onready var bp_icon: Sprite2D = $StatusBar_bg/bp_icon
 @onready var bp_label: Label = $StatusBar_bg/bp_label
+@onready var hp_current_label: Label = $StatusBar_bg/hp_current_label
+@onready var hp_slash_label: Label = $StatusBar_bg/hp_slash_label
+@onready var hp_max_label: Label = $StatusBar_bg/hp_max_label
+@onready var mp_current_label: Label = $StatusBar_bg/mp_current_label
+@onready var mp_slash_label: Label = $StatusBar_bg/mp_slash_label
+@onready var mp_max_label: Label = $StatusBar_bg/mp_max_label
 
 # Preloads.
 var hp_damage_texture: Texture2D = preload("res://assets/sprites/gui/status_bar/status_bar_hp_hit.png")
@@ -32,6 +38,10 @@ var hp_drain_timer: float = 0.0
 var hp_drain_delay: float = 0.0
 var hp_display_current: int = 100
 var hp_is_healing: bool = false
+var hp_preview_active: bool = false
+var hp_preview_current: int = 100
+var hp_preview_timer: float = 0.0
+var hp_preview_pulse: float = 0.0
 
 var mp_flash_frames: Array = []
 var mp_flash_frame: int = 0
@@ -52,6 +62,10 @@ var bp_icon_back: Sprite2D = null
 var bp_was_selected: bool = false
 var bp_shine_holding: bool = false
 var bp_shine_hold_timer: float = 0.0
+var bp_counting: bool = false
+var bp_count_display: int = 0
+var bp_count_target: int = 0
+var bp_count_timer: float = 0.0
 
 var ap_pips: Array = []
 var ap_pip_states: Array = []
@@ -67,6 +81,7 @@ var ap_refill_frames: Array = []
 # Consts.
 const HP_DRAIN_RATE: float = 0.04
 const HP_DRAIN_DELAY: float = 0.4
+const HP_PREVIEW_RATE: float = 0.008
 
 const MP_DRAIN_RATE: float = 0.008
 const MP_FLASH_FRAME_COUNT: int = 8
@@ -77,6 +92,7 @@ const BP_SHINE_FPS: float = 10.0
 const BP_FADE_SPEED: float = 0.25
 const BP_ICON_FADE_SPEED: float = 0.15
 const BP_SHINE_HOLD: float = 0.35
+const BP_COUNT_SPEED: float = 0.15
 
 const AP_SELECT_FRAME_COUNT: int = 9
 const AP_USED_FRAME_COUNT: int = 7
@@ -87,6 +103,12 @@ const AP_REFILL_FPS: float = 10.0
 const AP_REFILL_STAGGER: float = 0.25
 const AP_PIP_SPACING: int = 6
 const AP_PIP_START: Vector2 = Vector2(13, 5)
+
+const HP_LABEL_CENTER_X: float = 60.0
+const MP_LABEL_CENTER_X: float = 60.0
+const LABEL_COLOR_NORMAL: Color = Color.WHITE
+const LABEL_COLOR_COST: Color = Color(0.85, 0.35, 0.1)
+const LABEL_COLOR_HEAL: Color = Color(0.3, 1.0, 0.3)
 
 var hud_enabled: bool = true
 
@@ -150,6 +172,21 @@ func _process(delta: float) -> void:
 		_update_display(delta)
 	
 func _update_display(delta: float) -> void:
+	# Detect selected ability costs (used by HP preview, MP section, and labels)
+	var selected_ability_mp_cost: int = 0
+	var selected_ability_hp_cost: int = 0
+	var selected_ability_hp_heal: int = 0
+	if BattleManager.active and BattleManager.player_turn != null:
+		var hud_active_slot: int = BattleManager.player_turn.active_hotbar_slot
+		if hud_active_slot >= 0:
+			var hud_ability_id: String = PlayerData.get_hotbar_ability(hud_active_slot)
+			if hud_ability_id != "" and hud_ability_id != "basic_attack":
+				var hud_ability: Dictionary = AbilityDB.get_ability(hud_ability_id)
+				var hud_cost: Dictionary = hud_ability.get("cost", {})
+				selected_ability_mp_cost = hud_cost.get("mp", 0)
+				selected_ability_hp_cost = hud_cost.get("hp", 0)
+				selected_ability_hp_heal = hud_ability.get("heal_hp", 0)
+	
 	# HP
 	hp_bar.max_value = 100
 	hp_bar_trail.max_value = 100
@@ -191,8 +228,51 @@ func _update_display(delta: float) -> void:
 		hp_drain_timer = 0.0
 		hp_drain_delay = 0.0
 
-	hp_bar.value = hp_display_current
-	hp_bar_trail.value = hp_trail_current
+	# HP Preview
+	var hp_is_previewing: bool = selected_ability_hp_cost > 0 or selected_ability_hp_heal > 0
+	if hp_is_previewing:
+		if not hp_preview_active:
+			hp_preview_active = true
+			hp_preview_current = hp_display_current
+			hp_preview_timer = 0.0
+
+		var preview_hp: int = clampi(PlayerData.current_hp - selected_ability_hp_cost + selected_ability_hp_heal, 0, PlayerData.max_hp)
+		var hp_preview_target: int = round(float(preview_hp) / PlayerData.max_hp * 100.0)
+		if preview_hp > 0:
+			hp_preview_target = max(hp_preview_target, 2)
+
+		if hp_preview_current > hp_preview_target:
+			hp_preview_timer += delta
+			while hp_preview_timer >= HP_PREVIEW_RATE and hp_preview_current > hp_preview_target:
+				hp_preview_timer -= HP_PREVIEW_RATE
+				hp_preview_current -= 1
+		elif hp_preview_current < hp_preview_target:
+			hp_preview_timer += delta
+			while hp_preview_timer >= HP_PREVIEW_RATE and hp_preview_current < hp_preview_target:
+				hp_preview_timer -= HP_PREVIEW_RATE
+				hp_preview_current += 1
+
+		hp_bar.value = hp_preview_current
+		if selected_ability_hp_cost > 0:
+			hp_bar_trail.texture_progress = hp_damage_texture
+			hp_bar_trail.value = hp_display_current
+		elif selected_ability_hp_heal > 0:
+			hp_bar_trail.texture_progress = hp_heal_texture
+			hp_bar_trail.value = hp_preview_target
+
+		hp_preview_pulse += delta
+		var pulse: float = 0.85 + sin(hp_preview_pulse * 5.0) * 0.15
+		if selected_ability_hp_cost > 0:
+			hp_bar_trail.modulate = Color(1.0, pulse * 0.7, pulse * 0.3, 1.0)
+		else:
+			hp_bar_trail.modulate = Color(pulse * 0.5, 1.0, pulse * 0.5, 1.0)
+	else:
+		if hp_preview_active:
+			hp_preview_active = false
+			hp_preview_pulse = 0.0
+			hp_bar_trail.modulate = Color.WHITE
+		hp_bar.value = hp_display_current
+		hp_bar_trail.value = hp_trail_current
 		
 	# BP
 	var bp_current: int = PlayerData.bp_max
@@ -262,9 +342,31 @@ func _update_display(delta: float) -> void:
 
 	# Label fades between values like SC charges on hotbar.
 	var bp_label_target: int = bp_current if bp_current > 1 else 0
-	if bp_label_target != bp_previous_display:
+
+	# Start counting up when BP increases
+	if bp_label_target > bp_previous_display and bp_previous_display >= 0:
+		if not bp_counting:
+			bp_counting = true
+			bp_count_display = max(bp_previous_display, 0)
+			bp_count_target = bp_label_target
+			bp_count_timer = 0.0
+		else:
+			bp_count_target = bp_label_target
+
+	# Count-up animation
+	if bp_counting:
+		bp_count_timer += delta
+		if bp_count_timer >= BP_COUNT_SPEED:
+			bp_count_timer -= BP_COUNT_SPEED
+			bp_count_display += 1
+			bp_label.text = str(bp_count_display)
+			bp_label.visible = true
+			if bp_count_display >= bp_count_target:
+				bp_counting = false
+		bp_previous_display = bp_count_display
+	elif bp_label_target != bp_previous_display:
+		# Non-counting changes (BP spent — use existing crossfade logic)
 		if bp_previous_display > 1 and bp_label_target > 1:
-			# Both visible: crossfade old value out, new value in.
 			bp_label_fade.text = str(bp_previous_display)
 			bp_label_fade.modulate = Color(1, 1, 1, 1)
 			var out_tween: Tween = create_tween()
@@ -275,14 +377,12 @@ func _update_display(delta: float) -> void:
 			var in_tween: Tween = create_tween()
 			in_tween.tween_property(bp_label, "modulate:a", 1.0, BP_FADE_SPEED)
 		elif bp_label_target > 1:
-			# Was hidden, now visible: fade in.
 			bp_label.text = str(bp_label_target)
 			bp_label.modulate = Color(1, 1, 1, 0)
 			bp_label.visible = true
 			var in_tween: Tween = create_tween()
 			in_tween.tween_property(bp_label, "modulate:a", 1.0, BP_FADE_SPEED)
 		else:
-			# Was visible, now hidden: fade out.
 			var out_tween: Tween = create_tween()
 			out_tween.tween_property(bp_label, "modulate:a", 0.0, BP_FADE_SPEED)
 			out_tween.tween_callback(func(): bp_label.visible = false)
@@ -299,7 +399,7 @@ func _update_display(delta: float) -> void:
 	if BattleManager.bp_rejected:
 		BattleManager.bp_rejected = false
 		_bp_shake()
-	
+		
 	# AP
 	var ap_max: int = PlayerData.ap_max
 	var ap_remaining: int = PlayerData.ap_max
@@ -432,16 +532,15 @@ func _update_display(delta: float) -> void:
 		current_mp = BattleManager.player_turn.mp_budget
 		planned_cost = BattleManager.player_turn.path_cost
 
+	var total_mp_cost: int = planned_cost + selected_ability_mp_cost
 	var mp_preview_target: int = 0
 	var mp_display_target: int = 0
 
 	if max_mp > 0:
 		mp_preview_target = round(float(current_mp) / max_mp * 100.0)
-		mp_display_target = round(float(current_mp - planned_cost) / max_mp * 100.0)
+		mp_display_target = round(float(current_mp - total_mp_cost) / max_mp * 100.0)
 
-	if current_mp > 0:
-		mp_preview_target = max(mp_preview_target, 2)
-	if (current_mp - planned_cost) > 0:
+	if (current_mp - total_mp_cost) > 0:
 		mp_display_target = max(mp_display_target, 2)
 
 	# Green bar: snaps down, snaps up on cancel, animates up on refill
@@ -461,7 +560,7 @@ func _update_display(delta: float) -> void:
 		mp_display_timer = 0.0
 
 	# Preview bar snaps during planning, drains toward green, tracks green when matched.
-	if planned_cost > 0:
+	if total_mp_cost > 0:
 		mp_preview_current = mp_preview_target
 		mp_drain_timer = 0.0
 	elif mp_preview_current > mp_display_current:
@@ -477,7 +576,7 @@ func _update_display(delta: float) -> void:
 	mp_bar.value = mp_display_current
 
 	# Flash animation when there's a planned path cost
-	if planned_cost > 0:
+	if total_mp_cost > 0:
 		mp_flash_timer += delta
 		if mp_flash_timer >= 1.0 / MP_FLASH_FPS:
 			mp_flash_timer -= 1.0 / MP_FLASH_FPS
@@ -486,7 +585,36 @@ func _update_display(delta: float) -> void:
 	else:
 		mp_flash_timer = 0.0
 		mp_flash_frame = 0
+		
+	if BattleManager.mp_rejected:
+		BattleManager.mp_rejected = false
+		_mp_label_flash_red()
 
+	# HP / MP Labels
+	hp_max_label.text = str(PlayerData.max_hp)
+	mp_max_label.text = str(max_mp)
+
+	if selected_ability_hp_cost > 0:
+		var hp_label_preview: int = max(PlayerData.current_hp - selected_ability_hp_cost, 0)
+		hp_current_label.text = str(hp_label_preview)
+		hp_current_label.self_modulate = LABEL_COLOR_COST
+	elif selected_ability_hp_heal > 0:
+		var hp_label_preview: int = min(PlayerData.current_hp + selected_ability_hp_heal, PlayerData.max_hp)
+		hp_current_label.text = str(hp_label_preview)
+		hp_current_label.self_modulate = LABEL_COLOR_HEAL
+	else:
+		hp_current_label.text = str(PlayerData.current_hp)
+		hp_current_label.self_modulate = LABEL_COLOR_NORMAL
+
+	var total_mp_preview: int = planned_cost + selected_ability_mp_cost
+	if total_mp_preview > 0:
+		var mp_label_preview: int = max(current_mp - total_mp_preview, 0)
+		mp_current_label.text = str(mp_label_preview)
+		mp_current_label.self_modulate = LABEL_COLOR_COST
+	else:
+		mp_current_label.text = str(current_mp)
+		mp_current_label.self_modulate = LABEL_COLOR_NORMAL
+		
 func _bp_shake() -> void:
 	var flash_tween: Tween = create_tween()
 	flash_tween.tween_property(bp_icon, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
@@ -522,3 +650,10 @@ func _ap_flash_red(pip_index: int) -> void:
 	flash_tween.tween_property(pip, "modulate", Color.WHITE, 0.08)
 	flash_tween.tween_property(pip, "modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
 	flash_tween.tween_property(pip, "modulate", Color.WHITE, 0.08)
+
+func _mp_label_flash_red() -> void:
+	var flash_tween: Tween = create_tween()
+	flash_tween.tween_property(mp_current_label, "self_modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(mp_current_label, "self_modulate", Color.WHITE, 0.08)
+	flash_tween.tween_property(mp_current_label, "self_modulate", Color(1.0, 0.0, 0.0, 1.0), 0.08)
+	flash_tween.tween_property(mp_current_label, "self_modulate", Color.WHITE, 0.08)
