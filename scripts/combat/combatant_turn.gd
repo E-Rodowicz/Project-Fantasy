@@ -1,6 +1,9 @@
 extends Node
 class_name CombatantTurn
 
+const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
+const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+
 # # Who is being controlled this turn. Replaces the old "player" var.
 var combatant: Node = null
 var world_layer: TileMapLayer = null
@@ -681,6 +684,7 @@ func _execute_ability() -> void:
 			
 	has_acted_this_turn = true
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
+	overlay.clear_all()
 	animating = true
 	var execute_tiles: Array = ability_tiles
 	if active_ability.get("targeting") == "blink":
@@ -693,6 +697,7 @@ func _execute_ability() -> void:
 		if target != null:
 			_engage_if_needed(target)
 	
+	ability_instance.attacker_position = combatant.global_position
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
@@ -1200,28 +1205,31 @@ func _execute_attack() -> void:
 		has_acted_this_turn = true
 		_exit_attack_mode()
 		return
-
-	_try_attack(target)
+		
+	overlay.clear_all()
+	_engage_if_needed(target)
+	animating = true
+	await _try_attack(target)
 
 	if combatant.is_in_group("player") and PlayerData.is_dual_wielding():
 		is_offhand_attack = true
-		_try_attack(target)
+		await _try_attack(target)
 		is_offhand_attack = false
 
+	animating = false
 	bp_remaining -= 1
 	has_acted_this_turn = true
 	_exit_attack_mode()
-
+	
 func _execute_ranged_attack() -> void:
 	var weapon: Dictionary = PlayerData.get_equipped_weapon()
 	var weapon_range: int = weapon.get("weapon_range", 12)
 	var penetration_remaining: int = weapon.get("penetration", 0)
-	
+
 	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
 	var range_used: int = 0
 	var targets_hit: Array = []
-	
-	# Walk the projectile path, collecting targets.
+
 	for i in range(1, line.size()):
 		var tile: Vector2i = line[i]
 		var prev: Vector2i = line[i - 1]
@@ -1238,15 +1246,17 @@ func _execute_ranged_attack() -> void:
 			if penetration_remaining <= 0:
 				break
 			penetration_remaining -= 1
-	
-	# Resolve the attack.
+
 	if targets_hit.is_empty():
 		CombatLog.add(combatant.name + " fires but hits nothing!")
 	else:
+		overlay.clear_all()
+		animating = true
 		for target in targets_hit:
 			_engage_if_needed(target)
-			_try_attack(target)
-	
+			await _try_attack(target)
+		animating = false
+
 	has_acted_this_turn = true
 	bp_remaining -= 1
 	has_target = false
@@ -1294,22 +1304,70 @@ func _try_attack(target: Node) -> void:
 	
 	# Damage.
 	var damage: int = _roll_damage()
-	_apply_damage(target, damage)
+	await _apply_damage(target, damage)
 
 # Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
 # enemies track their own HP on their node, so we branch on the group.
 func _apply_damage(target: Node, amount: int) -> void:
-	if target.is_in_group("player"):
+	var hit_pos: Vector2 = target.global_position
+	var is_player: bool = target.is_in_group("player")
+
+	if is_player:
 		PlayerData.take_damage(amount)
 		CombatLog.add(combatant.name + " hits Player for " + str(amount) + " damage. (" + str(PlayerData.current_hp) + "/" + str(PlayerData.max_hp) + " HP)")
 		if PlayerData.current_hp <= 0:
 			BattleManager.remove_combatant(target)
 	else:
-		# The enemy node handles its own HP and death (removing itself from the
-		# battle and freeing itself when it hits 0).
 		target.take_damage(amount)
 		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
 
+	if not is_player:
+		# Blood.
+		var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
+		blood.process_mode = Node.PROCESS_MODE_ALWAYS
+		world_layer.get_parent().add_child(blood)
+		blood.global_position = hit_pos
+
+		# Flash + nudge.
+		if is_instance_valid(target):
+			await _play_hit_reaction(target)
+
+func _get_target_sprite(target: Node) -> CanvasItem:
+	for child in target.get_children():
+		if child is Sprite2D or child is AnimatedSprite2D:
+			return child
+	return null
+	
+func _play_hit_reaction(target: Node) -> void:
+	var sprite: CanvasItem = _get_target_sprite(target)
+	if sprite == null:
+		return
+
+	var original_pos: Vector2 = target.global_position
+	var dir: Vector2 = (target.global_position - combatant.global_position).normalized()
+	var nudge_offset: Vector2 = dir * 2.0
+
+	var shader_mat: ShaderMaterial = ShaderMaterial.new()
+	shader_mat.shader = HIT_FLASH_SHADER
+	var old_material: Material = sprite.material
+	sprite.material = shader_mat
+
+	var flash_set: Callable = func(val: float) -> void:
+		shader_mat.set_shader_parameter("flash_amount", val)
+
+	var tween: Tween = target.create_tween()
+
+	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+
+	tween.parallel().tween_property(target, "global_position", original_pos + nudge_offset, 0.1)
+	tween.tween_property(target, "global_position", original_pos, 0.1)
+
+	await tween.finished
+	sprite.material = old_material
+	
 # Returns the combatant node standing on a tile, or null. Skips the player so you
 # can never target yourself.
 func _combatant_on_tile(tile: Vector2i, include_non_combat: bool = false) -> Node:
@@ -1421,7 +1479,7 @@ func _run_ai() -> void:
 	# If someone is adjescent, attack and end turn.
 	if _is_adjacent(player_tile, target_tile):
 		if bp_remaining > 0:
-			_try_attack(target)
+			await _try_attack(target)
 			bp_remaining -= 1
 		turn_finished.emit()
 		return
@@ -1449,7 +1507,7 @@ func _run_ai() -> void:
 		
 	# After moving, it checks if target is adjacent and attacks.
 	if _is_adjacent(player_tile, target_tile) and bp_remaining > 0:
-		_try_attack(target)
+		await _try_attack(target)
 		bp_remaining -= 1
 	
 	turn_finished.emit()

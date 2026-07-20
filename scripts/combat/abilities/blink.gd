@@ -54,6 +54,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	
 	# Teleport.
 	caster.global_position = world_layer.map_to_local(landing_tile)
+	attacker_position = caster.global_position
 	CombatLog.add(caster.name + " blinks.")
 	
 	# Find the selected target.
@@ -70,7 +71,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " strikes " + target.name + " for " + str(final_damage) + ".")
-		_deal_damage(target, final_damage)
+		await _deal_damage(target, final_damage)
 	
 	# Apply blink dodge buff.
 	if caster.is_in_group("player"):

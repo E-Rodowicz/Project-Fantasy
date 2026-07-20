@@ -51,7 +51,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var base: int = roll_weapon_damage(caster)
 		var dmg: int = maxi(1, roundi(base * path_dmg_pct))
 		CombatLog.add(caster.name + " charges through " + target.name + " for " + str(dmg) + ".")
-		_deal_damage(target, dmg)
+		await _deal_damage(target, dmg)
 	
 	# Handle the endpoint target.
 	if ep_target == null:
@@ -72,7 +72,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 			var base: int = roll_weapon_damage(caster)
 			var dmg: int = maxi(1, roundi(base * endpoint_dmg_pct))
 			CombatLog.add(caster.name + " slams into " + ep_target.name + " for " + str(dmg) + ".")
-			_deal_damage(ep_target, dmg)
+			await _deal_damage(ep_target, dmg)
 		if is_instance_valid(ep_target):
 			var push_tile: Vector2i = candidates[randi() % candidates.size()]
 			CombatLog.add(ep_target.name + " is pushed back!")
@@ -85,7 +85,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 			var crush_base: int = roll_weapon_damage(caster)
 			var crush_dmg: int = maxi(1, roundi(crush_base * crush_dmg_pct))
 			CombatLog.add(ep_target.name + " has nowhere to go! " + str(crush_dmg) + " crush damage!")
-			_deal_damage(ep_target, crush_dmg)
+			await _deal_damage(ep_target, crush_dmg)
 		# Either way, move them to where the player started.
 		if is_instance_valid(ep_target):
 			var crush_tween: Tween = ep_target.create_tween()

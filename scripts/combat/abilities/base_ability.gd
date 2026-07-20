@@ -1,7 +1,11 @@
 class_name BaseAbility
 extends  RefCounted
 
+const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
+const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+
 var data: Dictionary = {}
+var attacker_position: Vector2 = Vector2.ZERO
 
 func setup(ability_data: Dictionary) -> void:
 	data = ability_data
@@ -47,10 +51,24 @@ func get_hit_chance(target: Node) -> float:
 	return CombatantStats.hit_chance_for(target, get_hit_modifier())
 	
 func _deal_damage(target: Node, amount: int) -> void:
-	if target.is_in_group("player"):
+	var hit_pos: Vector2 = target.global_position
+	var effect_parent: Node = target.get_parent()
+	var is_player: bool = target.is_in_group("player")
+
+	if is_player:
 		PlayerData.take_damage(amount)
 	else:
 		target.take_damage(amount)
+
+	if not is_player:
+		if data.get("causes_blood", true):
+			var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
+			blood.process_mode = Node.PROCESS_MODE_ALWAYS
+			effect_parent.add_child(blood)
+			blood.global_position = hit_pos
+
+		if is_instance_valid(target):
+			await _play_hit_reaction(target)
 		
 func _apply_status_effect(target: Node, effect_id: String, stacks: int) -> void:
 	if target.is_in_group("player"):
@@ -61,3 +79,39 @@ func _apply_status_effect(target: Node, effect_id: String, stacks: int) -> void:
 func _engage_if_needed(target: Node) -> void:
 	if target.is_in_group("enemy") and target not in BattleManager.combatants:
 		BattleManager.add_combatant(target)
+
+func _get_target_sprite(target: Node) -> CanvasItem:
+	for child in target.get_children():
+		if child is Sprite2D or child is AnimatedSprite2D:
+			return child
+	return null
+
+func _play_hit_reaction(target: Node) -> void:
+	var sprite: CanvasItem = _get_target_sprite(target)
+	if sprite == null:
+		return
+
+	var original_pos: Vector2 = target.global_position
+	var dir: Vector2 = (target.global_position - attacker_position).normalized()
+	var nudge_offset: Vector2 = dir * 2.0
+
+	var shader_mat: ShaderMaterial = ShaderMaterial.new()
+	shader_mat.shader = HIT_FLASH_SHADER
+	var old_material: Material = sprite.material
+	sprite.material = shader_mat
+
+	var flash_set: Callable = func(val: float) -> void:
+		shader_mat.set_shader_parameter("flash_amount", val)
+
+	var tween: Tween = target.create_tween()
+
+	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+
+	tween.parallel().tween_property(target, "global_position", original_pos + nudge_offset, 0.1)
+	tween.tween_property(target, "global_position", original_pos, 0.1)
+
+	await tween.finished
+	sprite.material = old_material

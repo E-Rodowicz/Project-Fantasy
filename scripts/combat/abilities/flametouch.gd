@@ -23,7 +23,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " touches " + target.name + " with flame for " + str(final_damage) + ".")
-		_deal_damage(target, final_damage)
+		await _deal_damage(target, final_damage)
 		
 		# Applies fire stack.
 		if is_instance_valid(target):

@@ -92,6 +92,7 @@ var abilities: Dictionary = {
 		"hit_modifier": 0.0,
 		"bounce_range": 5,
 		"max_sc": 8,
+		"causes_blood": false,
 		"description": "Fire a bolt of lightning. Bounces between targets with decreasing damage."
 		},
 	"flametouch": {
@@ -106,6 +107,7 @@ var abilities: Dictionary = {
 		"damage_percent": 2.0,
 		"hit_modifier": 0.0,
 		"max_sc": 6,
+		"causes_blood": false,
 		"description": "Touch an opponent, setting them aflame for 200% damage. Applies Fire (1)."
 		},
 }

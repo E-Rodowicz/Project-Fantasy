@@ -36,7 +36,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	var base_damage: int = roll_weapon_damage(caster)
 	var final_damage: int = maxi(1, roundi(base_damage * data.get("damage_percent", 1)))
 	CombatLog.add(caster.name + "'s bolt strikes " + initial_target.name + " for " + str(final_damage) + "!")
-	_deal_damage(initial_target, final_damage)
+	await _deal_damage(initial_target, final_damage)
 	
 # Bounce chain — chance and damage decrease by 20% per bounce.
 	var last_tile: Vector2i = world_layer.local_to_map(initial_target.global_position)
@@ -64,7 +64,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var bounce_damage: int = maxi(1, roundi(bounce_base * bounce_multiplier))
 		CombatLog.add("Bolt bounces to " + bounce_target.name + " for " + str(bounce_damage) + "!")
 		last_tile = world_layer.local_to_map(bounce_target.global_position)
-		_deal_damage(bounce_target, bounce_damage)
+		await _deal_damage(bounce_target, bounce_damage)
 		
 		# Decrease for next bounce, floored at minimums.
 		bounce_chance = maxf(0.01, bounce_chance - 0.20)
