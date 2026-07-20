@@ -3,6 +3,7 @@ class_name CombatantTurn
 
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+const SLASH_EFFECT: PackedScene = preload("res://scenes/effects/slash_effect.tscn")
 
 # # Who is being controlled this turn. Replaces the old "player" var.
 var combatant: Node = null
@@ -1322,13 +1323,20 @@ func _apply_damage(target: Node, amount: int) -> void:
 		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
 
 	if not is_player:
-		# Blood.
+		# Slash — rotated to face from attacker toward target.
+		var slash: AnimatedSprite2D = SLASH_EFFECT.instantiate()
+		slash.process_mode = Node.PROCESS_MODE_ALWAYS
+		slash.rotation = (hit_pos - combatant.global_position).angle() - PI / 2.0
+		world_layer.get_parent().add_child(slash)
+		slash.global_position = hit_pos.lerp(combatant.global_position, 0.4)
+
+		# Blood — fire and forget.
 		var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
 		blood.process_mode = Node.PROCESS_MODE_ALWAYS
 		world_layer.get_parent().add_child(blood)
 		blood.global_position = hit_pos
 
-		# Flash + nudge.
+		# Flash + nudge — awaited.
 		if is_instance_valid(target):
 			await _play_hit_reaction(target)
 

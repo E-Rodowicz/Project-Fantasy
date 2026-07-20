@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://clkgrcpr7w774"]
+
+[ext_resource type="Texture2D" uid="uid://ctcrsylca4vje" path="res://assets/sprites/vfx/combat/basic_attack_melee-Sheet.png" id="1_pt8fy"]
+[ext_resource type="Script" uid="uid://dlkvyecpxrbb" path="res://scenes/effects/slash_effect.gd" id="2_0lew8"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wjl7l"]
+atlas = ExtResource("1_pt8fy")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ddk53"]
+atlas = ExtResource("1_pt8fy")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r7mim"]
+atlas = ExtResource("1_pt8fy")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h3dem"]
+atlas = ExtResource("1_pt8fy")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ekita"]
+atlas = ExtResource("1_pt8fy")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_uukeg"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wjl7l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ddk53")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r7mim")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h3dem")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ekita")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 20.0
+}]
+
+[node name="SlashEffect" type="AnimatedSprite2D" unique_id=484313647]
+sprite_frames = SubResource("SpriteFrames_uukeg")
+script = ExtResource("2_0lew8")
