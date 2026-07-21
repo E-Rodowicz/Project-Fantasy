@@ -4,6 +4,8 @@ class_name CombatantTurn
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
 const SLASH_EFFECT: PackedScene = preload("res://scenes/effects/slash_effect.tscn")
+const ARROW_EFFECT: PackedScene = preload("res://scenes/effects/arrow_projectile.tscn")
+const ARROW_SPEED: float = 240.0
 
 # # Who is being controlled this turn. Replaces the old "player" var.
 var combatant: Node = null
@@ -47,6 +49,7 @@ var attack_target: Vector2i = Vector2i.ZERO
 var has_target: bool = false
 var ranged_target_tiles: Array = []
 var ranged_area_tiles: Array = []
+var is_ranged_attack: bool = false
 
 # Ability vars.
 var active_ability: Dictionary = {}
@@ -98,7 +101,9 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 	mp_label = _create_floating_label()
 	hit_label = _create_floating_label()
 	
-	var survived: bool = status_processor.process(combatant, combatants, world_layer)
+	animating = true
+	var survived: bool = await status_processor.process(combatant, combatants, world_layer)
+	animating = false
 	if not survived:
 		turn_finished.emit()
 		return
@@ -686,6 +691,10 @@ func _execute_ability() -> void:
 	has_acted_this_turn = true
 	CombatLog.add(combatant.name + " uses " + active_ability.get("name", "") + "!")
 	overlay.clear_all()
+	mp_label.visible = false
+	hit_label.visible = false
+	for label in hit_labels:
+		label.visible = false
 	animating = true
 	var execute_tiles: Array = ability_tiles
 	if active_ability.get("targeting") == "blink":
@@ -699,6 +708,7 @@ func _execute_ability() -> void:
 			_engage_if_needed(target)
 	
 	ability_instance.attacker_position = combatant.global_position
+	ability_instance.attack_direction = ability_direction
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
@@ -1208,6 +1218,10 @@ func _execute_attack() -> void:
 		return
 		
 	overlay.clear_all()
+	mp_label.visible = false
+	hit_label.visible = false
+	for label in hit_labels:
+		label.visible = false
 	_engage_if_needed(target)
 	animating = true
 	await _try_attack(target)
@@ -1230,6 +1244,7 @@ func _execute_ranged_attack() -> void:
 	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
 	var range_used: int = 0
 	var targets_hit: Array = []
+	var last_valid_tile: Vector2i = player_tile
 
 	for i in range(1, line.size()):
 		var tile: Vector2i = line[i]
@@ -1241,6 +1256,7 @@ func _execute_ranged_attack() -> void:
 			break
 		if world_layer.get_cell_source_id(tile) != -1:
 			break
+		last_valid_tile = tile
 		var target: Node = _combatant_on_tile(tile, true)
 		if target != null:
 			targets_hit.append(target)
@@ -1248,16 +1264,54 @@ func _execute_ranged_attack() -> void:
 				break
 			penetration_remaining -= 1
 
+	overlay.clear_all()
+	mp_label.visible = false
+	hit_label.visible = false
+	for label in hit_labels:
+		label.visible = false
+	animating = true
+	is_ranged_attack = true
+
+	var arrow: AnimatedSprite2D = ARROW_EFFECT.instantiate()
+	arrow.process_mode = Node.PROCESS_MODE_ALWAYS
+	var final_pos: Vector2 = world_layer.map_to_local(last_valid_tile)
+	arrow.rotation = (final_pos - combatant.global_position).angle()
+	world_layer.get_parent().add_child(arrow)
+	arrow.global_position = combatant.global_position
+
 	if targets_hit.is_empty():
+		var dist: float = combatant.global_position.distance_to(final_pos)
+		var duration: float = dist / ARROW_SPEED
+		var tween: Tween = arrow.create_tween()
+		tween.tween_property(arrow, "global_position", final_pos, duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		await tween.finished
+		arrow.queue_free()
 		CombatLog.add(combatant.name + " fires but hits nothing!")
 	else:
-		overlay.clear_all()
-		animating = true
-		for target in targets_hit:
+		var current_pos: Vector2 = combatant.global_position
+		for i in range(targets_hit.size()):
+			var target: Node = targets_hit[i]
+			var target_pos: Vector2 = target.global_position
+			var dist: float = current_pos.distance_to(target_pos)
+			var duration: float = dist / ARROW_SPEED
+			var tween: Tween = arrow.create_tween()
+
+			if i == 0:
+				tween.tween_property(arrow, "global_position", target_pos, duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+			else:
+				tween.tween_property(arrow, "global_position", target_pos, duration)
+
+			await tween.finished
+
+			# Arrow disappears the instant it hits.
+			arrow.queue_free()
+
 			_engage_if_needed(target)
 			await _try_attack(target)
-		animating = false
+			current_pos = target_pos
 
+	is_ranged_attack = false
+	animating = false
 	has_acted_this_turn = true
 	bp_remaining -= 1
 	has_target = false
@@ -1313,6 +1367,26 @@ func _apply_damage(target: Node, amount: int) -> void:
 	var hit_pos: Vector2 = target.global_position
 	var is_player: bool = target.is_in_group("player")
 
+	if not is_player:
+		if not is_ranged_attack:
+			var slash: AnimatedSprite2D = SLASH_EFFECT.instantiate()
+			slash.process_mode = Node.PROCESS_MODE_ALWAYS
+			slash.rotation = (hit_pos - combatant.global_position).angle() - PI / 2.0
+			world_layer.get_parent().add_child(slash)
+			slash.global_position = hit_pos.lerp(combatant.global_position, 0.4)
+
+			var frame_count: int = slash.sprite_frames.get_frame_count("default")
+			var fps: float = slash.sprite_frames.get_animation_speed("default")
+			var half_duration: float = (frame_count / fps) * 0.2
+			await get_tree().create_timer(half_duration).timeout
+		else:
+			await get_tree().create_timer(0.04).timeout
+
+		var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
+		blood.process_mode = Node.PROCESS_MODE_ALWAYS
+		world_layer.get_parent().add_child(blood)
+		blood.global_position = hit_pos
+
 	if is_player:
 		PlayerData.take_damage(amount)
 		CombatLog.add(combatant.name + " hits Player for " + str(amount) + " damage. (" + str(PlayerData.current_hp) + "/" + str(PlayerData.max_hp) + " HP)")
@@ -1322,23 +1396,8 @@ func _apply_damage(target: Node, amount: int) -> void:
 		target.take_damage(amount)
 		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
 
-	if not is_player:
-		# Slash — rotated to face from attacker toward target.
-		var slash: AnimatedSprite2D = SLASH_EFFECT.instantiate()
-		slash.process_mode = Node.PROCESS_MODE_ALWAYS
-		slash.rotation = (hit_pos - combatant.global_position).angle() - PI / 2.0
-		world_layer.get_parent().add_child(slash)
-		slash.global_position = hit_pos.lerp(combatant.global_position, 0.4)
-
-		# Blood — fire and forget.
-		var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
-		blood.process_mode = Node.PROCESS_MODE_ALWAYS
-		world_layer.get_parent().add_child(blood)
-		blood.global_position = hit_pos
-
-		# Flash + nudge — awaited.
-		if is_instance_valid(target):
-			await _play_hit_reaction(target)
+	if not is_player and is_instance_valid(target):
+		await _play_hit_reaction(target)
 
 func _get_target_sprite(target: Node) -> CanvasItem:
 	for child in target.get_children():
@@ -1363,17 +1422,20 @@ func _play_hit_reaction(target: Node) -> void:
 	var flash_set: Callable = func(val: float) -> void:
 		shader_mat.set_shader_parameter("flash_amount", val)
 
-	var tween: Tween = target.create_tween()
+	flash_set.call(1.0)
 
-	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
-	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
-	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
-	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	# Flash.
+	var flash_tween: Tween = target.create_tween()
+	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	flash_tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
 
-	tween.parallel().tween_property(target, "global_position", original_pos + nudge_offset, 0.1)
-	tween.tween_property(target, "global_position", original_pos, 0.1)
+	# Nudge — separate tween, starts on the same frame.
+	var nudge_tween: Tween = target.create_tween()
+	nudge_tween.tween_property(target, "global_position", original_pos + nudge_offset, 0.05)
+	nudge_tween.tween_property(target, "global_position", original_pos, 0.1)
 
-	await tween.finished
+	await nudge_tween.finished
 	sprite.material = old_material
 	
 # Returns the combatant node standing on a tile, or null. Skips the player so you
@@ -1594,18 +1656,36 @@ func _tile_distance(a: Vector2i, b: Vector2i) -> float:
 	return mn * 3.0 + (mx - mn) * 2.0
 
 func _animate_movement(path: Array) -> void:
-	# Creates a tween for the combatant.
-	var tween := combatant.create_tween()
-	
-	# For each tile in the path (Skipping the first (0) as that's where we start).
+	var sprite: CanvasItem = _get_target_sprite(combatant)
+
 	for i in range(1, path.size()):
-		var world_pos := world_layer.map_to_local(path[i])
-		# This bascially means move from your global position to world_pos (next part of path) in
-		# 0.07 seconds.
-		tween.tween_property(combatant, "global_position", world_pos, 0.1)
-	
-	# Wait for the tween to finish before continuing.
-	await tween.finished
+		var world_pos: Vector2 = world_layer.map_to_local(path[i])
+		var tile_dir: Vector2i = path[i] - path[i - 1]
+		var is_diagonal: bool = tile_dir.x != 0 and tile_dir.y != 0
+		var hop_height: float = -4.5 if is_diagonal else -3.0
+
+		# Facing.
+		if sprite and tile_dir.x != 0:
+			if combatant.get("sprite_faces_right") != null and not combatant.sprite_faces_right:
+				sprite.flip_h = tile_dir.x > 0
+			else:
+				sprite.flip_h = tile_dir.x < 0
+
+# Movement.
+		var step_duration: float = 0.16 * Vector2(tile_dir).length()
+		var tween: Tween = combatant.create_tween()
+		tween.tween_property(combatant, "global_position", world_pos, step_duration)
+
+		# Hop.
+		if sprite:
+			var hop_tween: Tween = combatant.create_tween()
+			hop_tween.tween_property(sprite, "offset:y", hop_height, step_duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			hop_tween.tween_property(sprite, "offset:y", 0.0, step_duration * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+		await tween.finished
+
+	if sprite:
+		sprite.offset = Vector2.ZERO
 
 func _get_dodge_chance(target: Node) -> float:
 	if target.is_in_group("player"):

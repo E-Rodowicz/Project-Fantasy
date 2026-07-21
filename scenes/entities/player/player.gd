@@ -326,11 +326,23 @@ func _move(dir: Vector2):
 	# exactly 1.0, meaning that the duration is 0.14 seconds. For diagonals, the length is √2 ≈ 1.414
 	# meaning that the duration is extended to around 0.198 seconds. This slows down diagonal
 	# movement so that the speed of tiles-per-second stays consistent with cardinal movement.
-	var duration = 0.16 * dir.length()
+	var duration = 0.18 * dir.length()
 	# tween_property animates the sprite from its current position (old tile) to global_position
 	# (new tile, where the body already snapped to). TRANS_SINE applies a curve making movement
 	# smooth - slow at start, fast in middle, slow at end.
 	sprite_node_pos_tween.tween_property($player_sprite, "global_position", global_position, duration).set_trans(Tween.TRANS_SINE)
+	
+	# Facing — only update on horizontal movement, so vertical keeps last direction.
+	if dir.x != 0:
+		$player_sprite.flip_h = dir.x < 0
+		
+	# Hop.
+	var hop_height: float = -2.0 if dir.length() < 1.1 else -3.0
+	var hop_tween: Tween = create_tween()
+	hop_tween.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	hop_tween.tween_property($player_sprite, "offset:y", hop_height, duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	hop_tween.tween_property($player_sprite, "offset:y", 0.0, duration * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	
 	emit_signal("player_moved")
 
 # Checks if what is being pointed at is interactable and returns a bool saying if it is or not. 

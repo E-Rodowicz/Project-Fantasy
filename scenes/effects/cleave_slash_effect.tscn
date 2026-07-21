@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://vtbr86rras1v"]
+
+[ext_resource type="Texture2D" uid="uid://cuxn35oi675em" path="res://assets/sprites/vfx/combat/cleave_slash-Sheet.png" id="1_5de7g"]
+[ext_resource type="Script" uid="uid://cm42fud8x12bn" path="res://scenes/effects/cleave_slash_effect.gd" id="2_i8sqc"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i8sqc"]
+atlas = ExtResource("1_5de7g")
+region = Rect2(0, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g781e"]
+atlas = ExtResource("1_5de7g")
+region = Rect2(32, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2up6r"]
+atlas = ExtResource("1_5de7g")
+region = Rect2(64, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1ve8k"]
+atlas = ExtResource("1_5de7g")
+region = Rect2(96, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mebji"]
+atlas = ExtResource("1_5de7g")
+region = Rect2(128, 0, 32, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_qnypn"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i8sqc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g781e")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2up6r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1ve8k")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mebji")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 12.0
+}]
+
+[node name="CleaveSlashEffect" type="AnimatedSprite2D" unique_id=457964170]
+scale = Vector2(0.9, 0.9)
+sprite_frames = SubResource("SpriteFrames_qnypn")
+script = ExtResource("2_i8sqc")

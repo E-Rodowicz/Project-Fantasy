@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://c5rxs644sifmc"]
+
+[ext_resource type="Texture2D" uid="uid://dsfqav4r1u7r8" path="res://assets/sprites/vfx/combat/basic_attack_ranged-Sheet.png" id="1_gnilb"]
+[ext_resource type="Script" uid="uid://cii7yqjkql6dy" path="res://scenes/effects/arrow_projectile.gd" id="1_mtq13"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x4lj8"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r77xh"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pkjat"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5liqq"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_40076"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mstc2"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_80sqm"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2858q"]
+atlas = ExtResource("1_gnilb")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_mtq13"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x4lj8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r77xh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pkjat")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5liqq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_40076")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mstc2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_80sqm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2858q")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 35.0
+}]
+
+[node name="ArrowProjectile" type="AnimatedSprite2D" unique_id=1867078598]
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_mtq13")
+script = ExtResource("1_mtq13")

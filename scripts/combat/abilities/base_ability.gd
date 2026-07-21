@@ -3,9 +3,12 @@ extends  RefCounted
 
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+const ARROW_EFFECT: PackedScene = preload("res://scenes/effects/arrow_projectile.tscn")
+const ARROW_SPEED: float = 240.0
 
 var data: Dictionary = {}
 var attacker_position: Vector2 = Vector2.ZERO
+var attack_direction: Vector2i = Vector2i.ZERO
 
 func setup(ability_data: Dictionary) -> void:
 	data = ability_data
@@ -55,20 +58,25 @@ func _deal_damage(target: Node, amount: int) -> void:
 	var effect_parent: Node = target.get_parent()
 	var is_player: bool = target.is_in_group("player")
 
-	if is_player:
-		PlayerData.take_damage(amount)
-	else:
-		target.take_damage(amount)
+	if not is_player and data.get("requires_ranged_weapon", false):
+		await _fly_arrow(attacker_position, hit_pos, effect_parent)
 
 	if not is_player:
+		await effect_parent.get_tree().create_timer(0.04).timeout
+
 		if data.get("causes_blood", true):
 			var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
 			blood.process_mode = Node.PROCESS_MODE_ALWAYS
 			effect_parent.add_child(blood)
 			blood.global_position = hit_pos
 
-		if is_instance_valid(target):
-			await _play_hit_reaction(target)
+	if is_player:
+		PlayerData.take_damage(amount)
+	else:
+		target.take_damage(amount)
+
+	if not is_player and is_instance_valid(target):
+		await _play_hit_reaction(target)
 		
 func _apply_status_effect(target: Node, effect_id: String, stacks: int) -> void:
 	if target.is_in_group("player"):
@@ -103,15 +111,32 @@ func _play_hit_reaction(target: Node) -> void:
 	var flash_set: Callable = func(val: float) -> void:
 		shader_mat.set_shader_parameter("flash_amount", val)
 
-	var tween: Tween = target.create_tween()
+	flash_set.call(1.0)
 
-	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
-	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
-	tween.tween_method(flash_set, 0.0, 1.0, 0.05)
-	tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	# Flash.
+	var flash_tween: Tween = target.create_tween()
+	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
+	flash_tween.tween_method(flash_set, 0.0, 1.0, 0.05)
+	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
 
-	tween.parallel().tween_property(target, "global_position", original_pos + nudge_offset, 0.1)
-	tween.tween_property(target, "global_position", original_pos, 0.1)
+	# Nudge — separate tween, starts on the same frame.
+	var nudge_tween: Tween = target.create_tween()
+	nudge_tween.tween_property(target, "global_position", original_pos + nudge_offset, 0.05)
+	nudge_tween.tween_property(target, "global_position", original_pos, 0.1)
 
-	await tween.finished
+	await nudge_tween.finished
 	sprite.material = old_material
+
+func _fly_arrow(from: Vector2, to: Vector2, parent: Node) -> void:
+	var arrow: AnimatedSprite2D = ARROW_EFFECT.instantiate()
+	arrow.process_mode = Node.PROCESS_MODE_ALWAYS
+	arrow.rotation = (to - from).angle()
+	parent.add_child(arrow)
+	arrow.global_position = from
+
+	var dist: float = from.distance_to(to)
+	var duration: float = dist / ARROW_SPEED
+	var tween: Tween = arrow.create_tween()
+	tween.tween_property(arrow, "global_position", to, duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	await tween.finished
+	arrow.queue_free()
