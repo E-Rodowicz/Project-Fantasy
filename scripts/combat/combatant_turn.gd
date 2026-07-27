@@ -1,11 +1,10 @@
 extends Node
 class_name CombatantTurn
 
-const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
-const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
 const SLASH_EFFECT: PackedScene = preload("res://scenes/effects/slash_effect.tscn")
 const ARROW_EFFECT: PackedScene = preload("res://scenes/effects/arrow_projectile.tscn")
 const ARROW_SPEED: float = 240.0
+const ARROW_MISS_OVERSHOOT: float = 12.0
 
 # # Who is being controlled this turn. Replaces the old "player" var.
 var combatant: Node = null
@@ -1289,11 +1288,15 @@ func _execute_ranged_attack() -> void:
 		CombatLog.add(combatant.name + " fires but hits nothing!")
 	else:
 		var current_pos: Vector2 = combatant.global_position
+		var leg_direction: Vector2 = Vector2.ZERO
+		var arrow_spent: bool = false
+
 		for i in range(targets_hit.size()):
 			var target: Node = targets_hit[i]
 			var target_pos: Vector2 = target.global_position
 			var dist: float = current_pos.distance_to(target_pos)
 			var duration: float = dist / ARROW_SPEED
+			leg_direction = (target_pos - current_pos).normalized()
 			var tween: Tween = arrow.create_tween()
 
 			if i == 0:
@@ -1303,12 +1306,26 @@ func _execute_ranged_attack() -> void:
 
 			await tween.finished
 
-			# Arrow disappears the instant it hits.
-			arrow.queue_free()
-
-			_engage_if_needed(target)
-			await _try_attack(target)
 			current_pos = target_pos
+			arrow.visible = false
+			_engage_if_needed(target)
+			var landed: bool = await _try_attack(target)
+
+			# The arrow only stops when it connects with the last target it can reach.
+			if landed and i == targets_hit.size() - 1:
+				arrow_spent = true
+			else:
+				arrow.visible = true
+
+		# Missed the final target, so the shot carries on past it and fades out.
+		if not arrow_spent:
+			var past_duration: float = ARROW_MISS_OVERSHOOT / ARROW_SPEED
+			var past_tween: Tween = arrow.create_tween()
+			past_tween.tween_property(arrow, "global_position", current_pos + leg_direction * ARROW_MISS_OVERSHOOT, past_duration)
+			past_tween.parallel().tween_property(arrow, "modulate:a", 0.0, past_duration)
+			await past_tween.finished
+
+		arrow.queue_free()
 
 	is_ranged_attack = false
 	animating = false
@@ -1336,17 +1353,19 @@ func _roll_damage() -> int:
 	else:
 		return randi_range(combatant.stats.base_damage_min, combatant.stats.base_damage_max)
 
-func _try_attack(target: Node) -> void:
+func _try_attack(target: Node) -> bool:
 	# Blink dodge: separate roll before regular dodge.
 	if target.is_in_group("player") and PlayerData.get_status_stacks("blink_dodge") > 0:
 		if randf() < 0.33:
 			CombatLog.add(target.name + " blink-dodges " + combatant.name + "'s attack!")
 			PlayerData.remove_status_stacks("blink_dodge", 1)
-			return
+			CombatEffects.play_dodge_reaction(target, combatant.global_position)
+			return false
 	var hit_chance: float = CombatantStats.hit_chance_for(target, 0.0)
 	if randf() >= hit_chance:
 		CombatLog.add(combatant.name + " attacks " + target.name + " but misses!")
-		return
+		CombatEffects.play_dodge_reaction(target, combatant.global_position)
+		return false
 	
 	# Shield block check (only if target is the player).
 	if target.is_in_group("player"):
@@ -1355,11 +1374,12 @@ func _try_attack(target: Node) -> void:
 			var block_roll: float = randf()
 			if block_roll < shield.get("block_chance", 0.0):
 				CombatLog.add(target.name + " blocks " + combatant.name + "'s attack!")
-				return
+				return false
 	
 	# Damage.
 	var damage: int = _roll_damage()
 	await _apply_damage(target, damage)
+	return true
 
 # Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
 # enemies track their own HP on their node, so we branch on the group.
@@ -1382,10 +1402,7 @@ func _apply_damage(target: Node, amount: int) -> void:
 		else:
 			await get_tree().create_timer(0.04).timeout
 
-		var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
-		blood.process_mode = Node.PROCESS_MODE_ALWAYS
-		world_layer.get_parent().add_child(blood)
-		blood.global_position = hit_pos
+		CombatEffects.spawn_blood(world_layer.get_parent(), hit_pos)
 
 	if is_player:
 		PlayerData.take_damage(amount)
@@ -1396,47 +1413,8 @@ func _apply_damage(target: Node, amount: int) -> void:
 		target.take_damage(amount)
 		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
 
-	if not is_player and is_instance_valid(target):
-		await _play_hit_reaction(target)
-
-func _get_target_sprite(target: Node) -> CanvasItem:
-	for child in target.get_children():
-		if child is Sprite2D or child is AnimatedSprite2D:
-			return child
-	return null
-	
-func _play_hit_reaction(target: Node) -> void:
-	var sprite: CanvasItem = _get_target_sprite(target)
-	if sprite == null:
-		return
-
-	var original_pos: Vector2 = target.global_position
-	var dir: Vector2 = (target.global_position - combatant.global_position).normalized()
-	var nudge_offset: Vector2 = dir * 2.0
-
-	var shader_mat: ShaderMaterial = ShaderMaterial.new()
-	shader_mat.shader = HIT_FLASH_SHADER
-	var old_material: Material = sprite.material
-	sprite.material = shader_mat
-
-	var flash_set: Callable = func(val: float) -> void:
-		shader_mat.set_shader_parameter("flash_amount", val)
-
-	flash_set.call(1.0)
-
-	# Flash.
-	var flash_tween: Tween = target.create_tween()
-	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
-	flash_tween.tween_method(flash_set, 0.0, 1.0, 0.05)
-	flash_tween.tween_method(flash_set, 1.0, 0.0, 0.05)
-
-	# Nudge — separate tween, starts on the same frame.
-	var nudge_tween: Tween = target.create_tween()
-	nudge_tween.tween_property(target, "global_position", original_pos + nudge_offset, 0.05)
-	nudge_tween.tween_property(target, "global_position", original_pos, 0.1)
-
-	await nudge_tween.finished
-	sprite.material = old_material
+	if not is_player:
+		await CombatEffects.play_hit_reaction(target, combatant.global_position)
 	
 # Returns the combatant node standing on a tile, or null. Skips the player so you
 # can never target yourself.
@@ -1656,7 +1634,7 @@ func _tile_distance(a: Vector2i, b: Vector2i) -> float:
 	return mn * 3.0 + (mx - mn) * 2.0
 
 func _animate_movement(path: Array) -> void:
-	var sprite: CanvasItem = _get_target_sprite(combatant)
+	var sprite: CanvasItem = CombatEffects.get_sprite(combatant)
 
 	for i in range(1, path.size()):
 		var world_pos: Vector2 = world_layer.map_to_local(path[i])
@@ -1671,7 +1649,7 @@ func _animate_movement(path: Array) -> void:
 			else:
 				sprite.flip_h = tile_dir.x < 0
 
-# Movement.
+		# Movement.
 		var step_duration: float = 0.16 * Vector2(tile_dir).length()
 		var tween: Tween = combatant.create_tween()
 		tween.tween_property(combatant, "global_position", world_pos, step_duration)

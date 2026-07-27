@@ -1,6 +1,9 @@
 class_name BlinkAbility
 extends BaseAbility
 
+const BLINK_DUST: PackedScene = preload("res://scenes/effects/blink_dust_effect.tscn")
+const SLASH_EFFECT: PackedScene = preload("res://scenes/effects/slash_effect.tscn")
+
 func get_target_tiles(player_tile: Vector2i, _direction: Vector2i, world_layer: TileMapLayer) -> Array:
 	var blink_range: int = data.get("blink_range", 6)
 	var all_combatants: Array = BattleManager.combatants
@@ -51,28 +54,58 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		return
 	var landing_tile: Vector2i = tiles[0]
 	var target_tile: Vector2i = tiles[1]
-	
-	# Teleport.
-	caster.global_position = world_layer.map_to_local(landing_tile)
-	attacker_position = caster.global_position
+
+	var effect_parent: Node = world_layer.get_parent()
+	var depart_pos: Vector2 = caster.global_position
+	var landing_pos: Vector2 = world_layer.map_to_local(landing_tile)
+
+	# Vanish first, dust second — the character is already gone when the cloud appears.
+	caster.visible = false
+	var depart_dust: AnimatedSprite2D = CombatEffects.spawn_effect(BLINK_DUST, effect_parent, depart_pos)
+	var dust_time: float = CombatEffects.effect_duration(depart_dust)
+
+	# Move while hidden.
+	caster.global_position = landing_pos
+	attacker_position = landing_pos
 	CombatLog.add(caster.name + " blinks.")
-	
+
+	await world_layer.get_tree().create_timer(dust_time * 0.5).timeout
+
+	# Arrival cloud — the character materialises partway through it.
+	CombatEffects.spawn_effect(BLINK_DUST, effect_parent, landing_pos)
+	await world_layer.get_tree().create_timer(dust_time * 0.4).timeout
+	caster.visible = true
+
 	# Find the selected target.
 	var target: Node = combatant_on_tile(target_tile, all_combatants, world_layer)
 	if target == null:
 		return
-	
-	# Strike for 150% weapon damage.
-	var damage_percent: float = data.get("damage_percent", 1.5)
-	var hit_chance: float = get_hit_chance(target)
-	if randf() >= hit_chance:
-		CombatLog.add(target.name + " dodges " + caster.name + "'s blink strike.")
-	else:
+
+	# Facing.
+	var sprite: CanvasItem = CombatEffects.get_sprite(caster)
+	var to_target: Vector2 = target.global_position - landing_pos
+	if sprite and to_target.x != 0:
+		if caster.get("sprite_faces_right") != null and not caster.sprite_faces_right:
+			sprite.flip_h = to_target.x > 0
+		else:
+			sprite.flip_h = to_target.x < 0
+
+	# Slash — plays whether or not it connects.
+	var slash: AnimatedSprite2D = CombatEffects.spawn_effect(
+		SLASH_EFFECT,
+		effect_parent,
+		target.global_position.lerp(landing_pos, 0.4),
+		to_target.angle() - PI / 2.0
+	)
+	await world_layer.get_tree().create_timer(CombatEffects.effect_duration(slash) * 0.2).timeout
+
+	if attack_roll(caster, target):
+		var damage_percent: float = data.get("damage_percent", 1.5)
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " strikes " + target.name + " for " + str(final_damage) + ".")
 		await _deal_damage(target, final_damage)
-	
+
 	# Apply blink dodge buff.
 	if caster.is_in_group("player"):
 		PlayerData.add_status_effect("blink_dodge", 1)

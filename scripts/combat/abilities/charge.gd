@@ -33,7 +33,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	var charge_dir: Vector2 = (end_pos - start_pos).normalized()
 
 	# Facing.
-	var sprite: CanvasItem = _get_target_sprite(caster)
+	var sprite: CanvasItem = CombatEffects.get_sprite(caster)
 	if sprite and charge_dir.x != 0:
 		if caster.get("sprite_faces_right") != null and not caster.sprite_faces_right:
 			sprite.flip_h = charge_dir.x > 0
@@ -42,7 +42,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 
 	# Wind-up.
 	var windup_tween: Tween = caster.create_tween()
-	windup_tween.tween_property(caster, "global_position", start_pos - charge_dir * 3.0, 0.1).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	windup_tween.tween_property(caster, "global_position", start_pos - charge_dir * 6.0, 0.1).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	await windup_tween.finished
 
 	# Snap from windup back to start.
@@ -69,10 +69,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 
 		# Path hit.
 		if path_target != null and is_instance_valid(path_target):
-			var hit_chance: float = get_hit_chance(path_target)
-			if randf() >= hit_chance:
-				CombatLog.add(path_target.name + " dodges " + caster.name + "'s charge!")
-			else:
+			if attack_roll(caster, path_target):
 				# Hitstop — brief freeze on impact.
 				await world_layer.get_tree().create_timer(0.08).timeout
 
@@ -86,58 +83,73 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 				else:
 					path_target.take_damage(dmg)
 
-				# Blood — fire and forget.
+				# Blood and reaction — fire and forget, NOT awaited.
 				if data.get("causes_blood", true):
-					var blood: AnimatedSprite2D = BLOOD_EFFECT.instantiate()
-					blood.process_mode = Node.PROCESS_MODE_ALWAYS
-					world_layer.get_parent().add_child(blood)
-					blood.global_position = hit_pos
+					CombatEffects.spawn_blood(world_layer.get_parent(), hit_pos)
+				CombatEffects.play_hit_reaction(path_target, attacker_position)
 
-				# Flash + nudge — fire and forget, NOT awaited.
-				if is_instance_valid(path_target):
-					_play_hit_reaction(path_target)
-					
-	# Overshoot and correct.
-	var overshoot_tween: Tween = caster.create_tween()
-	overshoot_tween.tween_property(caster, "global_position", end_pos + charge_dir * 4.0, 0.04)
-	overshoot_tween.tween_property(caster, "global_position", end_pos, 0.1).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
-	await overshoot_tween.finished
-
-	# Endpoint target.
+	# Nobody at the endpoint — overshoot and settle, nothing to hit.
 	if ep_target == null:
+		var overshoot_tween: Tween = caster.create_tween()
+		overshoot_tween.tween_property(caster, "global_position", end_pos + charge_dir * 8.0, 0.04)
+		overshoot_tween.tween_property(caster, "global_position", end_pos, 0.1).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+		await overshoot_tween.finished
 		return
 
-	var hit_landed: bool = randf() < get_hit_chance(ep_target)
-	if not hit_landed:
-		CombatLog.add(ep_target.name + " dodges " + caster.name + "'s charge!")
+	# Lunge in. The caster stays buried in the target until the impact resolves.
+	var lunge_tween: Tween = caster.create_tween()
+	lunge_tween.tween_property(caster, "global_position", end_pos + charge_dir * 4.0, 0.04)
+	await lunge_tween.finished
+
+	var hit_landed: bool = attack_roll(caster, ep_target, false)
 
 	if not is_instance_valid(ep_target):
+		var recover_tween: Tween = caster.create_tween()
+		recover_tween.tween_property(caster, "global_position", end_pos, 0.1).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+		await recover_tween.finished
 		return
 
+	# Hitstop — the freeze that sells the impact. Longer than the path hits, since this is the slam
+	# the whole charge builds toward.
+	if hit_landed:
+		await world_layer.get_tree().create_timer(0.07).timeout
+
 	var candidates: Array = _get_push_candidates(endpoint_tile, all_combatants, world_layer)
-	if not candidates.is_empty():
-		if hit_landed:
-			var base: int = roll_weapon_damage(caster)
-			var dmg: int = maxi(1, roundi(base * endpoint_dmg_pct))
+
+	# Roll damage up front so we know whether this is lethal before anything moves.
+	var dmg: int = 0
+	var is_lethal: bool = false
+	if hit_landed:
+		var base: int = roll_weapon_damage(caster)
+		var pct: float = crush_dmg_pct if candidates.is_empty() else endpoint_dmg_pct
+		dmg = maxi(1, roundi(base * pct))
+		is_lethal = dmg >= _get_current_hp(ep_target)
+		if candidates.is_empty():
+			CombatLog.add(ep_target.name + " has nowhere to go! " + str(dmg) + " crush damage!")
+		else:
 			CombatLog.add(caster.name + " slams into " + ep_target.name + " for " + str(dmg) + ".")
-			await _deal_damage(ep_target, dmg)
-		if is_instance_valid(ep_target):
+
+	# Impact resolves with the caster still buried in the target and nothing travelling. Full hit
+	# reaction this time, nudge included — the push isn't competing for the target's position yet.
+	if hit_landed:
+		await _deal_damage(ep_target, dmg)
+
+	# Only now does anything move. Push and settle start on the same frame.
+	var settle_tween: Tween = caster.create_tween()
+	settle_tween.tween_property(caster, "global_position", end_pos, 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+
+	if not is_lethal and is_instance_valid(ep_target) and not ep_target.is_queued_for_deletion():
+		if candidates.is_empty():
+			var crush_tween: Tween = ep_target.create_tween()
+			crush_tween.tween_property(ep_target, "global_position", world_layer.map_to_local(start_tile), 0.12)
+		else:
 			var push_tile: Vector2i = candidates[randi() % candidates.size()]
 			CombatLog.add(ep_target.name + " is pushed back!")
 			var push_tween: Tween = ep_target.create_tween()
-			push_tween.tween_property(ep_target, "global_position", world_layer.map_to_local(push_tile), 0.1)
-			await push_tween.finished
-	else:
-		if hit_landed:
-			var crush_base: int = roll_weapon_damage(caster)
-			var crush_dmg: int = maxi(1, roundi(crush_base * crush_dmg_pct))
-			CombatLog.add(ep_target.name + " has nowhere to go! " + str(crush_dmg) + " crush damage!")
-			await _deal_damage(ep_target, crush_dmg)
-		if is_instance_valid(ep_target):
-			var crush_tween: Tween = ep_target.create_tween()
-			crush_tween.tween_property(ep_target, "global_position", world_layer.map_to_local(start_tile), 0.15)
-			await crush_tween.finished
-		
+			push_tween.tween_property(ep_target, "global_position", world_layer.map_to_local(push_tile), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+
+	await settle_tween.finished
+	
 func _get_push_candidates(origin: Vector2i, all_combatants: Array, world_layer: TileMapLayer) -> Array:
 	var candidates: Array = []
 	for dx in range(-1, 2):

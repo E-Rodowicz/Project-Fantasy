@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://bx6bmimh0arr8"]
+
+[ext_resource type="Texture2D" uid="uid://cs4rxpm1v7cm5" path="res://assets/sprites/vfx/combat/focus_aim-Sheet.png" id="1_yeptw"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ffgoo"]
+atlas = ExtResource("1_yeptw")
+region = Rect2(0, 0, 23, 23)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b11sn"]
+atlas = ExtResource("1_yeptw")
+region = Rect2(23, 0, 23, 23)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x7mm1"]
+atlas = ExtResource("1_yeptw")
+region = Rect2(46, 0, 23, 23)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c26js"]
+atlas = ExtResource("1_yeptw")
+region = Rect2(69, 0, 23, 23)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tye4b"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ffgoo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b11sn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x7mm1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c26js")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 12.0
+}]
+
+[node name="FocusReticle" type="Node2D" unique_id=970133655]
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1000769355]
+z_index = 10
+sprite_frames = SubResource("SpriteFrames_tye4b")

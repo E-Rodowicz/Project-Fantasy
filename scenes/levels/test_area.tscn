@@ -403,6 +403,14 @@ position = Vector2(8, -8)
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1372537031]
 occluder = SubResource("OccluderPolygon2D_tye4b")
 
-[node name="enemy_test" parent="." unique_id=837642104 instance=ExtResource("7_3gtxf")]
+[node name="enemy_test3" parent="." unique_id=837642104 instance=ExtResource("7_3gtxf")]
+position = Vector2(136, 8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test2" parent="." unique_id=228509646 instance=ExtResource("7_3gtxf")]
+position = Vector2(120, 8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test" parent="." unique_id=924134108 instance=ExtResource("7_3gtxf")]
 position = Vector2(152, 8)
 stats = ExtResource("8_1nhv1")

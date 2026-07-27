@@ -114,7 +114,7 @@ func _ready() -> void:
 	hotbar[5] = "blink"
 	learn_ability("focus")
 	hotbar[6] = "focus"
-	equipped_items["slot_right_weapon"] = ItemDB.get_item("iron_sword")
+	equipped_items["slot_right_weapon"] = ItemDB.get_item("long_bow")
 	ap_max = 3
 	add_quest({
 		"id": "imp_in_attic",

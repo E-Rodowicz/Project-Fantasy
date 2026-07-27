@@ -1,6 +1,8 @@
 class_name StatusEffectProcessor
 extends RefCounted
 
+const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+
 var combatant: Node = null
 var combatants: Array = []
 var world_layer: TileMapLayer = null
@@ -29,9 +31,12 @@ func _process_focus() -> void:
 	var focus_data: Dictionary = PlayerData.pending_focus
 	PlayerData.pending_focus = {}
 
+	var reticle: Node = focus_data.get("reticle")
 	var target: Node = focus_data.get("target")
+
 	if target == null or not is_instance_valid(target):
 		CombatLog.add(combatant.name + "'s focused shot finds no target!")
+		await _resolve_focus_reticle(reticle, false)
 		return
 
 	var alive: bool = true
@@ -41,6 +46,7 @@ func _process_focus() -> void:
 		alive = target.current_hp > 0
 	if not alive:
 		CombatLog.add(combatant.name + "'s focus target has already fallen!")
+		await _resolve_focus_reticle(reticle, false)
 		return
 
 	var base_damage: int = focus_data.get("base_damage", 1)
@@ -53,9 +59,17 @@ func _process_focus() -> void:
 	if is_crit:
 		damage_percent = crit_percent
 
+	# Use a temporary ability instance so we get the full arrow + effects pipeline.
+	# Created before the hit roll so the miss path can use it too.
+	var ability_instance: BaseAbility = AbilityDB.create_ability("focus")
+	ability_instance.attacker_position = combatant.global_position
+
 	var hit_chance: float = CombatantStats.hit_chance_for(target, hit_modifier)
 	if randf() >= hit_chance:
 		CombatLog.add(combatant.name + "'s focused shot misses " + target.name + "!")
+		CombatEffects.play_dodge_reaction(target, combatant.global_position)
+		await ability_instance.play_miss_projectile(target.global_position, target.get_parent())
+		await _resolve_focus_reticle(reticle, false)
 		return
 
 	var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
@@ -64,10 +78,31 @@ func _process_focus() -> void:
 	else:
 		CombatLog.add(combatant.name + "'s focused shot hits " + target.name + " for " + str(final_damage) + "!")
 
-	# Use a temporary ability instance so we get the full arrow + effects pipeline.
-	var ability_instance: BaseAbility = AbilityDB.create_ability("focus")
-	ability_instance.attacker_position = combatant.global_position
+	await _resolve_focus_reticle(reticle, true)
 	await ability_instance._deal_damage(target, final_damage)
+	
+func _resolve_focus_reticle(reticle: Node, landed: bool) -> void:
+	if reticle == null or not is_instance_valid(reticle):
+		return
+
+	var sprite: AnimatedSprite2D = reticle.get_node_or_null("Sprite")
+	if sprite == null:
+		reticle.queue_free()
+		return
+
+	if landed:
+		var flash_material: ShaderMaterial = ShaderMaterial.new()
+		flash_material.shader = HIT_FLASH_SHADER
+		flash_material.set_shader_parameter("flash_amount", 1.0)
+		sprite.material = flash_material
+		await world_layer.get_tree().create_timer(0.12).timeout
+	else:
+		var fade_tween: Tween = sprite.create_tween()
+		fade_tween.tween_property(sprite, "modulate:a", 0.0, 0.25)
+		await fade_tween.finished
+
+	if is_instance_valid(reticle):
+		reticle.queue_free()
 	
 # ============================================================
 # FIRE

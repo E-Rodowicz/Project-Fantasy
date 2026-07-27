@@ -55,9 +55,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var target: Node = combatant_on_tile(tile, all_combatants, world_layer)
 		if target == null or target == caster:
 			continue
-		var hit_chance: float = get_hit_chance(target)
-		if randf() >= hit_chance:
-			CombatLog.add(target.name + " dodges " + caster.name + "'s cleave!")
+		if not attack_roll(caster, target):
 			continue
 
 		if randf() < dismember_chance:
@@ -71,4 +69,6 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " cleaves " + target.name + " for " + str(final_damage) + ".")
-		await _deal_damage(target, final_damage)
+		_deal_damage_parallel(target, final_damage)
+
+	await _await_reactions(world_layer)

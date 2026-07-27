@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://cpmqh1o4rtk8"]
+
+[ext_resource type="Texture2D" uid="uid://ba31h4rrwc4lk" path="res://assets/sprites/vfx/combat/blink_dust_effect-Sheet.png" id="1_66w63"]
+[ext_resource type="Script" uid="uid://dlkvyecpxrbb" path="res://scenes/effects/slash_effect.gd" id="2_ku6wt"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ku6wt"]
+atlas = ExtResource("1_66w63")
+region = Rect2(0, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a4knp"]
+atlas = ExtResource("1_66w63")
+region = Rect2(24, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0ge8s"]
+atlas = ExtResource("1_66w63")
+region = Rect2(48, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_s5ox6"]
+atlas = ExtResource("1_66w63")
+region = Rect2(72, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qatap"]
+atlas = ExtResource("1_66w63")
+region = Rect2(96, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yq0wm"]
+atlas = ExtResource("1_66w63")
+region = Rect2(120, 0, 24, 25)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2ydfk"]
+atlas = ExtResource("1_66w63")
+region = Rect2(144, 0, 24, 25)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tye4b"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ku6wt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_a4knp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0ge8s")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s5ox6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qatap")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yq0wm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2ydfk")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 10.0
+}]
+
+[node name="BlinkDustEffect" type="AnimatedSprite2D" unique_id=539111426]
+scale = Vector2(0.8, 0.8)
+sprite_frames = SubResource("SpriteFrames_tye4b")
+frame = 6
+frame_progress = 1.0
+script = ExtResource("2_ku6wt")
