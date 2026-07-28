@@ -59,8 +59,19 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	var depart_pos: Vector2 = caster.global_position
 	var landing_pos: Vector2 = world_layer.map_to_local(landing_tile)
 
-	# Vanish first, dust second — the character is already gone when the cloud appears.
-	caster.visible = false
+	# Hide the sprite rather than the whole node, so the light can stay lit.
+	var body: CanvasItem = CombatEffects.get_sprite(caster)
+	body.self_modulate.a = 0.0
+
+	# Detach the light from the caster's transform so it can travel on its own.
+	var light: Light2D = CombatEffects.get_light(caster)
+	var light_local: Vector2 = Vector2.ZERO
+	if light != null:
+		light_local = light.position
+		var light_gpos: Vector2 = light.global_position
+		light.top_level = true
+		light.global_position = light_gpos
+
 	var depart_dust: AnimatedSprite2D = CombatEffects.spawn_effect(BLINK_DUST, effect_parent, depart_pos)
 	var dust_time: float = CombatEffects.effect_duration(depart_dust)
 
@@ -69,12 +80,22 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	attacker_position = landing_pos
 	CombatLog.add(caster.name + " blinks.")
 
+	# The light slides across and arrives before the character does.
+	if light != null:
+		var light_tween: Tween = caster.create_tween()
+		light_tween.tween_property(light, "global_position", landing_pos + light_local, dust_time * 0.6).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
+
 	await world_layer.get_tree().create_timer(dust_time * 0.5).timeout
 
 	# Arrival cloud — the character materialises partway through it.
 	CombatEffects.spawn_effect(BLINK_DUST, effect_parent, landing_pos)
 	await world_layer.get_tree().create_timer(dust_time * 0.4).timeout
-	caster.visible = true
+	body.self_modulate.a = 1.0
+
+	# Reattach the light to the caster.
+	if light != null:
+		light.top_level = false
+		light.position = light_local
 
 	# Find the selected target.
 	var target: Node = combatant_on_tile(target_tile, all_combatants, world_layer)

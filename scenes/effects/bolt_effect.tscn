@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://dev6udwx7uvaj"]
+
+[ext_resource type="Shader" uid="uid://22tffgcec64b" path="res://shaders/bolt_cut.gdshader" id="1_j22t2"]
+[ext_resource type="Texture2D" uid="uid://ddqi8enubbnye" path="res://assets/sprites/vfx/combat/bolt_effect-Sheet.png" id="1_siw8p"]
+[ext_resource type="Script" uid="uid://dlye2ll3oo0dc" path="res://scenes/effects/bolt_effect.gd" id="2_fh6ba"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dfisl"]
+shader = ExtResource("1_j22t2")
+shader_parameter/cut_beyond = 10000.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fh6ba"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(0, 0, 87, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j22t2"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(87, 0, 87, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3wuut"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(174, 0, 87, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mbi82"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(261, 0, 87, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sfnnc"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(348, 0, 87, 18)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5otnm"]
+atlas = ExtResource("1_siw8p")
+region = Rect2(435, 0, 87, 18)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_uukeg"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fh6ba")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j22t2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3wuut")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mbi82")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sfnnc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5otnm")
+}],
+"loop": 0,
+"name": &"default",
+"speed": 20.0
+}]
+
+[sub_resource type="Gradient" id="Gradient_j22t2"]
+offsets = PackedFloat32Array(0, 0.49295774, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.123239435, 0.123239435, 0.123239435, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_tye4b"]
+gradient = SubResource("Gradient_j22t2")
+fill = 1
+fill_from = Vector2(0.491453, 0.4957265)
+
+[node name="BoltEffect" type="AnimatedSprite2D" unique_id=374308979]
+z_index = 90
+material = SubResource("ShaderMaterial_dfisl")
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_uukeg")
+centered = false
+offset = Vector2(10, -6)
+script = ExtResource("2_fh6ba")
+
+[node name="BoltLight" type="PointLight2D" parent="." unique_id=1400869582]
+position = Vector2(40, -6)
+color = Color(1, 0.9046602, 0.21720988, 1)
+energy = 2.0
+texture = SubResource("GradientTexture2D_tye4b")
+texture_scale = 6.42

@@ -3,10 +3,39 @@ extends Node
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
 
+var _screen_flash: ColorRect = null
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	var layer: CanvasLayer = CanvasLayer.new()
+	layer.layer = 90
+	add_child(layer)
+
+	_screen_flash = ColorRect.new()
+	_screen_flash.color = Color(1.0, 1.0, 1.0, 0.0)
+	_screen_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_screen_flash)
+	_screen_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+func flash_screen(intensity: float = 0.10, duration: float = 0.12, colour: Color = Color.WHITE) -> void:
+	_screen_flash.color = Color(colour.r, colour.g, colour.b, intensity)
+	var tween: Tween = create_tween()
+	tween.tween_property(_screen_flash, "color:a", 0.0, duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+
 func get_sprite(target: Node) -> CanvasItem:
 	for child in target.get_children():
 		if child is Sprite2D or child is AnimatedSprite2D:
 			return child
+	return null
+	
+func get_light(target: Node) -> Light2D:
+	for child in target.get_children():
+		if child is Light2D:
+			return child
+		var nested: Light2D = get_light(child)
+		if nested != null:
+			return nested
 	return null
 
 func spawn_blood(parent: Node, at_pos: Vector2) -> void:
