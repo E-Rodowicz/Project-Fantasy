@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://duwoe3j6ew5i8"]
+
+[ext_resource type="Script" uid="uid://bcnuctv3185mv" path="res://scenes/effects/lit_effect.gd" id="1_jx7jv"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2w1wy"]
+animations = [{
+"frames": [],
+"loop": 0,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="Gradient" id="Gradient_rf2mi"]
+offsets = PackedFloat32Array(0.09154929, 0.66549295)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_x5k62"]
+gradient = SubResource("Gradient_rf2mi")
+fill = 1
+fill_from = Vector2(0.5, 0.4957265)
+
+[node name="FlametouchEffect" type="AnimatedSprite2D" unique_id=1768734999]
+sprite_frames = SubResource("SpriteFrames_2w1wy")
+script = ExtResource("1_jx7jv")
+
+[node name="Light" type="PointLight2D" parent="." unique_id=394138432]
+color = Color(1, 0.5867461, 0.28297502, 1)
+energy = 1.5
+texture = SubResource("GradientTexture2D_x5k62")
