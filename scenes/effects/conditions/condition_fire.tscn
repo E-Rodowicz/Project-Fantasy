@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://bwbiktsg5mv8d"]
+
+[ext_resource type="Script" uid="uid://cwtiragw7dyyh" path="res://scenes/effects/conditions/condition_icon.gd" id="1_fj0h5"]
+[ext_resource type="Texture2D" uid="uid://dttgqrivsfd17" path="res://assets/sprites/gui/condition_icons/fire.png" id="1_ota0h"]
+[ext_resource type="FontFile" uid="uid://bsmt0howxder3" path="res://assets/fonts/pixel-font-height-5.ttf" id="3_fj0h5"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_ceqbj"]
+light_mode = 1
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tye4b"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_ota0h")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_lddk6"]
+light_mode = 1
+
+[sub_resource type="LabelSettings" id="LabelSettings_5gcps"]
+font = ExtResource("3_fj0h5")
+outline_size = 7
+outline_color = Color(0, 0, 0, 1)
+
+[node name="ConditionFire" type="Node2D" unique_id=626598245]
+z_index = 20
+position = Vector2(-8, -8)
+script = ExtResource("1_fj0h5")
+
+[node name="Icon" type="AnimatedSprite2D" parent="." unique_id=1127726268]
+material = SubResource("CanvasItemMaterial_ceqbj")
+position = Vector2(2.9999998, 0)
+scale = Vector2(0.59, 0.59)
+sprite_frames = SubResource("SpriteFrames_tye4b")
+
+[node name="Count" type="Label" parent="." unique_id=20003735]
+material = SubResource("CanvasItemMaterial_lddk6")
+offset_left = -5.0
+offset_top = -2.0
+offset_right = 60.217392
+offset_bottom = 17.999998
+scale = Vector2(0.26, 0.26)
+text = "2"
+label_settings = SubResource("LabelSettings_5gcps")
+horizontal_alignment = 1
+vertical_alignment = 1

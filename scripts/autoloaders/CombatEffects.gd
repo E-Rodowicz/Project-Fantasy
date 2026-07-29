@@ -2,6 +2,26 @@ extends Node
 
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
+const LABEL_DRIFT: float = 8.0
+const FLOATING_LABEL: PackedScene = preload("res://scenes/effects/floating_labels.tscn")
+const DAMAGE_TIERS: Array = [
+	Color(0.95, 0.95, 0.95),   # 0    <100%
+	Color(0.95, 0.95, 0.95),   # 1    100-199%   white
+	Color(1.00, 0.85, 0.20),   # 2    200-299%   yellow
+	Color(1.00, 0.58, 0.10),   # 3    300-399%   orange
+	Color(0.88, 0.33, 0.05),   # 4    400-499%   blood orange
+	Color(0.88, 0.14, 0.14),   # 5    500-599%   red
+	Color(1.00, 0.45, 0.75),   # 7    600-699%   pink
+	Color(0.62, 0.24, 0.85),   # 6    700-799%   purple
+	Color(0.24, 0.44, 0.95),   # 8    800-899%   blue
+	Color(0.48, 0.82, 1.00),   # 9    900-999%   light blue
+]
+
+# These scale the size of the text.
+const TIER_SCALES: Array = [1.0, 1.0, 1.3, 1.6, 1.9, 2.2, 2.5, 2.8, 3.1, 3.4, 4.0]
+
+# Pop height in world pixels, added per tier above the white band.
+const POP_PER_TIER: float = 3.0
 
 var _screen_flash: ColorRect = null
 
@@ -111,3 +131,25 @@ func effect_duration(fx: AnimatedSprite2D, anim: String = "default") -> float:
 	if fps <= 0.0:
 		return 0.0
 	return float(frames) / fps
+	
+func float_label(text: String, parent: Node, at_pos: Vector2, colour: Color = Color.WHITE) -> void:
+	var fl: FloatingLabel = FLOATING_LABEL.instantiate()
+	fl.process_mode = Node.PROCESS_MODE_ALWAYS
+	parent.add_child(fl)
+	fl.global_position = (at_pos + Vector2(0.0, -10.0)).round()
+	fl.setup(text, colour, 1.0, 0.0, LABEL_DRIFT)
+
+func float_damage(amount: int, ratio: float, parent: Node, at_pos: Vector2) -> void:
+	var tier: int = clampi(floori(ratio), 0, 10)
+	var rainbow: bool = tier >= 10
+	var colour: Color = Color.WHITE
+	if not rainbow:
+		colour = DAMAGE_TIERS[tier]
+
+	var pop: float = maxf(0.0, float(tier - 1)) * POP_PER_TIER
+
+	var fl: FloatingLabel = FLOATING_LABEL.instantiate()
+	fl.process_mode = Node.PROCESS_MODE_ALWAYS
+	parent.add_child(fl)
+	fl.global_position = (at_pos + Vector2(0.0, -10.0)).round()
+	fl.setup(str(amount), colour, TIER_SCALES[tier], pop, 0.0, rainbow)

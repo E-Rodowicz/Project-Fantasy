@@ -6,6 +6,7 @@ const ARROW_SPEED: float = 240.0
 const ARROW_MISS_OVERSHOOT: float = 12.0
 
 var data: Dictionary = {}
+var caster: Node = null
 var attacker_position: Vector2 = Vector2.ZERO
 var attack_direction: Vector2i = Vector2i.ZERO
 var _pending_reactions: int = 0
@@ -72,6 +73,8 @@ func _deal_damage(target: Node, amount: int, do_nudge: bool = true) -> void:
 	else:
 		target.take_damage(amount)
 
+	CombatEffects.float_damage(amount, float(amount) / average_weapon_damage(caster), effect_parent, hit_pos)
+
 	if not is_player:
 		await CombatEffects.play_hit_reaction(target, attacker_position, do_nudge)
 	
@@ -82,6 +85,7 @@ func attack_roll(caster: Node, target: Node, play_reaction: bool = true) -> bool
 	if randf() < get_hit_chance(target):
 		return true
 	CombatLog.add(target.name + " dodges " + caster.name + "'s " + data.get("name", "attack").to_lower() + "!")
+	CombatEffects.float_label("Miss", target.get_parent(), target.global_position, Color(0.75, 0.75, 0.75))
 	if play_reaction:
 		CombatEffects.play_dodge_reaction(target, attacker_position)
 	return false
@@ -139,3 +143,16 @@ func _deal_damage_parallel(target: Node, amount: int) -> void:
 func _await_reactions(tree_node: Node) -> void:
 	while _pending_reactions > 0:
 		await tree_node.get_tree().process_frame
+
+# Expected damage of a plain weapon swing, affinity included. The yardstick for how big a number
+# should look, and it scales with gear and level on its own.
+func average_weapon_damage(attacker: Node) -> float:
+	if attacker == null or not is_instance_valid(attacker):
+		return 1.0
+	if attacker.is_in_group("player"):
+		var weapon: Dictionary = PlayerData.get_equipped_weapon()
+		if weapon.is_empty():
+			return 1.0
+		var result: Dictionary = ItemDB.calculate_damage(weapon, PlayerData.get_stats_dict())
+		return maxf(1.0, (float(result["min"]) + float(result["max"])) * 0.5)
+	return maxf(1.0, (float(attacker.stats.base_damage_min) + float(attacker.stats.base_damage_max)) * 0.5)

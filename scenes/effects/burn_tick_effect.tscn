@@ -1,13 +1,70 @@
 [gd_scene format=3 uid="uid://52tojb8melor"]
 
+[ext_resource type="Texture2D" uid="uid://w87w8vc23p37" path="res://assets/sprites/vfx/combat/burn_tick_effect-Sheet.png" id="1_2w1wy"]
 [ext_resource type="Script" uid="uid://bcnuctv3185mv" path="res://scenes/effects/lit_effect.gd" id="1_36iot"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u00or"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r3s8m"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v3d78"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i8gvh"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xst0n"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(64, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kd6uu"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(80, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mvcpl"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(96, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ptnf7"]
+atlas = ExtResource("1_2w1wy")
+region = Rect2(112, 0, 16, 16)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_u00or"]
 animations = [{
-"frames": [],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u00or")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r3s8m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v3d78")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i8gvh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xst0n")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kd6uu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mvcpl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ptnf7")
+}],
 "loop": 0,
 "name": &"default",
-"speed": 5.0
+"speed": 12.0
 }]
 
 [sub_resource type="Gradient" id="Gradient_x5k62"]
@@ -20,9 +77,11 @@ fill = 1
 fill_from = Vector2(0.48290598, 0.508547)
 
 [node name="BurnTickEffect" type="AnimatedSprite2D" unique_id=1648993751]
+scale = Vector2(0.7, 0.7)
 sprite_frames = SubResource("SpriteFrames_u00or")
 script = ExtResource("1_36iot")
 
 [node name="Light" type="PointLight2D" parent="." unique_id=1563035754]
 color = Color(1, 0.5882353, 0.28235295, 1)
 texture = SubResource("GradientTexture2D_36iot")
+texture_scale = 3.11

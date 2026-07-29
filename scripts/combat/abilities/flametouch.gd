@@ -1,6 +1,8 @@
 class_name FlameTouchAbility
 extends BaseAbility
 
+const FLAME_EFFECT: PackedScene = preload("res://scenes/effects/flametouch_effect.tscn")
+
 func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: TileMapLayer) -> Array:
 	var tile: Vector2i = player_tile + direction
 	# Not valid if wall.
@@ -15,16 +17,19 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		var target: Node = combatant_on_tile(tile, all_combatants, world_layer)
 		if target == null or target == caster:
 			continue
-		var hit_chance: float = get_hit_chance(target)
-		if randf() >= hit_chance:
-			CombatLog.add(target.name + " dodges " + caster.name + "'s flametouch.")
+
+		# The flame lands whether or not it connects.
+		var fx: AnimatedSprite2D = CombatEffects.spawn_effect(FLAME_EFFECT, world_layer.get_parent(), target.global_position)
+		await world_layer.get_tree().create_timer(CombatEffects.effect_duration(fx) * 0.1).timeout
+
+		if not attack_roll(caster, target):
 			continue
-			
+
 		var base_damage: int = roll_weapon_damage(caster)
 		var final_damage: int = maxi(1, roundi(base_damage * damage_percent))
 		CombatLog.add(caster.name + " touches " + target.name + " with flame for " + str(final_damage) + ".")
 		await _deal_damage(target, final_damage)
-		
+
 		# Applies fire stack.
 		if is_instance_valid(target):
 			var still_alive: bool = true

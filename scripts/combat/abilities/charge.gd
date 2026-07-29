@@ -86,6 +86,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 				# Blood and reaction — fire and forget, NOT awaited.
 				if data.get("causes_blood", true):
 					CombatEffects.spawn_blood(world_layer.get_parent(), hit_pos)
+				CombatEffects.float_damage(dmg, float(dmg) / average_weapon_damage(caster), world_layer.get_parent(), hit_pos)
 				CombatEffects.play_hit_reaction(path_target, attacker_position)
 
 	# Nobody at the endpoint — overshoot and settle, nothing to hit.

@@ -2,6 +2,7 @@ class_name StatusEffectProcessor
 extends RefCounted
 
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
+const BURN_TICK: PackedScene = preload("res://scenes/effects/burn_tick_effect.tscn")
 
 var combatant: Node = null
 var combatants: Array = []
@@ -14,7 +15,12 @@ func process(p_combatant: Node, p_combatants: Array, p_world_layer: TileMapLayer
 	world_layer = p_world_layer
 
 	await _process_focus()
-	_process_fire()
+	await _process_fire()
+
+	# Fire may have killed them, and the await above gives the queue_free time to land.
+	if not _is_alive():
+		return false
+
 	_process_blink_dodge()
 
 	return _is_alive()
@@ -63,6 +69,7 @@ func _process_focus() -> void:
 	# Created before the hit roll so the miss path can use it too.
 	var ability_instance: BaseAbility = AbilityDB.create_ability("focus")
 	ability_instance.attacker_position = combatant.global_position
+	ability_instance.caster = combatant
 
 	var hit_chance: float = CombatantStats.hit_chance_for(target, hit_modifier)
 	if randf() >= hit_chance:
@@ -111,11 +118,16 @@ func _process_fire() -> void:
 	var fire_stacks: int = _get_stacks("fire")
 	if fire_stacks <= 0:
 		return
-		
+
 	# Takes away 5% max HP per stack.
 	var max_hp: int = _get_max_hp()
 	var fire_damage: int = maxi(1, roundi(max_hp * 0.05 * fire_stacks))
 	CombatLog.add(combatant.name + " burns for " + str(fire_damage) + ". (" + str(fire_stacks) + " fire stacks)")
+
+	# Burn animation — damage lands partway through it.
+	var fx: AnimatedSprite2D = CombatEffects.spawn_effect(BURN_TICK, world_layer.get_parent(), combatant.global_position)
+	var burn_time: float = CombatEffects.effect_duration(fx)
+	await world_layer.get_tree().create_timer(burn_time * 0.2).timeout
 
 	# Deals damage.
 	if combatant.is_in_group("player"):
@@ -124,14 +136,17 @@ func _process_fire() -> void:
 			BattleManager.remove_combatant(combatant)
 	else:
 		combatant.take_damage(fire_damage)
-		
-	# Losees 1 stack.
+
 	if _is_alive():
+		# Burn has no attacker, so pick a direction at random. Cardinals only, so the
+		# 2px nudge lands on whole pixels.
+		var dirs: Array = [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]
+		var push: Vector2 = dirs[randi() % dirs.size()]
+		await CombatEffects.play_hit_reaction(combatant, combatant.global_position - push * 8.0, true)
 		_remove_stacks("fire", 1)
-		
-	# 15% chance to spread 1 stack to random adjacent combatant.
-	if _is_alive():
 		_try_spread_fire(fire_stacks)
+	else:
+		await world_layer.get_tree().create_timer(burn_time * 0.8).timeout
 		
 func _try_spread_fire(fire_stacks: int) -> void:
 	var source_tile: Vector2i = world_layer.local_to_map(combatant.global_position)
@@ -162,7 +177,8 @@ func _try_spread_fire(fire_stacks: int) -> void:
 			_add_stacks_to(target, "fire", stacks_gained)
 			var new_stacks: int = _get_stacks_from(target, "fire")
 			CombatLog.add("Fire spreads to " + target.name + "! (Fire " + str(new_stacks) + ")")
-	
+			CombatEffects.float_label("Fire!", world_layer.get_parent(), target.global_position, Color(0.855, 0.123, 0.0, 1.0))
+
 # ============================================================
 # HELPERS — current combatant
 # ============================================================

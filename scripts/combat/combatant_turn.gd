@@ -707,6 +707,7 @@ func _execute_ability() -> void:
 			_engage_if_needed(target)
 	
 	ability_instance.attacker_position = combatant.global_position
+	ability_instance.caster = combatant
 	ability_instance.attack_direction = ability_direction
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
@@ -1364,6 +1365,7 @@ func _try_attack(target: Node) -> bool:
 	var hit_chance: float = CombatantStats.hit_chance_for(target, 0.0)
 	if randf() >= hit_chance:
 		CombatLog.add(combatant.name + " attacks " + target.name + " but misses!")
+		CombatEffects.float_label("Miss", target.get_parent(), target.global_position, Color(0.75, 0.75, 0.75))
 		CombatEffects.play_dodge_reaction(target, combatant.global_position)
 		return false
 	
@@ -1412,6 +1414,16 @@ func _apply_damage(target: Node, amount: int) -> void:
 	else:
 		target.take_damage(amount)
 		CombatLog.add(combatant.name + " hits " + target.name + " for " + str(amount) + " damage.")
+
+	var avg: float = 1.0
+	if combatant.is_in_group("player"):
+		var weapon: Dictionary = PlayerData.get_equipped_weapon()
+		if not weapon.is_empty():
+			var result: Dictionary = ItemDB.calculate_damage(weapon, PlayerData.get_stats_dict())
+			avg = (float(result["min"]) + float(result["max"])) * 0.5
+	else:
+		avg = (float(combatant.stats.base_damage_min) + float(combatant.stats.base_damage_max)) * 0.5
+	CombatEffects.float_damage(amount, float(amount) / maxf(1.0, avg), world_layer.get_parent(), hit_pos)
 
 	if not is_player:
 		await CombatEffects.play_hit_reaction(target, combatant.global_position)

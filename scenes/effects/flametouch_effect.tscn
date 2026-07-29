@@ -1,13 +1,70 @@
 [gd_scene format=3 uid="uid://duwoe3j6ew5i8"]
 
 [ext_resource type="Script" uid="uid://bcnuctv3185mv" path="res://scenes/effects/lit_effect.gd" id="1_jx7jv"]
+[ext_resource type="Texture2D" uid="uid://bs3o0ktwmpy0j" path="res://assets/sprites/vfx/combat/flametouch_effect-Sheet.png" id="1_ncgrx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mwian"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(0, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jnecb"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(24, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_r1fpm"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(48, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cyek7"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(72, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v4ytt"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(96, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_seu01"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(120, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1ckxx"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(144, 0, 24, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_poo2j"]
+atlas = ExtResource("1_ncgrx")
+region = Rect2(168, 0, 24, 24)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_2w1wy"]
 animations = [{
-"frames": [],
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mwian")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jnecb")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_r1fpm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cyek7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v4ytt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_seu01")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1ckxx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_poo2j")
+}],
 "loop": 0,
 "name": &"default",
-"speed": 5.0
+"speed": 12.0
 }]
 
 [sub_resource type="Gradient" id="Gradient_rf2mi"]
@@ -20,6 +77,7 @@ fill = 1
 fill_from = Vector2(0.5, 0.4957265)
 
 [node name="FlametouchEffect" type="AnimatedSprite2D" unique_id=1768734999]
+scale = Vector2(0.8, 0.8)
 sprite_frames = SubResource("SpriteFrames_2w1wy")
 script = ExtResource("1_jx7jv")
 
@@ -27,3 +85,4 @@ script = ExtResource("1_jx7jv")
 color = Color(1, 0.5867461, 0.28297502, 1)
 energy = 1.5
 texture = SubResource("GradientTexture2D_x5k62")
+texture_scale = 4.31
