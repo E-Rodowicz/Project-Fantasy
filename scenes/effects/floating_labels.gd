@@ -8,6 +8,7 @@ const FADE_IN: float = 0.06
 const HOLD: float = 0.55
 const FADE_OUT: float = 0.55
 const RAINBOW_SPEED: float = 0.6
+const CANCEL_TIME: float = 0.12
 
 var _origin_y: float = 0.0
 var _captured: bool = false
@@ -17,19 +18,21 @@ var _drift: float = 0.0
 var _rainbow: bool = false
 var _base_scale: Vector2 = Vector2.ONE
 var _settings: LabelSettings = null
+var _cancelled: bool = false
+var _cancel_from: float = 1.0
+var _cancel_t: float = 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	modulate.a = 0.0
 	_base_scale = $Text.scale
 
-# pop   — throws upward then settles back, for damage numbers.
-# drift — rises steadily the whole time, for miss / block / fire spread.
-# Use one or the other, not both.
+# Pop - throws upward then settles back, for damage numbers.
+# Drift - rises steadily the whole time, for miss / block / fire spread.
 func setup(text: String, colour: Color = Color.WHITE, node_scale: float = 1.0, pop: float = 0.0, drift: float = 0.0, rainbow: bool = false) -> void:
 	var label: Label = $Text
 	label.text = text
-	# LabelSettings saved in a scene is shared between instances, so copy it first.
+	# LabelSettings saved in a scene is shared between instances.
 	_settings = label.label_settings.duplicate()
 	label.label_settings = _settings
 	_settings.font_color = colour
@@ -40,6 +43,12 @@ func setup(text: String, colour: Color = Color.WHITE, node_scale: float = 1.0, p
 	_rainbow = rainbow
 
 func _process(delta: float) -> void:
+	if _cancelled:
+		_cancel_t += delta
+		modulate.a = _cancel_from * (1.0 - clampf(_cancel_t / CANCEL_TIME, 0.0, 1.0))
+		if _cancel_t >= CANCEL_TIME:
+			queue_free()
+		return
 	if not _captured:
 		_origin_y = position.y
 		_captured = true
@@ -75,3 +84,11 @@ func _process(delta: float) -> void:
 
 	if _elapsed >= total:
 		queue_free()
+
+# Superseded by a newer number. Freezes in place and fades out quickly.
+func cancel() -> void:
+	if _cancelled:
+		return
+	_cancelled = true
+	_cancel_from = modulate.a
+	_cancel_t = 0.0

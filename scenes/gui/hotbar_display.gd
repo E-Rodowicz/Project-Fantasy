@@ -447,14 +447,14 @@ func _play_reject(slot: int) -> void:
 	var shake_tween: Tween = create_tween()
 	shake_tween.set_parallel(true)
 
-	# Step 1: everything moves left.
+	# Step 1: Everything moves left.
 	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_ranged_icons[slot], "position:x", ranged_x + 1.0, 0.05)
 
-	# Step 2: everything moves right.
+	# Step 2: Everything moves right.
 	shake_tween.chain()
 	shake_tween.tween_property(slot_ranged_icons[slot], "position:x", ranged_x - 1.0, 0.05)
 	shake_tween.tween_property(icon, "position:x", rest_x + 1.0, 0.05)
@@ -462,7 +462,7 @@ func _play_reject(slot: int) -> void:
 	shake_tween.tween_property(slot_labels[slot], "position:x", label_x + 1.0, 0.05)
 	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x + 1.0, 0.05)
 	
-	# Step 3: everything moves left again.
+	# Step 3: Everything moves left again.
 	shake_tween.chain()
 	shake_tween.tween_property(icon, "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x - 1.0, 0.05)
@@ -470,7 +470,7 @@ func _play_reject(slot: int) -> void:
 	shake_tween.tween_property(slot_overlays[slot], "position:x", rest_x - 1.0, 0.05)
 	shake_tween.tween_property(slot_ranged_icons[slot], "position:x", ranged_x + 1.0, 0.05)
 	
-	# Step 4: everything returns to rest.
+	# Step 4: Everything returns to rest.
 	shake_tween.chain()
 	shake_tween.tween_property(icon, "position:x", rest_x, 0.05)
 	shake_tween.tween_property(reject_sprite, "position:x", rest_x, 0.05)

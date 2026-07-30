@@ -88,8 +88,9 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 					CombatEffects.spawn_blood(world_layer.get_parent(), hit_pos)
 				CombatEffects.float_damage(dmg, float(dmg) / average_weapon_damage(caster), world_layer.get_parent(), hit_pos)
 				CombatEffects.play_hit_reaction(path_target, attacker_position)
+				CombatEffects.shake(data.get("shake", 0.0))
 
-	# Nobody at the endpoint — overshoot and settle, nothing to hit.
+	# Nobody at the endpoint - overshoot and settle, nothing to hit.
 	if ep_target == null:
 		var overshoot_tween: Tween = caster.create_tween()
 		overshoot_tween.tween_property(caster, "global_position", end_pos + charge_dir * 8.0, 0.04)
@@ -110,7 +111,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		await recover_tween.finished
 		return
 
-	# Hitstop — the freeze that sells the impact. Longer than the path hits, since this is the slam
+	# Hitstop - the freeze that sells the impact. Longer than the path hits, since this is the slam
 	# the whole charge builds toward.
 	if hit_landed:
 		await world_layer.get_tree().create_timer(0.07).timeout
@@ -131,7 +132,7 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 			CombatLog.add(caster.name + " slams into " + ep_target.name + " for " + str(dmg) + ".")
 
 	# Impact resolves with the caster still buried in the target and nothing travelling. Full hit
-	# reaction this time, nudge included — the push isn't competing for the target's position yet.
+	# reaction this time, nudge included - the push isn't competing for the target's position yet.
 	if hit_landed:
 		await _deal_damage(ep_target, dmg)
 

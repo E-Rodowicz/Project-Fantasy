@@ -6,9 +6,7 @@ var _mat: ShaderMaterial = null
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-
-	# Materials assigned in a .tscn are shared between every instance of that scene,
-	# so give this one its own copy before touching any parameter.
+	
 	_mat = material.duplicate() as ShaderMaterial
 	material = _mat
 

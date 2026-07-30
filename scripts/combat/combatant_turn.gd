@@ -967,15 +967,15 @@ func _execute_move() -> void:
 	
 	CombatLog.add(combatant.name + " moves. (" + str(path_cost) + " MP, " + str(mp_budget) + " MP remaining)")
 	
-	# Clear the path and waypoints, move is done.
+	# Clears the path and waypoints, move is done.
 	waypoints.clear()
 	full_path.clear()
 	path_cost = 0
 	
-	# Reset the cursor to the new position.
+	# Resets the cursor to the new position.
 	cursor_tile = player_tile
 	
-	# Recalculate the reachables with the remaining MP amount.
+	# Recalculates the reachables with the remaining MP amount.
 	_recalculate_reachable()
 	_redraw()
 	BattleManager.check_for_reinforcements()
@@ -1072,7 +1072,7 @@ func _combatant_tiles() -> Array:
 # ATTACK
 # ============================================================
 
-# Switch from movement planning into attack aiming.
+# Switchs from movement planning into attack aiming.
 func _enter_attack_mode() -> void:
 	if bp_remaining <= 0:
 		BattleManager.bp_rejected = true
@@ -1135,7 +1135,7 @@ func _enter_attack_mode() -> void:
 		_redraw_ranged_attack()
 		return
 	
-	# Snap the cursor onto the first adjacent enemy if there is one, so the common
+	# Snaps the cursor onto the first adjacent enemy if there is one, so the common
 	# "one enemy right next to me" case is just: press 1, E, E.
 	cursor_tile = player_tile
 	for t in attack_range_tiles:
@@ -1144,7 +1144,7 @@ func _enter_attack_mode() -> void:
 			break
 	_redraw()
 
-# Back out of attack mode, returning to movement planning.
+# Backs out of attack mode, returning to movement planning.
 func _exit_attack_mode() -> void:
 	mode = Mode.MOVE
 	has_target = false
@@ -1155,8 +1155,8 @@ func _exit_attack_mode() -> void:
 	_recalculate_reachable()
 	_redraw()
 
-# Build the tiles a basic attack can reach: the 8 around the player. Walls are skipped
-# so the highlight stays clean (you can't melee into a wall).
+# Builds the tiles a basic attack can reach: the 8 around the player. Walls are skipped so the
+# highlight stays clean (you can't melee into a wall).
 func _build_attack_range() -> void:
 	attack_range_tiles.clear()
 	var attack_range: int = _get_attack_range()
@@ -1207,7 +1207,7 @@ func _on_attack_cancel() -> void:
 	else:
 		_exit_attack_mode()
 
-# Apply the damage and end the turn.
+# Applys the damage and end the turn.
 func _execute_attack() -> void:
 	var target: Node = _combatant_on_tile(attack_target, true)
 	if target == null:
@@ -1383,8 +1383,8 @@ func _try_attack(target: Node) -> bool:
 	await _apply_damage(target, damage)
 	return true
 
-# Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload,
-# enemies track their own HP on their node, so we branch on the group.
+# Deals damage to whoever is on the tile. Player HP lives on the PlayerData autoload, enemies track
+# their own HP on their node, so we branch on the group.
 func _apply_damage(target: Node, amount: int) -> void:
 	var hit_pos: Vector2 = target.global_position
 	var is_player: bool = target.is_in_group("player")

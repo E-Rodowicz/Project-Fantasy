@@ -219,7 +219,7 @@ func calculate_reachable(start_tile: Vector2i, mp_budget: int, world_layer: Tile
 				if neighbour in blocked_tiles:
 					continue
 				
-				# Touching-tips rule
+				# Touching-tips rule.
 				if dx != 0 and dy != 0:
 					var h_tile := Vector2i(current.x + dx, current.y)
 					var v_tile := Vector2i(current.x, current.y + dy)
@@ -228,7 +228,7 @@ func calculate_reachable(start_tile: Vector2i, mp_budget: int, world_layer: Tile
 					if h_blocked and v_blocked:
 						continue
 				
-				# Skips if already reached at lower cost
+				# Skips if already reached at lower cost.
 				if costs.has(neighbour) and costs[neighbour] <= new_cost:
 					continue
 				

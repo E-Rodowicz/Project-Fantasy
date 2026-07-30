@@ -1,5 +1,11 @@
 extends Node
 
+# Highest offset in world pixels at full strength.
+const SHAKE_MAX_OFFSET: float = 20.0
+# How much trauma drains per second.
+const SHAKE_DECAY: float = 2.0
+const LABEL_GAP: float = 0.22
+const LABEL_KEY_SIZE: float = 16.0
 const HIT_FLASH_SHADER: Shader = preload("res://shaders/hit_flash.gdshader")
 const BLOOD_EFFECT: PackedScene = preload("res://scenes/effects/blood_effect.tscn")
 const LABEL_DRIFT: float = 8.0
@@ -23,7 +29,12 @@ const TIER_SCALES: Array = [1.0, 1.0, 1.3, 1.6, 1.9, 2.2, 2.5, 2.8, 3.1, 3.4, 4.
 # Pop height in world pixels, added per tier above the white band.
 const POP_PER_TIER: float = 3.0
 
+# Spot -> earliest time the next queued label may appear there.
+var _next_slot: Dictionary = {}
+# Spot -> the damage number currently on screen there.
+var _active_damage: Dictionary = {}
 var _screen_flash: ColorRect = null
+var _trauma: float = 0.0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -38,6 +49,23 @@ func _ready() -> void:
 	layer.add_child(_screen_flash)
 	_screen_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+func _process(delta: float) -> void:
+	var cam: Camera2D = get_viewport().get_camera_2d()
+	if cam == null:
+		return
+		
+	if _trauma <= 0.0:
+		if cam.offset != Vector2.ZERO:
+			cam.offset = Vector2.ZERO
+		return
+		
+	_trauma = maxf(0.0, _trauma - SHAKE_DECAY * delta)
+	
+	# Squared, so weak shakes die off quicker and stronger ones linger.
+	var power: float = _trauma
+	var off: Vector2 = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_MAX_OFFSET * power
+	cam.offset = off.round()
+	
 func flash_screen(intensity: float = 0.10, duration: float = 0.12, colour: Color = Color.WHITE) -> void:
 	_screen_flash.color = Color(colour.r, colour.g, colour.b, intensity)
 	var tween: Tween = create_tween()
@@ -133,6 +161,14 @@ func effect_duration(fx: AnimatedSprite2D, anim: String = "default") -> float:
 	return float(frames) / fps
 	
 func float_label(text: String, parent: Node, at_pos: Vector2, colour: Color = Color.WHITE) -> void:
+	var key: Vector2i = _label_key(at_pos)
+	var delay: float = _book_slot(key)
+	if delay > 0.0:
+		await get_tree().create_timer(delay).timeout
+	# The enemy may have died while this was waiting its turn.
+	if not is_instance_valid(parent):
+		return
+
 	var fl: FloatingLabel = FLOATING_LABEL.instantiate()
 	fl.process_mode = Node.PROCESS_MODE_ALWAYS
 	parent.add_child(fl)
@@ -140,12 +176,24 @@ func float_label(text: String, parent: Node, at_pos: Vector2, colour: Color = Co
 	fl.setup(text, colour, 1.0, 0.0, LABEL_DRIFT)
 
 func float_damage(amount: int, ratio: float, parent: Node, at_pos: Vector2) -> void:
+	var key: Vector2i = _label_key(at_pos)
+
+	# Prune labels that have already expired on their own.
+	for k in _active_damage.keys():
+		if not is_instance_valid(_active_damage[k]):
+			_active_damage.erase(k)
+
+	# A newer number supersedes whatever is still on screen here.
+	var previous: Node = _active_damage.get(key)
+	if previous != null and is_instance_valid(previous):
+		previous.cancel()
+	_active_damage.erase(key)
+
 	var tier: int = clampi(floori(ratio), 0, 10)
 	var rainbow: bool = tier >= 10
 	var colour: Color = Color.WHITE
 	if not rainbow:
 		colour = DAMAGE_TIERS[tier]
-
 	var pop: float = maxf(0.0, float(tier - 1)) * POP_PER_TIER
 
 	var fl: FloatingLabel = FLOATING_LABEL.instantiate()
@@ -153,3 +201,30 @@ func float_damage(amount: int, ratio: float, parent: Node, at_pos: Vector2) -> v
 	parent.add_child(fl)
 	fl.global_position = (at_pos + Vector2(0.0, -10.0)).round()
 	fl.setup(str(amount), colour, TIER_SCALES[tier], pop, 0.0, rainbow)
+	_active_damage[key] = fl
+
+	# Pushes the queue back so a following miss or fire label doesn't land on top.
+	var now: float = Time.get_ticks_msec() * 0.001
+	_next_slot[key] = maxf(_next_slot.get(key, 0.0), now + LABEL_GAP)
+
+func _label_key(at_pos: Vector2) -> Vector2i:
+	return Vector2i((at_pos / LABEL_KEY_SIZE).round())
+
+# Books the next free slot for a spot and returns how long to wait for it.
+func _book_slot(key: Vector2i) -> float:
+	var now: float = Time.get_ticks_msec() * 0.001
+
+	# Drop expired entries so the dictionary can't grow forever.
+	for k in _next_slot.keys():
+		if _next_slot[k] < now:
+			_next_slot.erase(k)
+
+	var slot: float = maxf(now, _next_slot.get(key, 0.0))
+	_next_slot[key] = slot + LABEL_GAP
+	return slot - now
+
+# amount is 0.0 to 1.0. This is called when something worth feeling happens.
+func shake(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	_trauma = minf(1.0, maxf(_trauma, amount))

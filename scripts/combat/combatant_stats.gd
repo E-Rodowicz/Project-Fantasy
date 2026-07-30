@@ -3,7 +3,7 @@ class_name CombatantStats
 
 @export var character_name: String = "Unknown"
 
-# Core stats
+# Core stats.
 @export_group("Core Stats")
 @export var strength: int = 1
 @export var vitality: int = 1
@@ -12,11 +12,11 @@ class_name CombatantStats
 @export var charisma: int = 1
 @export var intelligence: int = 1
 
-# Level
+# Level.
 @export_group("Progression")
 @export var level: int = 1
 
-# Overrides
+# Overrides.
 @export_group("Overrides")
 @export var override_hp: bool = false
 @export var custom_hp: int = 10
@@ -27,7 +27,7 @@ class_name CombatantStats
 @export var override_dodge_chance: bool = false
 @export var custom_dodge_chance: float = 0.05
 
-# Behaviour
+# Behaviour.
 @export_group("Behaviour")
 @export_enum("melee", "ranged", "caster", "support") var behaviour: String = "melee"
 
@@ -35,7 +35,7 @@ class_name CombatantStats
 @export var base_damage_min: int = 3
 @export var base_damage_max: int = 5
 
-# Derived stats
+# Derived stats.
 func get_max_hp() -> int:
 	if override_hp:
 		return custom_hp

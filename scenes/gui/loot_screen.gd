@@ -110,7 +110,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		LootManager.close_loot(false)
 	
 func _navigate(direction: int) -> void:
-	# Note1: this was the code used before we used modulo to block left/right movement by using W/S.
+	# Note1: this was the code used before I used modulo to block left/right movement by using W/S.
 	# Note2 : Clamp gives bounds to the range of the var. It can never go above its actual number or
 	# below 0, which avoids crashes. Adds direction to the current index and clamps it to be within
 	# bounds. After, it refreshes the info panel. Bascially handles loot movement. When it comes to

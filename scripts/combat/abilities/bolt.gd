@@ -74,10 +74,11 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 	await _deal_damage(initial_target, final_damage)
 	await _await_bolt_finish()
 
-	# Bounce chain — chance and damage decrease by 20% per bounce.
+	# Bounce chain - chance and damage decrease by 20% per bounce.
 	var bounce_range: int = data.get("bounce_range", 5)
+	var damage_percent: float = data.get("damage_percent", 1.0)
 	var bounce_chance: float = 0.80
-	var bounce_multiplier: float = 0.80
+	var bounce_fraction: float = 0.80
 
 	while true:
 		# Roll to see if the bolt arcs again.
@@ -105,14 +106,14 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		last_tile = world_layer.local_to_map(last_pos)
 
 		var bounce_base: int = roll_weapon_damage(caster)
-		var bounce_damage: int = maxi(1, roundi(bounce_base * bounce_multiplier))
+		var bounce_damage: int = maxi(1, roundi(bounce_base * damage_percent * bounce_fraction))
 		CombatLog.add("Bolt bounces to " + bounce_target.name + " for " + str(bounce_damage) + "!")
 		await _deal_damage(bounce_target, bounce_damage)
 		await _await_bolt_finish()
 
 		# Decrease for next bounce, floored at minimums.
 		bounce_chance = maxf(0.01, bounce_chance - 0.20)
-		bounce_multiplier = maxf(0.20, bounce_multiplier - 0.20)
+		bounce_fraction = maxf(0.20, bounce_fraction - 0.20)
 		
 func _find_bounce_target(from_tile: Vector2i, caster: Node, all_combatants: Array, world_layer: TileMapLayer, bounce_range: int) -> Node:
 	var candidates: Array = []

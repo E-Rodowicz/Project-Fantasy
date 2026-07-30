@@ -74,6 +74,7 @@ func _deal_damage(target: Node, amount: int, do_nudge: bool = true) -> void:
 		target.take_damage(amount)
 
 	CombatEffects.float_damage(amount, float(amount) / average_weapon_damage(caster), effect_parent, hit_pos)
+	CombatEffects.shake(data.get("shake", 0.0))
 
 	if not is_player:
 		await CombatEffects.play_hit_reaction(target, attacker_position, do_nudge)

@@ -314,7 +314,7 @@ func _assign_ability_to_hotbar(slot: int) -> void:
 	if not PlayerData.has_ability(ability_id):
 		return
 	PlayerData.assign_hotbar(slot, ability_id)
-	# Refresh the info panel so the hotbar slot text updates immediately.
+	# Refreshs the info panel so the hotbar slot text updates immediately.
 	_update_info_panel_from_skill_node()
 	
 func _get_selected_ability_id() -> String:
@@ -347,7 +347,7 @@ func _input_general_stats(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _spend_skill_point() -> void:
-	# Placeholder - will check skill point cost and spend if available
+	# Placeholder - will check skill point cost and spend if available.
 	print("Spend skill point on node: ", selected_skill_node)
 
 func _level_up_stat() -> void:
