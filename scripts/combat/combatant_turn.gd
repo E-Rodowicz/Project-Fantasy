@@ -5,6 +5,8 @@ const SLASH_EFFECT: PackedScene = preload("res://scenes/effects/slash_effect.tsc
 const ARROW_EFFECT: PackedScene = preload("res://scenes/effects/arrow_projectile.tscn")
 const ARROW_SPEED: float = 240.0
 const ARROW_MISS_OVERSHOOT: float = 12.0
+# Seconds of ripple delay per point of MP cost.
+const RIPPLE_STEP: float = 0.02
 
 # # Who is being controlled this turn. Replaces the old "player" var.
 var combatant: Node = null
@@ -22,12 +24,18 @@ var is_offhand_attack: bool = false
 var mp_label: Label = null
 var hit_label: Label = null
 var hit_labels: Array = []
+# Labels pinned to the cursor tile, so they can follow its slide frame by frame instead of
+# jumping to the destination and waiting. Each entry is [Label, Vector2 offset].
+var cursor_labels: Array = []
 
 # State of everything.
 var mp_budget: int = 0
 var player_tile: Vector2i = Vector2i.ZERO
 var cursor_tile: Vector2i = Vector2i.ZERO
 var reachable: Dictionary = {}
+# Flood fill from the character, used only for ripple timing. Kept separate from reachable
+# because that one is measured from the last waypoint.
+var ripple_costs: Dictionary = {}
 
 # List of confirmed tiles The last one is the final waypoint.
 var waypoints: Array = []
@@ -114,6 +122,17 @@ func start(p_combatant: Node, p_world: TileMapLayer, p_overlay: BattleOverlay, p
 		await _run_ai()
 	else:
 		_redraw()
+		
+func _process(_delta: float) -> void:
+	if cursor_labels.is_empty():
+		return
+	if not overlay.is_cursor_visible():
+		return
+	var base: Vector2 = overlay.get_cursor_position()
+	for entry in cursor_labels:
+		var label: Label = entry[0]
+		var offset: Vector2 = entry[1]
+		label.position = base + offset
 
 func _physics_process(delta: float) -> void:
 	if ai_controlled:
@@ -191,7 +210,8 @@ func _handle_hotbar_press(slot: int) -> void:
 	if ability_id == "":
 		return
 		
-	# If we're already in this slot's mode, toggle it off (going back to Move).
+	# If we're already in this slot's mode, toggle it off (going back to Move). This one
+	# does want the redraw, since the movement grid is where we are landing.
 	if slot == active_hotbar_slot:
 		if mode == Mode.ATTACK:
 			_exit_attack_mode()
@@ -200,11 +220,12 @@ func _handle_hotbar_press(slot: int) -> void:
 		active_hotbar_slot = -1
 		return
 
-	# If we're in a different mode, exit that first.
+	# Switching straight to another mode, so suppress the exit redraw - otherwise the
+	# movement grid gets painted and immediately overwritten, which now animates.
 	if mode == Mode.ATTACK:
-		_exit_attack_mode()
+		_exit_attack_mode(false)
 	elif mode == Mode.ABILITY:
-		_exit_ability_mode()
+		_exit_ability_mode(false)
 		
 	# Enter the new mode.
 	if ability_id == "basic_attack":
@@ -213,6 +234,8 @@ func _handle_hotbar_press(slot: int) -> void:
 			active_hotbar_slot = slot
 		else:
 			BattleManager.rejected_hotbar_slot = slot
+			# Entry was rejected, so nothing drew. Fall back to the movement grid.
+			_redraw()
 		
 	else:
 		_enter_ability_mode(ability_id)
@@ -222,6 +245,7 @@ func _handle_hotbar_press(slot: int) -> void:
 			active_hotbar_slot = slot
 		else:
 			BattleManager.rejected_hotbar_slot = slot
+			_redraw()
 
 func _create_floating_label() -> Label:
 	var label: Label = Label.new()
@@ -244,11 +268,25 @@ func _create_floating_label() -> Label:
 
 	return label
 
+# Positions a label at a tile. If that tile is the cursor's, the label is registered to
+# follow the sprite rather than the grid, and takes its opening position from where the
+# sprite actually is - otherwise it would sit at the destination for one frame before
+# being pulled back.
+func _place_label(label: Label, tile: Vector2i, offset: Vector2) -> void:
+	if tile == cursor_tile and overlay.is_cursor_visible():
+		cursor_labels.append([label, offset])
+		label.position = overlay.get_cursor_position() + offset
+	else:
+		label.position = world_layer.map_to_local(tile) + offset
+
 func _update_floating_labels() -> void:
+	# Rebuilt from scratch each time, since which labels are on the cursor changes with mode.
+	cursor_labels.clear()
+
 	if mode == Mode.MOVE and reachable.has(cursor_tile) and cursor_tile != player_tile:
 		var total_cost: int = path_cost + reachable[cursor_tile]
-		mp_label.text = str(total_cost) + " MP"
-		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(-8, -6)
+		mp_label.text = str(total_cost) + "MP"
+		_place_label(mp_label, cursor_tile, Vector2(0, 0))
 		mp_label.visible = true
 	elif cursor_tile != player_tile and ((mode == Mode.ATTACK and PlayerData.is_ranged_weapon_equipped()) or (mode == Mode.ABILITY and active_ability.get("targeting") == "ranged")):
 		var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
@@ -260,19 +298,19 @@ func _update_floating_labels() -> void:
 			var dy: int = abs(curr.y - prev.y)
 			range_cost += 3 if (dx != 0 and dy != 0) else 2
 		mp_label.text = str(range_cost) + "R"
-		mp_label.position = world_layer.map_to_local(cursor_tile) + Vector2(3, -2)
+		_place_label(mp_label, cursor_tile, Vector2(3, -2))
 		mp_label.visible = true
 	else:
 		mp_label.visible = false
 	_update_hit_labels()
-		
+
 	# Hit label belongs to ATTACK mode, on an enemy.
 	if mode == Mode.ATTACK and _tile_has_combatant(cursor_tile, true):
 		var target: Node = _combatant_on_tile(cursor_tile, true)
 		if target != null:
 			var hit_chance: float = 1.0 - _get_dodge_chance(target)
 			hit_label.text = str(roundi(hit_chance * 100)) + "%"
-			hit_label.position = world_layer.map_to_local(cursor_tile) + Vector2(6, -10)
+			_place_label(hit_label, cursor_tile, Vector2(6, -10))
 			hit_label.visible = true
 		else:
 			hit_label.visible = false
@@ -327,7 +365,6 @@ func _enter_ability_mode(ability_id: String) -> void:
 	_update_floating_labels()
 	ability_direction = Vector2i.ZERO
 	ability_tiles.clear()
-	overlay.clear_all()
 	
 	# Auto-aims toward the direction with the most enemies. This only works for "direction"
 	# abilities, which are orthogonal left, right, top, down aiming abilities directly from the
@@ -353,6 +390,11 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
+		else:
+			# Nothing to aim at, but the previous mode's tiles are still on screen and
+			# nothing else here will clear them.
+			overlay.hide_cursor()
+			overlay.commit({}, {})
 			
 	elif ability_instance.get_targeting_type() == "line":
 		var best_direction: Vector2i = Vector2i.ZERO
@@ -376,6 +418,9 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
+		else:
+			overlay.hide_cursor()
+			overlay.commit({}, {})
 			
 	elif ability_instance.get_targeting_type() == "touch":
 		var best_direction: Vector2i = Vector2i.ZERO
@@ -397,13 +442,19 @@ func _enter_ability_mode(ability_id: String) -> void:
 		if best_direction != Vector2i.ZERO:
 			ability_direction = best_direction
 			_build_ability_tiles()
+		else:
+			overlay.hide_cursor()
+			overlay.commit({}, {})
 		
 	elif ability_instance.get_targeting_type() == "blink":
-		_build_ability_tiles()
+		# Data only. _redraw_blink_movement below draws the real thing, and painting the
+		# generic yellow shape first would flash before being overwritten.
+		_recompute_ability_tiles()
 		if ability_tiles.is_empty():
 			mode = Mode.MOVE
 			active_ability = {}
 			ability_instance = null
+			# Caller sees mode != ABILITY and redraws the movement grid.
 			return
 		
 		# Places cursor on nearest target.
@@ -438,7 +489,6 @@ func _enter_ability_mode(ability_id: String) -> void:
 		_redraw_ranged_ability()
 		
 	_update_floating_labels()
-
 
 func _handle_ability_input() -> void:
 	if active_ability.get("targeting") == "direction":
@@ -562,7 +612,7 @@ func _handle_ability_input() -> void:
 				if moved and _is_tile_on_screen(target_tile):
 					cursor_tile = target_tile
 					cursor_move_timer = CURSOR_MOVE_RATE
-					_build_ability_tiles()
+					_recompute_ability_tiles()
 					_redraw_blink_movement()
 
 			if Input.is_action_just_pressed("interact") and cursor_tile in ability_tiles:
@@ -614,7 +664,7 @@ func _handle_ability_input() -> void:
 
 			if Input.is_action_just_pressed("cancel"):
 				has_ability_target = false
-				_build_ability_tiles()
+				_recompute_ability_tiles()
 				cursor_tile = blink_landing_tile
 				_redraw_blink_movement()
 
@@ -644,13 +694,7 @@ func _handle_ability_input() -> void:
 		if Input.is_action_just_pressed("interact") and cursor_tile in ranged_area_tiles:
 			if not has_ability_target:
 				has_ability_target = true
-				overlay.clear_all()
-				for tile in ranged_area_tiles:
-					overlay.paint_light_blue(tile)
-				for tile in ranged_target_tiles:
-					overlay.paint_bright_green(tile)
-				overlay.paint_bright_green(cursor_tile)
-				_update_floating_labels()
+				_redraw_ranged_confirm()
 			else:
 				_execute_ability()
 
@@ -662,21 +706,38 @@ func _handle_ability_input() -> void:
 				_exit_ability_mode()
 
 func _redraw_ability_confirm() -> void:
-	overlay.clear_all()
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
 	for tile in ability_tiles:
-		overlay.paint_bright_green(tile)
+		markers[tile] = BattleOverlay.Colour.BRIGHT_GREEN
+
+	overlay.hide_cursor()
+	overlay.commit(fill, markers)
 	_update_floating_labels()
 
 func _build_ability_tiles() -> void:
-	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
-	overlay.clear_all()
+	_recompute_ability_tiles()
+
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+	var spawn_delays: Dictionary = {}
 	for tile in ability_tiles:
 		if _tile_has_combatant(tile, true):
-			overlay.paint_purple(tile)
+			markers[tile] = BattleOverlay.Colour.PURPLE
 		else:
-			overlay.paint_yellow(tile)
+			markers[tile] = BattleOverlay.Colour.YELLOW
+		# No cost data here, so Chebyshev distance from the caster - the number of steps
+		# away, counting a diagonal as one. Makes the shape unfurl outward from the player.
+		var dist: int = maxi(abs(tile.x - player_tile.x), abs(tile.y - player_tile.y))
+		spawn_delays[tile] = float(dist) * RIPPLE_STEP * 2.0
+
+	overlay.hide_cursor()
+	overlay.commit(fill, markers, spawn_delays)
 	_update_floating_labels()
-	
+
+func _recompute_ability_tiles() -> void:
+	ability_tiles = ability_instance.get_target_tiles(player_tile, ability_direction, world_layer)
+
 func _execute_ability() -> void:
 	var should_end_turn: bool = active_ability.get("ends_turn", false)
 	var cost: Dictionary = active_ability.get("cost", {})
@@ -717,8 +778,8 @@ func _execute_ability() -> void:
 	
 	if should_end_turn:
 		end_turn()
-	
-func _exit_ability_mode() -> void:
+
+func _exit_ability_mode(redraw: bool = true) -> void:
 	mode = Mode.MOVE
 	active_ability = {}
 	ability_direction = Vector2i.ZERO
@@ -731,7 +792,8 @@ func _exit_ability_mode() -> void:
 	ranged_target_tiles.clear()
 	cursor_tile = player_tile
 	_recalculate_reachable()
-	_redraw()
+	if redraw:
+		_redraw(false)
 	
 func _get_attack_range() -> int:
 	if combatant.is_in_group("player"):
@@ -847,12 +909,21 @@ func _is_tile_on_screen(tile: Vector2i) -> bool:
 	)
 
 func _redraw_blink_movement() -> void:
-	overlay.clear_all()
-	overlay.paint_soft_green(ability_tiles)
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+	var spawn_delays: Dictionary = {}
+
+	for tile in ability_tiles:
+		fill[tile] = BattleOverlay.Colour.SOFT_GREEN
+		var dist: int = maxi(abs(tile.x - player_tile.x), abs(tile.y - player_tile.y))
+		spawn_delays[tile] = float(dist) * RIPPLE_STEP * 2.0
+
 	if cursor_tile in ability_tiles:
-		overlay.paint_yellow(cursor_tile)
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.YELLOW)
 	else:
-		overlay.paint_grey(cursor_tile)
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.GREY)
+
+	overlay.commit(fill, markers, spawn_delays)
 	_update_floating_labels()
 
 # Gives the last waypoint, if nothing there, gives player position. This lets us move from that
@@ -980,41 +1051,101 @@ func _execute_move() -> void:
 	_redraw()
 	BattleManager.check_for_reinforcements()
 
+# Works out which tiles are currently visible on screen, as a tile-space rectangle.
+func _visible_tile_bounds() -> Rect2i:
+	var viewport: Viewport = combatant.get_viewport()
+	var screen_size: Vector2 = viewport.get_visible_rect().size
+
+	# get_canvas_transform() converts world -> screen. affine_inverse() gives us the transform that
+	# runs the other way, screen -> world. So I hand it the top-left and bottom-right corners of the
+	# screen and get back the world positions sitting under them. (affine_inverse rather than plain
+	# inverse because a canvas transform includes a translation as well as a scale, and
+	# affine_inverse undoes both.)
+	var inverse: Transform2D = viewport.get_canvas_transform().affine_inverse()
+	var top_left_world: Vector2 = inverse * Vector2.ZERO
+	var bottom_right_world: Vector2 = inverse * screen_size
+
+	var top_left_tile: Vector2i = world_layer.local_to_map(top_left_world)
+	var bottom_right_tile: Vector2i = world_layer.local_to_map(bottom_right_world)
+
+	# Rect2i is stored as position + size, not as two corners, so convert. The +1 is because both 
+	# corner tiles are themselves visible and need to be included.
+	var tile_size: Vector2i = (bottom_right_tile - top_left_tile) + Vector2i.ONE
+	var bounds: Rect2i = Rect2i(top_left_tile, tile_size)
+
+	# One tile of slack so the fill reaches right up to the screen edge rather than stopping a tile
+	# short on partially visible rows.
+	return bounds.grow(1)
+
 func _recalculate_reachable() -> void:
-	var blocked := _combatant_tiles()
-	reachable = overlay.calculate_reachable(_path_origin(), _remaining_mp(), world_layer, blocked)
-	
-func _redraw() -> void:
+	var blocked: Array = _combatant_tiles()
+	var bounds: Rect2i = _visible_tile_bounds()
+	reachable = overlay.calculate_reachable(_path_origin(), _remaining_mp(), world_layer, blocked, bounds)
+
+	# Ripple timing always measures from the character, never from the last waypoint, so
+	# the wave starts in the same place no matter what has been planned. Being a real BFS,
+	# it bends around walls, so the ripple flows like water instead of through them.
+	# With no waypoints the two are the same fill, so the second one is skipped. That is a
+	# reference, not a copy - fine here, as neither dictionary is written to afterwards.
+	if _path_origin() == player_tile:
+		ripple_costs = reachable
+	else:
+		ripple_costs = overlay.calculate_reachable(player_tile, mp_budget, world_layer, blocked, bounds)
+
+func _update_cursor() -> void:
+	# Sitting on the final waypoint used to hide the cursor so the bright green showed
+	# through. Matching that colour instead keeps the look identical while letting the
+	# sprite carry on sliding rather than blinking out and back.
+	if not waypoints.is_empty() and cursor_tile == waypoints.back():
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.BRIGHT_GREEN)
+	elif reachable.has(cursor_tile) and cursor_tile != player_tile:
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.YELLOW)
+	else:
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.GREY)
+
+func _redraw(collapse_inward: bool = true) -> void:
 	if not BattleManager.active:
 		return
-	overlay.clear_all()
 	if mode == Mode.ATTACK:
 		_redraw_attack()
 		return
-	# Paint all reachable tiles soft green.
-	if reachable.size() > 1:
-		overlay.paint_soft_green(reachable.keys())
-	# Mid green for commited path.
-	if full_path.size() > 0:
-		overlay.paint_mid_green(full_path)
-	# Bright green for all waypoints except the final one.
-	for i in range(waypoints.size()):
-		if i < waypoints.size() - 1:
-			overlay.paint_bright_green(waypoints[i])
-	# The final waypoint.
-	if not waypoints.is_empty():
-		overlay.paint_final_waypoint(waypoints.back())
-	# Paint the cursor tile on top with the right colour.
-	_paint_cursor()
-	_update_floating_labels()
-	# Show MP cost when hobering over a reachable tile.
-	if reachable.has(cursor_tile) and cursor_tile != player_tile:
-		var total_cost: int = path_cost + reachable[cursor_tile]
-		mp_label.text = str(total_cost) + "MP"
-		mp_label.position = world_layer.map_to_local(cursor_tile)
-		mp_label.visible = true
+
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+	var spawn_delays: Dictionary = {}
+	var despawn_delays: Dictionary = {}
+
+	# Whatever is on screen gets out of the way. Rebuilding in place collapses inward, so
+	# the grid draws in toward the character. Arriving from another mode clears outward
+	# instead, so the old overlay leaves in step with the green arriving rather than
+	# holding the centre tiles longest - which is exactly where the green is needed first.
+	if collapse_inward:
+		despawn_delays = overlay.build_inward_delays(player_tile, RIPPLE_STEP, ripple_costs)
 	else:
-		mp_label.visible = false
+		despawn_delays = overlay.build_outward_delays(player_tile, RIPPLE_STEP, ripple_costs)
+
+	if reachable.size() > 1:
+		for tile in reachable:
+			fill[tile] = BattleOverlay.Colour.SOFT_GREEN
+			var cost: float = 0.0
+			if ripple_costs.has(tile):
+				cost = float(ripple_costs[tile])
+			else:
+				# Only hit if a tile reachable from the last waypoint is somehow not
+				# reachable from the character. Straight line, same 3/2 metric.
+				cost = _tile_distance(player_tile, tile)
+			spawn_delays[tile] = cost * RIPPLE_STEP
+
+	# The committed path, mid green, replacing the soft green underneath it.
+	for tile in full_path:
+		fill[tile] = BattleOverlay.Colour.MID_GREEN
+
+	for wp in waypoints:
+		markers[wp] = BattleOverlay.Colour.BRIGHT_GREEN
+
+	overlay.commit(fill, markers, spawn_delays, despawn_delays)
+	_update_cursor()
+	_update_floating_labels()
 
 func _calculate_ranged_area(weapon_range: int) -> Array:
 	var tiles: Array = []
@@ -1036,14 +1167,6 @@ func _calculate_ranged_area(weapon_range: int) -> Array:
 			if not blocked:
 				tiles.append(tile)
 	return tiles
-
-func _paint_cursor() -> void:
-	if not waypoints.is_empty() and cursor_tile == waypoints.back():
-		return
-	if reachable.has(cursor_tile) and cursor_tile != player_tile:
-		overlay.paint_yellow(cursor_tile)
-	else:
-		overlay.paint_grey(cursor_tile)
 
 func _tile_has_combatant(tile: Vector2i, include_non_combat: bool = false) -> bool:
 	for c in combatants:
@@ -1145,7 +1268,7 @@ func _enter_attack_mode() -> void:
 	_redraw()
 
 # Backs out of attack mode, returning to movement planning.
-func _exit_attack_mode() -> void:
+func _exit_attack_mode(redraw: bool = true) -> void:
 	mode = Mode.MOVE
 	has_target = false
 	attack_range_tiles.clear()
@@ -1153,7 +1276,10 @@ func _exit_attack_mode() -> void:
 	cursor_tile = player_tile
 	active_hotbar_slot = -1
 	_recalculate_reachable()
-	_redraw()
+	# Skipped when another mode is about to draw over the top. reachable is still
+	# recalculated above, since a failed mode entry falls back to drawing the grid.
+	if redraw:
+		_redraw(false)
 
 # Builds the tiles a basic attack can reach: the 8 around the player. Walls are skipped so the
 # highlight stays clean (you can't melee into a wall).
@@ -1169,24 +1295,17 @@ func _build_attack_range() -> void:
 				continue
 			attack_range_tiles.append(t)
 
-# First E chooses a target, second E (without moving) confirms and resolves it.
 func _on_attack_confirm() -> void:
 	# Ranged attack.
 	if PlayerData.is_ranged_weapon_equipped():
 		if not has_target:
 			if cursor_tile in ranged_area_tiles:
 				has_target = true
-				overlay.clear_all()
-				for tile in ranged_area_tiles:
-					overlay.paint_light_blue(tile)
-				for tile in ranged_target_tiles:
-					overlay.paint_bright_green(tile)
-				overlay.paint_bright_green(cursor_tile)
-				_update_floating_labels()
+				_redraw_ranged_confirm()
 			return
 		_execute_ranged_attack()
 		return
-	
+
 	# Melee attack.
 	if not has_target:
 		if cursor_tile in attack_range_tiles:
@@ -1444,64 +1563,97 @@ func _combatant_on_tile(tile: Vector2i, include_non_combat: bool = false) -> Nod
 				return e
 	return null
 
-# Draws the attack overlay: the whole range in red, the hover/target state on top.
 func _redraw_attack() -> void:
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+
 	if has_target:
-		overlay.paint_bright_green(attack_target)
-	elif cursor_tile != player_tile:
-		if cursor_tile not in attack_range_tiles:
-			return
-		elif _tile_has_combatant(cursor_tile, true):
-			overlay.paint_purple(cursor_tile)
+		overlay.set_cursor(attack_target, BattleOverlay.Colour.BRIGHT_GREEN)
+	elif cursor_tile != player_tile and cursor_tile in attack_range_tiles:
+		if _tile_has_combatant(cursor_tile, true):
+			overlay.set_cursor(cursor_tile, BattleOverlay.Colour.PURPLE)
 		else:
-			overlay.paint_yellow(cursor_tile)
+			overlay.set_cursor(cursor_tile, BattleOverlay.Colour.YELLOW)
+	else:
+		overlay.hide_cursor()
+
+	overlay.commit(fill, markers)
 	_update_floating_labels()
 
 func _draw_ranged_path(path_range: int, penetration: int) -> void:
-	overlay.clear_all()
 	ranged_target_tiles.clear()
-	
+
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+	var spawn_delays: Dictionary = {}
+
+	# The line is redrawn end to end on every cursor move, so the sliding cursor sprite
+	# would fight with the tile at the end of it.
+	overlay.hide_cursor()
+
 	for tile in ranged_area_tiles:
-		overlay.paint_light_blue(tile)
-	
+		markers[tile] = BattleOverlay.Colour.LIGHT_BLUE
+		# The blue field is defined by unobstructed lines of sight, so straight-line
+		# distance is the honest metric here and no flood fill is needed. Same 3/2 diagonal
+		# weighting as everywhere else. Only matters on the first draw, since later calls
+		# recolour tiles that are already present rather than adding them.
+		spawn_delays[tile] = _tile_distance(player_tile, tile) * RIPPLE_STEP
+
 	if cursor_tile == player_tile:
-		overlay.paint_grey(cursor_tile)
+		markers[cursor_tile] = BattleOverlay.Colour.GREY
+		overlay.commit(fill, markers, spawn_delays)
 		_update_floating_labels()
 		return
-	
+
 	var path_blocked: bool = false
 	var range_used: int = 0
 	var penetration_remaining: int = penetration
 	var line: Array = overlay.get_line_tiles(player_tile, cursor_tile)
-	
+
 	for i in range(1, line.size()):
 		var tile: Vector2i = line[i]
 		var prev: Vector2i = line[i - 1]
 		var dx: int = abs(tile.x - prev.x)
 		var dy: int = abs(tile.y - prev.y)
 		range_used += 3 if (dx != 0 and dy != 0) else 2
-		
+
 		if path_blocked:
-			overlay.paint_red(tile)
+			markers[tile] = BattleOverlay.Colour.RED
 			continue
 		if world_layer.get_cell_source_id(tile) != -1:
-			overlay.paint_red(tile)
+			markers[tile] = BattleOverlay.Colour.RED
 			path_blocked = true
 			continue
 		if range_used > path_range:
-			overlay.paint_red(tile)
+			markers[tile] = BattleOverlay.Colour.RED
 			path_blocked = true
 			continue
 		if _tile_has_combatant(tile, true):
-			overlay.paint_purple(tile)
+			markers[tile] = BattleOverlay.Colour.PURPLE
 			ranged_target_tiles.append(tile)
 			if penetration_remaining <= 0:
 				path_blocked = true
 			else:
 				penetration_remaining -= 1
 			continue
-		overlay.paint_yellow(tile)
+		markers[tile] = BattleOverlay.Colour.YELLOW
+
+	overlay.commit(fill, markers, spawn_delays)
+	_update_floating_labels()
 	
+# The locked-in state for a ranged shot or ranged ability.
+func _redraw_ranged_confirm() -> void:
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+
+	for tile in ranged_area_tiles:
+		markers[tile] = BattleOverlay.Colour.LIGHT_BLUE
+	for tile in ranged_target_tiles:
+		markers[tile] = BattleOverlay.Colour.BRIGHT_GREEN
+	markers[cursor_tile] = BattleOverlay.Colour.BRIGHT_GREEN
+
+	overlay.hide_cursor()
+	overlay.commit(fill, markers)
 	_update_floating_labels()
 	
 func _redraw_ranged_attack() -> void:
@@ -1515,12 +1667,16 @@ func _redraw_ranged_ability() -> void:
 	_draw_ranged_path(ability_range, ability_pen)
 
 func _redraw_blink_target_select() -> void:
-	overlay.clear_all()
-	overlay.paint_bright_green(blink_landing_tile)
+	var fill: Dictionary = {}
+	var markers: Dictionary = {}
+
+	markers[blink_landing_tile] = BattleOverlay.Colour.BRIGHT_GREEN
 	if _tile_has_combatant(cursor_tile, true):
-		overlay.paint_purple(cursor_tile)
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.PURPLE)
 	else:
-		overlay.paint_yellow(cursor_tile)
+		overlay.set_cursor(cursor_tile, BattleOverlay.Colour.YELLOW)
+
+	overlay.commit(fill, markers)
 	_update_floating_labels()
 
 func end_turn() -> void:
@@ -1562,7 +1718,7 @@ func _run_ai() -> void:
 		# its more clean to store it locally.
 		var move_cost: int = reachable[destination]
 		mp_budget -= move_cost
-		CombatLog.add(combatant.name + " moves. (" + str(move_cost) + " MP)")
+		CombatLog.add(combatant.name + " moves. (" + str(move_cost) + "MP)")
 		BattleManager.check_for_reinforcements()
 		
 	# After moving, it checks if target is adjacent and attacks.
@@ -1721,7 +1877,7 @@ func _update_hit_labels() -> void:
 				continue
 			var hit_chance: float = _hit_chance_against(target)
 			hit_labels[i].text = str(roundi(hit_chance * 100)) + "%"
-			hit_labels[i].position = world_layer.map_to_local(tiles[i]) + Vector2(6, -10)
+			_place_label(hit_labels[i], tiles[i], Vector2(6, -10))
 			hit_labels[i].visible = true
 		else:
 			hit_labels[i].visible = false

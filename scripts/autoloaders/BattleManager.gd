@@ -13,6 +13,7 @@ var rejected_hotbar_slot: int = -1
 var bp_rejected: bool = false
 var ap_rejected_cost: int = 0
 var mp_rejected: bool = false
+var overlay: BattleOverlay = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -27,6 +28,16 @@ func start_battle(combatant_list: Array) -> void:
 	get_tree().paused = true
 	for combatant in combatants:
 		combatant.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	
+	# One overlay for the whole battle, shared by every turn. It has to persist because it tracks
+	# what is currently drawn on screen in order to work out the minimum set of changes on each 
+	# commit. A fresh instance would think the screen was empty. PROCESS_MODE_ALWAYS is set before
+	# add_child so it never accumulates a frame of delta while the tree is paused.
+	var overlay_node: TileMapLayer = get_tree().current_scene.get_node("combat_overlay")
+	overlay = BattleOverlay.new()
+	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(overlay)
+	overlay.setup(overlay_node)
 	
 	# Set up turn order.
 	turn_order = TurnOrder.new()
@@ -56,10 +67,7 @@ func _next_turn() -> void:
 		_start_enemy_turn()
 
 func _start_player_turn() -> void:
-	var overlay_node = get_tree().current_scene.get_node("combat_overlay")
-	var world_layer = get_tree().current_scene.get_node("TileMapLayer")
-	var overlay = BattleOverlay.new()
-	overlay.setup(overlay_node)
+	var world_layer: TileMapLayer = get_tree().current_scene.get_node("TileMapLayer")
 	
 	player_turn = CombatantTurn.new()
 	player_turn.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -78,12 +86,9 @@ func _start_ally_turn() -> void:
 	end_turn()
 
 func _start_enemy_turn() -> void:
-	var overlay_node = get_tree().current_scene.get_node("combat_overlay")
-	var world_layer = get_tree().current_scene.get_node("TileMapLayer")
-	var overlay = BattleOverlay.new()
-	overlay.setup(overlay_node)
+	var world_layer: TileMapLayer = get_tree().current_scene.get_node("TileMapLayer")
 	
-	var enemy_turn := CombatantTurn.new()
+	var enemy_turn: CombatantTurn = CombatantTurn.new()
 	enemy_turn.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(enemy_turn)
 	enemy_turn.turn_finished.connect(_on_enemy_turn_finished.bind(enemy_turn))
@@ -133,10 +138,12 @@ func _cleanup() -> void:
 		player_turn.queue_free()
 		player_turn = null
 		
-	# Clears the overlay.
-	var overlay_node = get_tree().current_scene.get_node_or_null("combat_overlay")
-	if overlay_node:
-		overlay_node.clear()
+	# Clears the overlay through the diff so its internal state stays in step with what is actually 
+	# on the layer, then frees it. The next battle builds a fresh one.
+	if is_instance_valid(overlay):
+		overlay.clear_all()
+		overlay.queue_free()
+	overlay = null
 	
 	# Resets process mode to normal.
 	for c in combatants:
