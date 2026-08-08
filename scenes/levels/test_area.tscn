@@ -389,6 +389,7 @@ material = SubResource("CanvasItemMaterial_1h2li")
 tile_set = SubResource("TileSet_3gtxf")
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=789515644]
+visible = false
 color = Color(0, 0, 0, 1)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=235790302]

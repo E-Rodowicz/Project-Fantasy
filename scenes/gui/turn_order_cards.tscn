@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b8ncsti4x570j"]
+
+[ext_resource type="Script" uid="uid://dqyam22m132gg" path="res://scenes/gui/turn_order_cards.gd" id="2_wpj07"]
+
+[node name="TurnOrderCards" type="CanvasLayer" unique_id=1242321141]
+script = ExtResource("2_wpj07")

@@ -6,49 +6,73 @@ class_name TurnOrder
 var combatants: Array = []
 var accumulators: Dictionary = {}
 
+const TURN_THRESHOLD: float = 100.0
+const TICK_MULTIPLIER: float = 10.0
+const TICK_SAFETY_LIMIT: int = 10000
+
 func setup(combatant_list: Array) -> void:
 	combatants = combatant_list
 	accumulators.clear()
 	for combatant in combatants:
 		accumulators[combatant] = 0.0
 
-func get_next_turn() -> Node:
+# The single source of truth for "who goes next". It mutates whichever accumulator
+# dictionary it is handed. get_next_turn() hands it the real one, so the battle actually
+# advances. peek_upcoming() hands it a throwaway copy, so nothing real changes.
+func _resolve_next(acc: Dictionary) -> Node:
+	if combatants.is_empty():
+		return null
+
 	var ready: Array = []
-	# Checks if anyone is already ready from overshoot.
 	for combatant in combatants:
-		if accumulators[combatant] >= 100.0:
+		if acc.get(combatant, 0.0) >= TURN_THRESHOLD:
 			ready.append(combatant)
-	
-	# If no one ready, tick until someone is.
+
+	var safety: int = 0
 	while ready.is_empty():
+		safety += 1
+		if safety > TICK_SAFETY_LIMIT:
+			push_error("TurnOrder: no combatant ever reached the turn threshold. Check for zero speed values.")
+			return combatants[0]
 		for combatant in combatants:
-			accumulators[combatant] += _get_speed(combatant) * 10.0
+			acc[combatant] = acc.get(combatant, 0.0) + _get_speed(combatant) * TICK_MULTIPLIER
 		for combatant in combatants:
-			if accumulators[combatant] >= 100.0:
+			if acc[combatant] >= TURN_THRESHOLD:
 				ready.append(combatant)
-	
-	# Sorts the ready array so that the one who goes first is on index 0.
+
 	ready.sort_custom(func(a, b):
-		# If two guys get the same value, player wins tiebreak. abs just checks edge cases of
-		# really low float points and treats them as the same number. Just error precaution. Coin
-		# flip for non player characters.
-		if abs(accumulators[a] - accumulators[b]) < 0.001:
+		if abs(acc[a] - acc[b]) < 0.001:
 			if a.is_in_group("player"):
 				return true
-			# Sort custom works by asking "should a come before ?" True means yes, false means no.
-			# This is why it returns false is player is in b.
 			if b.is_in_group("player"):
 				return false
-			# Uses instnace ID to break speed ties between NPCs.
 			return a.get_instance_id() < b.get_instance_id()
-		# If there is no tie, the guy with more accumulator value goes first. This means that if a 
-		# guy get 100 speed this round and guy2 gets 110 speed this round, guy2 goes first.
-		return accumulators[a] > accumulators[b]
+		return acc[a] > acc[b]
 	)
-	
-	var winner = ready[0]
-	accumulators[winner] -= 100.0
+
+	var winner: Node = ready[0]
+	acc[winner] -= TURN_THRESHOLD
 	return winner
+
+func get_next_turn() -> Node:
+	return _resolve_next(accumulators)
+
+# Predicts the next `count` turns without advancing the real battle.
+# The same combatant appearing several times in a row is correct and expected - overshoot
+# is preserved, so a fast combatant banks surplus and can act repeatedly before a slow
+# one surfaces. The display collapses those runs into a single card.
+func peek_upcoming(count: int) -> Array:
+	var preview: Array = []
+	if combatants.is_empty() or count <= 0:
+		return preview
+
+	var sim: Dictionary = accumulators.duplicate()
+	for i in range(count):
+		var next_up: Node = _resolve_next(sim)
+		if next_up == null:
+			break
+		preview.append(next_up)
+	return preview
 
 func remove_combatant(combatant: Node) -> void:
 	combatants.erase(combatant)
@@ -58,7 +82,7 @@ func _get_speed(combatant: Node) -> float:
 	if combatant.is_in_group("player"):
 		return float(PlayerData.speed)
 	return float(combatant.stats.speed)
-	
+
 func add_combatant(combatant: Node) -> void:
 	if combatant in combatants:
 		return

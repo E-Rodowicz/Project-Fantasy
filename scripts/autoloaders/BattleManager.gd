@@ -4,6 +4,10 @@ var active: bool = false
 var combatants: Array = []
 var turn_order: TurnOrder = null
 var current_combatant: Node = null
+# Increments on every single turn. The turn order display needs this because
+# current_combatant does NOT change when a fast combatant takes two turns in a row,
+# so it cannot be used to detect that a turn happened.
+var turn_counter: int = 0
 var player_turn: CombatantTurn = null
 # For when battle just ends, so that any key presses arent immidietly used out of battle, like using
 # E to kill something then the game checking for interactables as there is no delay between battle
@@ -23,6 +27,7 @@ func start_battle(combatant_list: Array) -> void:
 		return
 	active = true
 	combatants = combatant_list
+	turn_counter = 0
 	
 	# Pause everything except combat participants.
 	get_tree().paused = true
@@ -57,6 +62,7 @@ func _next_turn() -> void:
 		return
 	check_for_reinforcements()
 	current_combatant = turn_order.get_next_turn()
+	turn_counter += 1
 	CombatLog.add(current_combatant.name + "'s turn.")
 	
 	if current_combatant.is_in_group("player"):
@@ -65,7 +71,7 @@ func _next_turn() -> void:
 		_start_ally_turn()
 	else:
 		_start_enemy_turn()
-
+		
 func _start_player_turn() -> void:
 	var world_layer: TileMapLayer = get_tree().current_scene.get_node("TileMapLayer")
 	
