@@ -31,6 +31,7 @@ PlayerHud="*uid://bbe8wllcmdub7"
 HotbarDisplay="*uid://dglkqqhv3gaip"
 StatusIcons="*uid://bslfeurmb2snh"
 CombatEffects="*uid://b5av4fwxtm5qd"
+TurnOrderCards="*uid://b8ncsti4x570j"
 
 [display]
 
