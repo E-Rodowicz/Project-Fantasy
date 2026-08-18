@@ -1,0 +1,2 @@
+class_name EnemyHealthBar
+extends Node2D
