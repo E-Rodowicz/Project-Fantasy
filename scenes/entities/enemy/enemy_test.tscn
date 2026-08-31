@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dhjb6wb467far" path="res://scenes/entities/enemy/enemy_test.gd" id="1_gls25"]
 [ext_resource type="Texture2D" uid="uid://bcvcqivu8b78g" path="res://assets/sprites/enemy_test.png" id="1_x32sg"]
+[ext_resource type="PackedScene" uid="uid://c7tgs1qu7hqsc" path="res://scenes/entities/enemy/enemy_health_bar.tscn" id="3_s5460"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gls25"]
 size = Vector2(8, 8)
@@ -26,3 +27,6 @@ collision_mask = 12
 
 [node name="visiona_area_collision" type="CollisionShape2D" parent="vision_area" unique_id=1821366370]
 shape = SubResource("CircleShape2D_s5460")
+
+[node name="EnemyHealthBar" parent="." unique_id=1853089087 instance=ExtResource("3_s5460")]
+position = Vector2(-5, 4)

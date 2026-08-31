@@ -8,6 +8,7 @@ extends CharacterBody2D
 # emit_signal. Whatever node connects to it receives the value automatically
 # as a function argument.
 signal battle_started(combatants)
+signal health_changed(current: int, maximum: int)
 
 var player_in_range: bool = false
 var player_ref: Node2D = null
@@ -28,17 +29,27 @@ func _ready() -> void:
 	# to call when that happens. 
 	vision_area.body_entered.connect(_on_body_entered)
 	vision_area.body_exited.connect(_on_body_exited)
-	current_hp = stats.get_max_hp()
+	_set_hp(stats.get_max_hp())
 	for child in vision_area.get_children():
 		if child is CollisionShape2D and child.shape is CircleShape2D:
 			detection_range = child.shape.radius
 			break
 			
+# The only place current_hp is allowed to change. Everything that alters HP
+# goes through here, so the signal can never be silently skipped.
+func _set_hp(value: int) -> void:
+	var max_hp: int = stats.get_max_hp()
+	current_hp = clampi(value, 0, max_hp)
+	health_changed.emit(current_hp, max_hp)
+
 func take_damage(amount: int) -> void:
-	current_hp = max(0, current_hp - amount)
+	_set_hp(current_hp - amount)
 	CombatLog.add(name + " takes " + str(amount) + " damage. (" + str(current_hp) + "/" + str(stats.get_max_hp()) + " HP)")
 	if current_hp <= 0:
 		_die()
+
+func heal(amount: int) -> void:
+	_set_hp(current_hp + amount)
 
 func _die() -> void:
 	CombatLog.add(name + " has been slain.")
