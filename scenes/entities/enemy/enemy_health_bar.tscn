@@ -2,32 +2,39 @@
 
 [ext_resource type="Script" uid="uid://c6vfrfr4um7rm" path="res://scenes/entities/enemy/enemy_health_bar.gd" id="1_73l2k"]
 [ext_resource type="Texture2D" uid="uid://subo1je1pbba" path="res://assets/sprites/gui/status_bar/enemy_hp_empty.png" id="2_f766i"]
+[ext_resource type="Texture2D" uid="uid://d05ryqftx0erw" path="res://assets/sprites/gui/status_bar/enemy_hp_heal.png" id="2_lfsdh"]
+[ext_resource type="Texture2D" uid="uid://c4ac815x2861y" path="res://assets/sprites/gui/status_bar/enemy_hp_hit.png" id="3_f766i"]
 [ext_resource type="Texture2D" uid="uid://cea7nujsx68e7" path="res://assets/sprites/gui/status_bar/enemy_hp_full.png" id="3_lfsdh"]
 [ext_resource type="FontFile" uid="uid://bsmt0howxder3" path="res://assets/fonts/pixel-font-height-5.ttf" id="4_b4ygd"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_tye4b"]
 font = ExtResource("4_b4ygd")
+font_size = 5
 
-[node name="EnemyHealthBar" type="Node2D" unique_id=1853089087]
+[node name="EnemyHealthBar" type="Node2D" unique_id=973241741]
 script = ExtResource("1_73l2k")
+heal_trail_texture = ExtResource("2_lfsdh")
 
 [node name="Trail" type="TextureProgressBar" parent="." unique_id=1824734008]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = -6.0
+offset_right = 6.0
+offset_bottom = 1.0
 texture_under = ExtResource("2_f766i")
-texture_progress = ExtResource("3_lfsdh")
+texture_progress = ExtResource("3_f766i")
 
 [node name="Bar" type="TextureProgressBar" parent="." unique_id=1173872611]
-offset_right = 40.0
-offset_bottom = 40.0
+texture_filter = 1
+offset_left = -6.0
+offset_right = 6.0
+offset_bottom = 1.0
 texture_progress = ExtResource("3_lfsdh")
 
 [node name="Text" type="Label" parent="." unique_id=1616193354]
+visible = false
 z_index = 5
 offset_left = -5.0
 offset_top = -4.0
 offset_right = 34.34426
 offset_bottom = 19.0
-scale = Vector2(0.61, 0.61)
 label_settings = SubResource("LabelSettings_tye4b")
 horizontal_alignment = 1
