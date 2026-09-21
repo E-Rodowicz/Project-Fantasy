@@ -48,8 +48,6 @@ const BADGE_POP_TIME: float = 0.22
 # combatant can eat many consecutive turns that all become one card.
 const PEEK_DEPTH_MULTIPLIER: int = 6
 
-const PLAYER_DISPLAY_NAME: String = "Nihil"
-
 # --- STATE ---
 # cards[i]        - the Node2D sitting in slot i, or null if the slot is empty
 # slot_ids[i]     - instance ID of the combatant that card represents, or 0 if empty
@@ -126,14 +124,7 @@ func _build_desired_list() -> Array:
 		raw.append_array(BattleManager.turn_order.peek_upcoming(remaining))
 
 	# Run length collapse: [A,A,A,B,C] becomes [{A,3},{B,1},{C,1}]
-	var entries: Array = []
-	for combatant in raw:
-		if not is_instance_valid(combatant):
-			continue
-		if entries.size() > 0 and entries[entries.size() - 1]["combatant"] == combatant:
-			entries[entries.size() - 1]["count"] += 1
-		else:
-			entries.append({"combatant": combatant, "count": 1})
+	var entries: Array = CombatantInfo.collapse_runs(raw)
 
 	if entries.size() > card_count:
 		entries.resize(card_count)
@@ -252,7 +243,7 @@ func _make_card(combatant: Node, slot_index: int, run_count: int) -> Node2D:
 		bg.centered = false
 		card.add_child(bg)
 
-	var portrait_texture: Texture2D = _grab_texture(combatant)
+	var portrait_texture: Texture2D = CombatantInfo.get_portrait(combatant)
 	if portrait_texture != null:
 		var portrait: Sprite2D = Sprite2D.new()
 		portrait.texture = portrait_texture
@@ -397,68 +388,3 @@ func _slot_z(slot_index: int) -> int:
 
 func _off_screen_y() -> float:
 	return get_viewport().get_visible_rect().size.y + OFF_SCREEN_MARGIN
-
-# --- COMBATANT DATA EXTRACTION ---
-func _grab_name(combatant: Node) -> String:
-	if not is_instance_valid(combatant):
-		return "???"
-	if combatant.is_in_group("player"):
-		return PLAYER_DISPLAY_NAME
-	if "stats" in combatant and combatant.stats != null:
-		return combatant.stats.character_name
-	return combatant.name
-
-
-func _grab_texture(combatant: Node) -> Texture2D:
-	if not is_instance_valid(combatant):
-		return null
-	var sprite_node: Node = _find_sprite_node(combatant)
-	if sprite_node == null:
-		return null
-
-	if sprite_node is AnimatedSprite2D:
-		var frames: SpriteFrames = sprite_node.sprite_frames
-		if frames == null:
-			return null
-		if not frames.has_animation(sprite_node.animation):
-			return null
-		return frames.get_frame_texture(sprite_node.animation, sprite_node.frame)
-
-	if sprite_node is Sprite2D:
-		var base: Texture2D = sprite_node.texture
-		if base == null:
-			return null
-
-		# Plain single image sprite - use it as is.
-		if sprite_node.hframes <= 1 and sprite_node.vframes <= 1 and not sprite_node.region_enabled:
-			return base
-
-		var atlas: AtlasTexture = AtlasTexture.new()
-		atlas.atlas = base
-
-		if sprite_node.region_enabled and sprite_node.hframes <= 1 and sprite_node.vframes <= 1:
-			atlas.region = sprite_node.region_rect
-			return atlas
-
-		# Sprite sheet - carve out whichever frame the sprite is currently showing.
-		var frame_w: float = float(base.get_width()) / float(sprite_node.hframes)
-		var frame_h: float = float(base.get_height()) / float(sprite_node.vframes)
-		var col: int = sprite_node.frame % sprite_node.hframes
-		var row: int = int(sprite_node.frame / sprite_node.hframes)
-		atlas.region = Rect2(col * frame_w, row * frame_h, frame_w, frame_h)
-		return atlas
-
-	return null
-
-
-# The function calls itself on each child, so it searches the entire subtree
-# however deep it goes. This means the display never needs to know the internal node
-# layout of the player or of any enemy scene.
-func _find_sprite_node(root: Node) -> Node:
-	for child in root.get_children():
-		if child is Sprite2D or child is AnimatedSprite2D:
-			return child
-		var deeper: Node = _find_sprite_node(child)
-		if deeper != null:
-			return deeper
-	return null

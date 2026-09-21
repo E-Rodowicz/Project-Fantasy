@@ -88,3 +88,31 @@ func add_combatant(combatant: Node) -> void:
 		return
 	combatants.append(combatant)
 	accumulators[combatant] = 0.0
+
+# Predicts turns until the order starts repeating. Does not include
+# the combatant acting.
+func peek_cycle(max_turns: int) -> Array:
+	var preview: Array = []
+	if combatants.is_empty() or max_turns <= 0:
+		return preview
+		
+	var start: Dictionary = accumulators.duplicate()
+	var sim: Dictionary = accumulators.duplicate()
+	
+	for i in range(max_turns):
+		var next_up: Node = _resolve_next(sim)
+		if next_up == null:
+			break
+		# State matches where we started, so this turn is the current
+		# combatant's slot coming around again. Everything past here
+		# is on repeat.
+		if _same_state(sim, start):
+			break
+		preview.append(next_up)
+	return preview
+	
+func _same_state(a: Dictionary, b: Dictionary) -> bool:
+	for combatant in combatants:
+		if abs(a.get(combatant, 0.0) - b.get(combatant, 0.0)) > 0.001:
+			return false
+	return true

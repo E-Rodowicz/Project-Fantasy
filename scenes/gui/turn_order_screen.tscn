@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://b3c86wl4oqvqj"]
+
+[ext_resource type="Script" uid="uid://ckbmb8p2ixgmr" path="res://scenes/gui/turn_order_screen.gd" id="1_1kc5x"]
+
+[node name="turn_order_screen" type="CanvasLayer" unique_id=1514097611]
+layer = 10
+scale = Vector2(4, 4)
+transform = Transform2D(4, 0, 0, 4, 0, 0)
+script = ExtResource("1_1kc5x")
+card_scale = null
+badge_font_size = null
+info_portrait_scale = null
+
+[node name="root" type="Control" parent="." unique_id=1709160212]
+custom_minimum_size = Vector2(480, 270)
+layout_mode = 3
+anchors_preset = 0
+
+[node name="background" type="ColorRect" parent="root" unique_id=13086441]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.011764706, 0.011764706, 0.011764706, 1)
+
+[node name="layout" type="HBoxContainer" parent="root" unique_id=171057957]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="order_scroll" type="ScrollContainer" parent="root/layout" unique_id=825283185]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+
+[node name="order_grid" type="GridContainer" parent="root/layout/order_scroll" unique_id=767527425]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="info_panel" type="PanelContainer" parent="root/layout" unique_id=811497193]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="info_vbox" type="VBoxContainer" parent="root/layout/info_panel" unique_id=1664728819]
+layout_mode = 2
+
+[node name="info_portrait" type="TextureRect" parent="root/layout/info_panel/info_vbox" unique_id=930313091]
+layout_mode = 2
+size_flags_horizontal = 4
+expand_mode = 1
+
+[node name="info_name" type="Label" parent="root/layout/info_panel/info_vbox" unique_id=1362966208]
+layout_mode = 2
+
+[node name="info_body" type="Label" parent="root/layout/info_panel/info_vbox" unique_id=813562668]
+layout_mode = 2
+autowrap_mode = 2
