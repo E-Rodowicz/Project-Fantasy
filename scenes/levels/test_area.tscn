@@ -389,6 +389,7 @@ material = SubResource("CanvasItemMaterial_1h2li")
 tile_set = SubResource("TileSet_3gtxf")
 
 [node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=789515644]
+visible = false
 color = Color(0, 0, 0, 1)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=235790302]
@@ -410,6 +411,42 @@ stats = ExtResource("8_1nhv1")
 position = Vector2(120, 8)
 stats = ExtResource("8_1nhv1")
 
+[node name="enemy_test4" parent="." unique_id=1386034384 instance=ExtResource("7_3gtxf")]
+position = Vector2(112, -8)
+stats = ExtResource("8_1nhv1")
+
 [node name="enemy_test" parent="." unique_id=924134108 instance=ExtResource("7_3gtxf")]
 position = Vector2(152, 8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test6" parent="." unique_id=482473172 instance=ExtResource("7_3gtxf")]
+position = Vector2(104, -32)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test5" parent="." unique_id=511299911 instance=ExtResource("7_3gtxf")]
+position = Vector2(144, -16)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test7" parent="." unique_id=520586494 instance=ExtResource("7_3gtxf")]
+position = Vector2(104, -8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test8" parent="." unique_id=849765505 instance=ExtResource("7_3gtxf")]
+position = Vector2(88, -8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test9" parent="." unique_id=1987801868 instance=ExtResource("7_3gtxf")]
+position = Vector2(80, -24)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test10" parent="." unique_id=907996196 instance=ExtResource("7_3gtxf")]
+position = Vector2(120, -8)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test11" parent="." unique_id=78002774 instance=ExtResource("7_3gtxf")]
+position = Vector2(72, -48)
+stats = ExtResource("8_1nhv1")
+
+[node name="enemy_test12" parent="." unique_id=385080239 instance=ExtResource("7_3gtxf")]
+position = Vector2(112, -32)
 stats = ExtResource("8_1nhv1")

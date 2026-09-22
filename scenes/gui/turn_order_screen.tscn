@@ -1,62 +1,69 @@
 [gd_scene format=3 uid="uid://b3c86wl4oqvqj"]
 
 [ext_resource type="Script" uid="uid://ckbmb8p2ixgmr" path="res://scenes/gui/turn_order_screen.gd" id="1_1kc5x"]
+[ext_resource type="Texture2D" uid="uid://swprkvhyduk5" path="res://assets/sprites/gui/turn_order_bg_full.png" id="2_0hsf6"]
+[ext_resource type="Texture2D" uid="uid://dxwa8ommo52oa" path="res://assets/sprites/gui/general_ui_bg.png" id="2_1qff8"]
+[ext_resource type="FontFile" uid="uid://bsmt0howxder3" path="res://assets/fonts/pixel-font-height-5.ttf" id="3_cx80b"]
+
+[sub_resource type="Theme" id="Theme_1qff8"]
+default_font = ExtResource("3_cx80b")
+default_font_size = 6
 
 [node name="turn_order_screen" type="CanvasLayer" unique_id=1514097611]
 layer = 10
 scale = Vector2(4, 4)
 transform = Transform2D(4, 0, 0, 4, 0, 0)
 script = ExtResource("1_1kc5x")
-card_scale = null
-badge_font_size = null
-info_portrait_scale = null
+card_background = ExtResource("2_0hsf6")
+card_font = ExtResource("3_cx80b")
 
-[node name="root" type="Control" parent="." unique_id=1709160212]
-custom_minimum_size = Vector2(480, 270)
-layout_mode = 3
-anchors_preset = 0
+[node name="panel" type="TextureRect" parent="." unique_id=920311993]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 472.0
+offset_bottom = 230.0
+texture = ExtResource("2_1qff8")
 
-[node name="background" type="ColorRect" parent="root" unique_id=13086441]
+[node name="margins" type="MarginContainer" parent="panel" unique_id=582042979]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.011764706, 0.011764706, 0.011764706, 1)
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
 
-[node name="layout" type="HBoxContainer" parent="root" unique_id=171057957]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="layout" type="HBoxContainer" parent="panel/margins" unique_id=171057957]
+layout_mode = 2
 
-[node name="order_scroll" type="ScrollContainer" parent="root/layout" unique_id=825283185]
+[node name="order_scroll" type="ScrollContainer" parent="panel/margins/layout" unique_id=825283185]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
+size_flags_stretch_ratio = 2.0
 
-[node name="order_grid" type="GridContainer" parent="root/layout/order_scroll" unique_id=767527425]
+[node name="order_grid" type="GridContainer" parent="panel/margins/layout/order_scroll" unique_id=767527425]
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="info_panel" type="PanelContainer" parent="root/layout" unique_id=811497193]
+[node name="info_panel" type="PanelContainer" parent="panel/margins/layout" unique_id=811497193]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = SubResource("Theme_1qff8")
 
-[node name="info_vbox" type="VBoxContainer" parent="root/layout/info_panel" unique_id=1664728819]
+[node name="info_vbox" type="VBoxContainer" parent="panel/margins/layout/info_panel" unique_id=1664728819]
 layout_mode = 2
 
-[node name="info_portrait" type="TextureRect" parent="root/layout/info_panel/info_vbox" unique_id=930313091]
+[node name="info_portrait" type="TextureRect" parent="panel/margins/layout/info_panel/info_vbox" unique_id=930313091]
 layout_mode = 2
 size_flags_horizontal = 4
 expand_mode = 1
 
-[node name="info_name" type="Label" parent="root/layout/info_panel/info_vbox" unique_id=1362966208]
+[node name="info_name" type="Label" parent="panel/margins/layout/info_panel/info_vbox" unique_id=1362966208]
 layout_mode = 2
 
-[node name="info_body" type="Label" parent="root/layout/info_panel/info_vbox" unique_id=813562668]
+[node name="info_body" type="Label" parent="panel/margins/layout/info_panel/info_vbox" unique_id=813562668]
 layout_mode = 2
 autowrap_mode = 2

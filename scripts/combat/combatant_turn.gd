@@ -139,6 +139,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if animating:
 		return
+	if BattleManager.input_locked:
+		return
 	# Cursor movement is the same in both modes.
 	cursor_move_timer -= delta
 	if cursor_move_timer <= 0.0:

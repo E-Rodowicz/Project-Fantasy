@@ -18,6 +18,9 @@ var bp_rejected: bool = false
 var ap_rejected_cost: int = 0
 var mp_rejected: bool = false
 var overlay: BattleOverlay = null
+# While true, the player's turn ignores all input. Set by overlay screens like the turn
+# order screen so the keys they use don't also move the cursor underneath.
+var input_locked: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -162,6 +165,7 @@ func _cleanup() -> void:
 	combatants.clear()
 	turn_order = null
 	current_combatant = null
+	input_locked = false
 	
 func add_combatant(new_combatant: Node) -> void:
 	if new_combatant in combatants:
