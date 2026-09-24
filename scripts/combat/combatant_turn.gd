@@ -198,7 +198,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if ai_controlled or animating:
 		return
 		
-	var slot: int = PlayerData.get_hotbar_slot_from_event(event)
+	var slot: int = PlayerData.get_hotbar_slot_released(event)
 	if slot == -1:
 		return
 		

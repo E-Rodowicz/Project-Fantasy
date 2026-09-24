@@ -9,6 +9,8 @@ extends CanvasLayer
 @export var sc_orb_frames: SpriteFrames
 @export var ranged_required_icon: SpriteFrames
 @export var empty_orb_texture: Texture2D
+# Animation named "charge" with not loop. Frames the same size as the icon.
+@export var hold_charge_frames: SpriteFrames
 
 var highlight_sprite: AnimatedSprite2D = null
 var reject_sprite: AnimatedSprite2D = null
@@ -35,6 +37,7 @@ var slot_ranged_icons: Array = []
 var slot_ranged_shown: Array = []
 var label_rest_y: Array = []
 var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+var hold_charge_sprite: AnimatedSprite2D = null
 
 # Animation settings for when an ability is selected.
 var select_offset: float = 1.0
@@ -223,6 +226,13 @@ func _build_slots() -> void:
 	reject_sprite.z_index = 1
 	reject_sprite.animation_finished.connect(_on_reject_animation_finished)
 	background.add_child(reject_sprite)
+	
+	hold_charge_sprite = AnimatedSprite2D.new()
+	hold_charge_sprite.sprite_frames = hold_charge_frames
+	hold_charge_sprite.centered = false
+	hold_charge_sprite.visible = false
+	hold_charge_sprite.z_index = 4
+	background.add_child(hold_charge_sprite)
 	
 func _on_highlight_animation_finished() -> void:
 	if highlight_sprite.animation == "select_intro":
@@ -591,3 +601,25 @@ func _position_label_above_slot(label: Label, slot: int, y_offset: float) -> voi
 	var viewport_width: float = get_viewport().get_visible_rect().size.x
 	var label_x: float = clampf(slot_screen_x - (label_width / 2.0), margin, viewport_width - label_width - margin)
 	label.position = Vector2(label_x, background.global_position.y + y_offset)
+
+# --- HOLD FOR INFO ---
+# Plays the charge animation on that slot, sped up or slowed down to match the frame rate.
+func start_hold_charge(slot: int, duration: float) -> void:
+	if hold_charge_frames == null or not hold_charge_frames.has_animation("charge"):
+		return
+	var frame_count: int = hold_charge_frames.get_frame_count("charge")
+	var fps: float = hold_charge_frames.get_animation_speed("charge")
+	hold_charge_sprite.speed_scale = (frame_count / fps) / duration
+	hold_charge_sprite.position = Vector2(first_slot_offset.x + (slot_spacing * slot), first_slot_offset.y)
+	hold_charge_sprite.visible = true
+	hold_charge_sprite.play("charge")
+
+func stop_hold_charge() -> void:
+	hold_charge_sprite.stop()
+	hold_charge_sprite.visible = false
+	
+# Find out where the slots icon is on the screen in real pixels.
+func get_slot_screen_rect(slot: int) -> Rect2:
+	var local_pos: Vector2 = Vector2(first_slot_offset.x + (slot_spacing * slot), first_slot_offset.y)
+	var screen_pos: Vector2 = background.global_position + local_pos * background.scale
+	return Rect2(screen_pos, icon_size * background.scale)

@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://bqeqrr5oknhnx"]
+
+[ext_resource type="Script" uid="uid://bcw34j7p015yo" path="res://scenes/gui/skill_info_screen.gd" id="1_enaxx"]
+[ext_resource type="FontFile" uid="uid://dj368wjpoum8l" path="res://assets/fonts/m3x6.ttf" id="1_h0s5u"]
+[ext_resource type="Texture2D" uid="uid://rqnxh0n1nofk" path="res://assets/sprites/gui/ability_info_frame_small.png" id="2_enaxx"]
+
+[sub_resource type="Theme" id="Theme_1v0xd"]
+default_font = ExtResource("1_h0s5u")
+default_font_size = 16
+
+[node name="SkillInfoScreen" type="CanvasLayer" unique_id=1539670264]
+scale = Vector2(4, 4)
+transform = Transform2D(4, 0, 0, 4, 0, 0)
+script = ExtResource("1_enaxx")
+
+[node name="frame" type="NinePatchRect" parent="." unique_id=1850813380]
+offset_right = 40.0
+offset_bottom = 40.0
+theme = SubResource("Theme_1v0xd")
+texture = ExtResource("2_enaxx")
+patch_margin_left = 5
+patch_margin_top = 5
+patch_margin_right = 5
+patch_margin_bottom = 5
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="content" type="MarginContainer" parent="frame" unique_id=653902594]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 7
+
+[node name="vbox" type="VBoxContainer" parent="frame/content" unique_id=815744455]
+layout_mode = 2
+
+[node name="header" type="HBoxContainer" parent="frame/content/vbox" unique_id=508864676]
+layout_mode = 2
+
+[node name="icon" type="TextureRect" parent="frame/content/vbox/header" unique_id=1187224370]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+expand_mode = 1
+
+[node name="title" type="Label" parent="frame/content/vbox/header" unique_id=313858740]
+layout_mode = 2
+
+[node name="body" type="Label" parent="frame/content/vbox" unique_id=1823932180]
+layout_mode = 2
+size_flags_vertical = 3
+autowrap_mode = 2

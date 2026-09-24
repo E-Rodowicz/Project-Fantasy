@@ -188,7 +188,11 @@ func _make_card(entry: Dictionary) -> Control:
 func _select(index: int) -> void:
 	if cards.is_empty():
 		return
-	selected = clampi(index, 0, cards.size() - 1)
+	# Out of range means there is no card that way, so stay put rather than snapping
+	# to the nearest one. Exception: opening the screen, which must land on 0.
+	if index < 0 or index >= cards.size():
+		return
+	selected = index
 	for i in range(cards.size()):
 		cards[i].modulate = SELECTED_TINT if i == selected else Color.WHITE
 	# Scrolls just far enough to have the cards in view.

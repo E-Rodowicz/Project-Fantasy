@@ -355,18 +355,28 @@ func assign_hotbar(slot: int, ability_id: String) -> void:
 	# Places it on requested slot.
 	hotbar[slot] = ability_id
 	
+# Slot 0 = key 1 ... slot 9 = key 0.
+const HOTBAR_ACTIONS: Array = [
+	"ability_1", "ability_2", "ability_3", "ability_4", "ability_5",
+	"ability_6", "ability_7", "ability_8", "ability_9", "ability_0"
+]
+
 func get_hotbar_ability(slot: int) -> String:
 	if slot < 0 or slot >= hotbar.size():
 		return ""
 	return hotbar[slot]
 
 func get_hotbar_slot_from_event(event: InputEvent) -> int:
-	var action_map: Array = [
-		"ability_1", "ability_2", "ability_3", "ability_4", "ability_5",
-		"ability_6", "ability_7", "ability_8", "ability_9", "ability_0"
-	]
-	for i in range(action_map.size()):
-		if event.is_action_pressed(action_map[i]) and not event.is_echo():
+	for i in range(HOTBAR_ACTIONS.size()):
+		if event.is_action_pressed(HOTBAR_ACTIONS[i]) and not event.is_echo():
+			return i
+	return -1
+
+# Same, but for the key coming back up. Combat selects on release so that holding a key
+# can mean "show info" instead.
+func get_hotbar_slot_released(event: InputEvent) -> int:
+	for i in range(HOTBAR_ACTIONS.size()):
+		if event.is_action_released(HOTBAR_ACTIONS[i]):
 			return i
 	return -1
 	
