@@ -34,6 +34,7 @@ CombatEffects="*uid://b5av4fwxtm5qd"
 TurnOrderCards="*uid://b8ncsti4x570j"
 TurnOrderScreen="*uid://b3c86wl4oqvqj"
 SkillInfoScreen="*uid://bqeqrr5oknhnx"
+HoverInfoPanel="*uid://ba1kvqsyx6bqd"
 
 [display]
 

@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://ba1kvqsyx6bqd"]
+
+[ext_resource type="Script" uid="uid://dkwpgd4brj7wh" path="res://scenes/gui/hover_info_panel.gd" id="1_u8700"]
+[ext_resource type="FontFile" uid="uid://dj368wjpoum8l" path="res://assets/fonts/m3x6.ttf" id="2_ks0we"]
+[ext_resource type="Texture2D" uid="uid://bjhrq10h7g04i" path="res://assets/sprites/gui/enemy_info_panel.png" id="3_poali"]
+
+[sub_resource type="Theme" id="Theme_2q3mp"]
+default_font = ExtResource("2_ks0we")
+default_font_size = 16
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ma21d"]
+texture = ExtResource("3_poali")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="HoverInfoPanel" type="CanvasLayer" unique_id=534095330]
+layer = 5
+scale = Vector2(4, 4)
+transform = Transform2D(4, 0, 0, 4, 0, 0)
+script = ExtResource("1_u8700")
+
+[node name="panel" type="PanelContainer" parent="." unique_id=1937143514]
+offset_right = 40.0
+offset_bottom = 40.0
+theme = SubResource("Theme_2q3mp")
+theme_override_styles/panel = SubResource("StyleBoxTexture_ma21d")
+
+[node name="vbox" type="VBoxContainer" parent="panel" unique_id=192801903]
+layout_mode = 2
+
+[node name="header" type="HBoxContainer" parent="panel/vbox" unique_id=1398351154]
+layout_mode = 2
+
+[node name="portrait" type="TextureRect" parent="panel/vbox/header" unique_id=487265662]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="name_label" type="Label" parent="panel/vbox/header" unique_id=909029361]
+layout_mode = 2
+vertical_alignment = 1
+
+[node name="body" type="Label" parent="panel/vbox" unique_id=2096904308]
+layout_mode = 2
+autowrap_mode = 2

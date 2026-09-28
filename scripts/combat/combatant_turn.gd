@@ -1565,6 +1565,15 @@ func _combatant_on_tile(tile: Vector2i, include_non_combat: bool = false) -> Nod
 				return e
 	return null
 
+func get_hovered_combatant() -> Node:
+	if ai_controlled or world_layer == null:
+		return null
+	if mode == Mode.ABILITY:
+		var targeting: String = active_ability.get("targeting", "")
+		if targeting == "direction" or targeting == "line" or targeting == "touch":
+			return null
+	return _combatant_on_tile(cursor_tile, true)
+
 func _redraw_attack() -> void:
 	var fill: Dictionary = {}
 	var markers: Dictionary = {}

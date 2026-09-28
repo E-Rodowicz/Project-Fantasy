@@ -39,6 +39,8 @@ var label_rest_y: Array = []
 var key_names: Array = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
 var hold_charge_sprite: AnimatedSprite2D = null
 
+# Which slot the charge animation is playing on, or -1 when it isn't.
+var hold_charge_slot: int = -1
 # Animation settings for when an ability is selected.
 var select_offset: float = 1.0
 var tween_speed: float = 0.12
@@ -58,6 +60,9 @@ func _ready() -> void:
 	_update_display()
 	
 func _process(_delta: float) -> void:
+	# Follows the icon, which rises a pixel when its ability is selected.
+	if hold_charge_slot != -1:
+		hold_charge_sprite.position = slot_icons[hold_charge_slot].position
 	if not hud_enabled:
 		visible = false
 		return
@@ -231,7 +236,9 @@ func _build_slots() -> void:
 	hold_charge_sprite.sprite_frames = hold_charge_frames
 	hold_charge_sprite.centered = false
 	hold_charge_sprite.visible = false
-	hold_charge_sprite.z_index = 4
+	hold_charge_sprite.z_index = 1
+	# Hides itself when the charge finishes, so it can play out after the key is let go.
+	hold_charge_sprite.animation_finished.connect(stop_hold_charge)
 	background.add_child(hold_charge_sprite)
 	
 func _on_highlight_animation_finished() -> void:
@@ -610,11 +617,13 @@ func start_hold_charge(slot: int, duration: float) -> void:
 	var frame_count: int = hold_charge_frames.get_frame_count("charge")
 	var fps: float = hold_charge_frames.get_animation_speed("charge")
 	hold_charge_sprite.speed_scale = (frame_count / fps) / duration
-	hold_charge_sprite.position = Vector2(first_slot_offset.x + (slot_spacing * slot), first_slot_offset.y)
+	hold_charge_slot = slot
+	hold_charge_sprite.position = slot_icons[slot].position
 	hold_charge_sprite.visible = true
 	hold_charge_sprite.play("charge")
 
 func stop_hold_charge() -> void:
+	hold_charge_slot = -1
 	hold_charge_sprite.stop()
 	hold_charge_sprite.visible = false
 	

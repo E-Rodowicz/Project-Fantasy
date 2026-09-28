@@ -1,19 +1,28 @@
 extends CanvasLayer
 
 # --- TIMING ---
-# The charge starts the moment a hotkey goes down. Let go before it finishes and it
-# was a tap, which selects the ability. Hold until it finishes and the window opens.
-const CHARGE_TIME: float = 0.4
+# Nothing visible yet, so ordinary taps never show the charge.
+const CHARGE_DELAY: float = 0.2
+# The charge animation on the hotbar slot. When it finishes, the window opens.
+# Letting go at any point before then is a tap, which selects the ability.
+const CHARGE_TIME: float = 0.5
 const GROW_TIME: float = 0.22
 const SHRINK_TIME: float = 0.18
 const CONTENT_FADE_TIME: float = 0.1
+# How far through the charge the window opens (0.8 = 80%). The animation plays out
+# the rest of the way on its own, whether or not the key is still held.
+const OPEN_AT: float = 0.50
 
 # --- LAYOUT (native pixels, i.e. the 480x270 space) ---
-const FULL_SIZE: Vector2 = Vector2(220, 130)
+# Width is fixed so the body text always wraps at the same point. Height is measured
+# from the content each time the window opens.
+const WINDOW_WIDTH: int = 230
+# Screen is 270 tall - this leaves an 8px gap top and bottom.
+const MAX_HEIGHT: int = 254
 
 const RESOURCE_NAMES: Dictionary = {"ap": "AP", "bp": "BP", "mp": "MP", "sc": "SC"}
 
-enum State {IDLE, CHARGING, OPENING, OPEN, CLOSING}
+enum State {IDLE, HOLDING, CHARGING, OPENING, OPEN, CLOSING}
 
 # --- NODES ---
 @onready var frame: NinePatchRect = $frame
@@ -33,6 +42,8 @@ var swallow_releases: Array = []
 # Where the window grows out of and shrinks back into, in native pixels.
 var slot_rect: Rect2 = Rect2()
 var frame_tween: Tween = null
+# Size the window grows to this time, worked out from its content in _open.
+var window_size: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -50,22 +61,24 @@ func _process(delta: float) -> void:
 			if slot != -1 and _can_start(slot):
 				held_slot = slot
 				hold_timer = 0.0
-				state = State.CHARGING
-				HotbarDisplay.start_hold_charge(slot, CHARGE_TIME)
+				state = State.HOLDING
 
-		State.CHARGING:
-			# Let go before the charge finished: that was a tap. The release passes through
-			# to combat untouched, which selects the ability.
+		State.HOLDING, State.CHARGING:
+			# Let go at any point before the window opens: that was a tap. The release
+			# passes through to combat untouched, which selects the ability.
 			if not Input.is_action_pressed(PlayerData.HOTBAR_ACTIONS[held_slot]) or not _can_start(held_slot):
 				_cancel_hold()
 				return
 			hold_timer += delta
-			if hold_timer >= CHARGE_TIME:
-				HotbarDisplay.stop_hold_charge()
+			if state == State.HOLDING and hold_timer >= CHARGE_DELAY:
+				state = State.CHARGING
+				hold_timer = 0.0
+				HotbarDisplay.start_hold_charge(held_slot, CHARGE_TIME)
+			elif state == State.CHARGING and hold_timer >= CHARGE_TIME * OPEN_AT:
+				# No stop_hold_charge here. The hotbar hides the sprite once it finishes.
 				# Only a completed charge is a hold, so only now is the release swallowed.
 				_swallow_release_of(held_slot)
 				_open(held_slot)
-
 
 func _just_pressed_slot() -> int:
 	for i in range(PlayerData.HOTBAR_ACTIONS.size()):
@@ -113,7 +126,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if state == State.IDLE or state == State.CHARGING:
+	if state == State.IDLE or state == State.HOLDING or state == State.CHARGING:
 		return
 
 	# The window is on screen from here on, so every key stops here.
@@ -131,15 +144,30 @@ func _open(slot: int) -> void:
 	state = State.OPENING
 	open_slot = slot
 	_fill_content(slot)
-	slot_rect = _slot_rect_native(slot)
 
 	# Does nothing in combat, where the tree is already paused.
 	get_tree().paused = true
 	BattleManager.input_locked = true
 
+	# Lay the content out at full width but invisible, so Godot works out how tall the
+	# wrapped text makes it. The window has to be visible for containers to lay out,
+	# so it is faded to nothing instead of hidden.
 	visible = true
-	content.visible = false
+	frame.modulate.a = 0.0
+	content.visible = true
 	content.modulate.a = 0.0
+	frame.size = Vector2(WINDOW_WIDTH, 0)
+	# One frame for the containers to lay out, one for the wrapped label to report
+	# its new height back up. Too short to see.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var needed_height: float = ceilf(content.get_combined_minimum_size().y)
+	window_size = Vector2(WINDOW_WIDTH, minf(needed_height, MAX_HEIGHT))
+
+	# Now grow out of the slot as normal.
+	content.visible = false
+	frame.modulate.a = 1.0
+	slot_rect = _slot_rect_native(slot)
 	_apply_grow(0.0)
 
 	_tween_frame(0.0, 1.0, GROW_TIME, Tween.EASE_OUT)
@@ -192,12 +220,10 @@ func _slot_rect_native(slot: int) -> Rect2:
 	var screen_rect: Rect2 = HotbarDisplay.get_slot_screen_rect(slot)
 	return Rect2(screen_rect.position / scale, screen_rect.size / scale)
 
-
 func _centre_rect() -> Rect2:
 	var native_screen: Vector2 = get_viewport().get_visible_rect().size / scale
-	var pos: Vector2 = (native_screen - FULL_SIZE) / 2.0
-	return Rect2(pos.round(), FULL_SIZE)
-
+	var pos: Vector2 = (native_screen - window_size) / 2.0
+	return Rect2(pos.round(), window_size)
 
 # --- CONTENT ---
 func _fill_content(slot: int) -> void:

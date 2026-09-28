@@ -18,10 +18,10 @@ offset_right = 40.0
 offset_bottom = 40.0
 theme = SubResource("Theme_1v0xd")
 texture = ExtResource("2_enaxx")
-patch_margin_left = 5
-patch_margin_top = 5
-patch_margin_right = 5
-patch_margin_bottom = 5
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 8
+patch_margin_bottom = 8
 axis_stretch_horizontal = 1
 axis_stretch_vertical = 1
 
