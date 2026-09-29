@@ -32,17 +32,17 @@ theme_override_styles/panel = SubResource("StyleBoxTexture_ma21d")
 [node name="vbox" type="VBoxContainer" parent="panel" unique_id=192801903]
 layout_mode = 2
 
-[node name="header" type="HBoxContainer" parent="panel/vbox" unique_id=1398351154]
-layout_mode = 2
-
-[node name="portrait" type="TextureRect" parent="panel/vbox/header" unique_id=487265662]
+[node name="portrait" type="TextureRect" parent="panel/vbox" unique_id=487265662]
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="name_label" type="Label" parent="panel/vbox/header" unique_id=909029361]
+[node name="name_label" type="Label" parent="panel/vbox" unique_id=909029361]
 layout_mode = 2
 vertical_alignment = 1
+
+[node name="header" type="HBoxContainer" parent="panel/vbox" unique_id=1398351154]
+layout_mode = 2
 
 [node name="body" type="Label" parent="panel/vbox" unique_id=2096904308]
 layout_mode = 2
