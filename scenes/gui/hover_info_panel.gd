@@ -8,11 +8,11 @@ const EDGE_MARGIN: int = 4
 const PORTRAIT_SIZE: Vector2 = Vector2(32, 32)
 
 # --- TIMING ---
-const SLIDE_IN_TIME: float = 0.20
-const SLIDE_OUT_TIME: float = 0.15
+const SLIDE_IN_TIME: float = 0.16
+const SLIDE_OUT_TIME: float = 0.10
 # Pauses off screen between one combatant's panel leaving and the next arriving,
 # so a swap reads as two separate windows rather than one bounce.
-const SWAP_GAP: float = 0.04
+const SWAP_GAP: float = 0.02
 
 # --- NODES ---
 @onready var panel: PanelContainer = $panel
