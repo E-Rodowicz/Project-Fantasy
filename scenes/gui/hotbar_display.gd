@@ -66,9 +66,8 @@ func _process(_delta: float) -> void:
 	if not hud_enabled:
 		visible = false
 		return
-	visible = not GameMenuManager.is_open
-	if visible:
-		_update_display()
+	visible = true
+	_update_display()
 	
 func _build_slots() -> void:
 	for i in range(10):

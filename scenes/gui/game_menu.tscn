@@ -2,7 +2,16 @@
 
 [ext_resource type="Script" uid="uid://ciphgh5367r84" path="res://scenes/gui/game_menu.gd" id="1_box50"]
 [ext_resource type="Texture2D" uid="uid://cfet4r5i25bbh" path="res://assets/sprites/gui/main_menu/main_menu_bg.png" id="2_ma2gf"]
+[ext_resource type="FontFile" uid="uid://dj368wjpoum8l" path="res://assets/fonts/m3x6.ttf" id="2_nbrxk"]
 [ext_resource type="Texture2D" uid="uid://cehp7cxfkt2ov" path="res://assets/sprites/gui/main_menu/main_menu_tab_select-Sheet.png" id="3_7pje7"]
+[ext_resource type="Texture2D" uid="uid://pmxga6of5kr3" path="res://assets/sprites/gui/main_menu/main_menu_bg_no_gem.png" id="3_duip1"]
+[ext_resource type="Texture2D" uid="uid://c10hwyfycihhc" path="res://assets/sprites/gui/main_menu/main_menu_bg_no_border.png" id="4_1he3n"]
+[ext_resource type="Texture2D" uid="uid://dstnenbjfflj4" path="res://assets/sprites/gui/main_menu/main_menu_gem-Sheet.png" id="4_5q8da"]
+[ext_resource type="Script" uid="uid://dou7b4cwp3y0p" path="res://scenes/gui/gem.gd" id="5_nbrxk"]
+
+[sub_resource type="Theme" id="Theme_k67uy"]
+default_font = ExtResource("2_nbrxk")
+default_font_size = 16
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5q8da"]
 atlas = ExtResource("3_7pje7")
@@ -61,16 +70,181 @@ animations = [{
 "speed": 5.0
 }]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_nkx66"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(0, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ghmjw"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(14, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7cujr"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(28, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wv3gp"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(42, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vtikr"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(56, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_plqqw"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(70, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hcwpf"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(84, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_57yr6"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(98, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ppg5m"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(98, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4mtjn"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(112, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c58iv"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(126, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ty2vy"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(140, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0642a"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(154, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_daegq"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(168, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bbdr5"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(182, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_78fnn"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(196, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2i4v8"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(210, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kv3j0"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(224, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gi6yk"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(0, 0, 14, 27)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e5dw6"]
+atlas = ExtResource("4_5q8da")
+region = Rect2(98, 0, 14, 27)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_r5l8g"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nkx66")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ghmjw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7cujr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wv3gp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vtikr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_plqqw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hcwpf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_57yr6")
+}],
+"loop": 0,
+"name": &"activate",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ppg5m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4mtjn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c58iv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ty2vy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0642a")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_daegq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bbdr5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_78fnn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2i4v8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kv3j0")
+}],
+"loop": 0,
+"name": &"glitter",
+"speed": 24.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gi6yk")
+}],
+"loop": 1,
+"name": &"off",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_e5dw6")
+}],
+"loop": 1,
+"name": &"on",
+"speed": 5.0
+}]
+
 [node name="game_menu" type="CanvasLayer" unique_id=1007440292]
 script = ExtResource("1_box50")
+tab_backgrounds = Array[Texture2D]([ExtResource("2_ma2gf"), ExtResource("2_ma2gf"), ExtResource("3_duip1"), ExtResource("4_1he3n")])
 
 [node name="menu_frame" type="TextureRect" parent="." unique_id=764040992]
 texture_filter = 1
-offset_left = 128.0
-offset_top = 128.0
-offset_right = 546.0
-offset_bottom = 334.0
+offset_left = 124.0
+offset_top = 65.0
+offset_right = 542.0
+offset_bottom = 271.00003
 scale = Vector2(4, 4)
+theme = SubResource("Theme_k67uy")
 texture = ExtResource("2_ma2gf")
 
 [node name="tabs" type="Control" parent="menu_frame" unique_id=922548814]
@@ -90,12 +264,13 @@ offset_right = 102.0
 offset_bottom = 31.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="menu_frame/tabs/tab_character" unique_id=1187092700]
+[node name="label" type="Label" parent="menu_frame/tabs/tab_character" unique_id=1187092700]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 2.0
 offset_right = 93.0
-offset_bottom = 25.0
+offset_bottom = 24.5
+text = "1 - Character"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -107,12 +282,13 @@ offset_right = 206.0
 offset_bottom = 31.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="menu_frame/tabs/tab_inventory" unique_id=1141441057]
+[node name="label" type="Label" parent="menu_frame/tabs/tab_inventory" unique_id=1141441057]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 2.0
 offset_right = 93.0
-offset_bottom = 25.0
+offset_bottom = 24.25
+text = "2 - Inventory"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -124,12 +300,13 @@ offset_right = 310.0
 offset_bottom = 31.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="menu_frame/tabs/tab_journal" unique_id=1401550778]
+[node name="label" type="Label" parent="menu_frame/tabs/tab_journal" unique_id=1401550778]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 2.0
 offset_right = 93.0
-offset_bottom = 25.0
+offset_bottom = 24.0
+text = "3 - Journal"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -141,18 +318,34 @@ offset_right = 414.0
 offset_bottom = 31.0
 size_flags_horizontal = 3
 
-[node name="Label" type="Label" parent="menu_frame/tabs/tab_map" unique_id=1810117160]
+[node name="label" type="Label" parent="menu_frame/tabs/tab_map" unique_id=1810117160]
 layout_mode = 0
 offset_left = 5.0
 offset_top = 2.0
 offset_right = 93.0
-offset_bottom = 25.0
+offset_bottom = 24.0
+text = "4 - Map"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="content_area" type="Control" parent="menu_frame" unique_id=1673136379]
 anchors_preset = 0
-offset_left = 4.0
-offset_top = 37.0
-offset_right = 414.0
-offset_bottom = 202.0
+offset_left = 9.0
+offset_top = 42.0
+offset_right = 409.0
+offset_bottom = 197.0
+
+[node name="screen_holder" type="Control" parent="menu_frame/content_area" unique_id=243757997]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="gem" type="AnimatedSprite2D" parent="menu_frame/content_area" unique_id=1501946850]
+position = Vector2(193, 64)
+sprite_frames = SubResource("SpriteFrames_r5l8g")
+animation = &"activate"
+centered = false
+script = ExtResource("5_nbrxk")

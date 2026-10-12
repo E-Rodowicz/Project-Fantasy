@@ -120,25 +120,37 @@ func _ready() -> void:
 		"id": "imp_in_attic",
 		"title": "The Imp in the Attic",
 		"status": "active",
-		"description": "Gary the innkeeper has an imp living in his attic and wants it gone. He mentioned it came in through a broken window on the east side of the building. Worth checking there first."
+		"entries": [
+			"Gary the innkeeper has an imp living in his attic and wants it gone. He mentioned it came in through a broken window on the east side of the building. Worth checking there first.",
+			"The window was broken from the inside, not the outside. Whatever is up there didn't come in through it. Gary went quiet when I told him.",
+			"Found scorch marks on the attic beams in a ring, too neat to be accidental. Someone drew a circle up here. Gary claims he has never set foot in the attic.",
+			"Gary's wife let slip that he bought a book from a travelling pedlar last month. He keeps it locked in his cellar. The imp may not be the real problem in this inn."
+		]
 	})
 	add_quest({
 		"id": "missing_shipment",
 		"title": "The Missing Shipment",
 		"status": "active",
-		"description": "A merchant's supply cart never arrived from Dawnfield. Last seen heading through the Ashwood road. Could be bandits, could be worse."
+		"entries": [
+			"A merchant's supply cart never arrived from Dawnfield. Last seen heading through the Ashwood road. Could be bandits, could be worse."
+		]
 	})
 	add_quest({
 		"id": "old_debts",
 		"title": "Old Debts",
 		"status": "completed",
-		"description": "Recovered the stolen ledger for the moneylender. He paid up, though he didn't look happy about it."
+		"entries": [
+			"The moneylender wants his stolen ledger back.",
+			"Recovered the stolen ledger for the moneylender. He paid up, though he didn't look happy about it."
+		]
 	})
 	add_quest({
 		"id": "rat_problem",
 		"title": "A Rat Problem",
 		"status": "failed",
-		"description": "The baker's cellar was overrun. You took too long — he hired someone else and made his feelings very clear."
+		"entries": [
+			"The baker's cellar was overrun. You took too long — he hired someone else and made his feelings very clear."
+		]
 	})
 
 func set_flag(flag_name: String) -> void:
@@ -283,7 +295,14 @@ func get_total_weight() -> float:
 # FUNCTIONS - JOURNAL
 # ============================================================
 func add_quest(quest: Dictionary) -> void:
+	if not quest.has("entries"):
+		quest["entries"] = []
 	journal[quest["id"]] = quest
+
+# Adds a new entry to the end of a quest's text. Earlier entries are kept.
+func add_quest_entry(quest_id: String, text: String) -> void:
+	if journal.has(quest_id):
+		journal[quest_id]["entries"].append(text)
 
 func update_quest_status(quest_id: String, status: String) -> void:
 	if journal.has(quest_id):

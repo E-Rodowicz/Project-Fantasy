@@ -2,50 +2,77 @@
 
 [ext_resource type="Script" uid="uid://dfufkc764tewc" path="res://scenes/gui/journal_screen.gd" id="1_k67uy"]
 
-[node name="Control" type="Control" unique_id=139922821]
+[node name="journal_screen" type="Control" unique_id=139922821]
 layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_k67uy")
+
+[node name="left_side" type="Control" parent="." unique_id=447345432]
+anchors_preset = 0
+offset_right = 193.0
+offset_bottom = 155.0
+
+[node name="quest_list_panel" type="Control" parent="left_side" unique_id=2020093907]
+anchors_preset = 0
+offset_left = 4.0
+offset_right = 185.0
+offset_bottom = 155.0
+
+[node name="quest_list_scroll" type="ScrollContainer" parent="left_side/quest_list_panel" unique_id=1668383393]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_k67uy")
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="quest_list_panel" type="NinePatchRect" parent="." unique_id=905953229]
-layout_mode = 0
-offset_right = 640.0
-offset_bottom = 696.0
+[node name="quest_list_container" type="VBoxContainer" parent="left_side/quest_list_panel/quest_list_scroll" unique_id=588357197]
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="quest_list_container" type="VBoxContainer" parent="quest_list_panel" unique_id=1014393105]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 64.0
-offset_right = 576.0
-offset_bottom = 632.0
+[node name="right_side" type="Control" parent="." unique_id=1340099877]
+anchors_preset = 0
+offset_left = 207.0
+offset_right = 400.0
+offset_bottom = 155.0
 
-[node name="quest_desc_panel" type="NinePatchRect" parent="." unique_id=1496401204]
+[node name="quest_desc_panel" type="VBoxContainer" parent="right_side" unique_id=1845410312]
 layout_mode = 0
-offset_left = 640.0
-offset_right = 1664.0
-offset_bottom = 696.0
+offset_right = 193.0
+offset_bottom = 155.0
+theme_override_constants/separation = 4
 
-[node name="quest_title" type="Label" parent="quest_desc_panel" unique_id=353044755]
-layout_mode = 0
-offset_left = 96.0
-offset_top = 32.0
-offset_right = 592.0
-offset_bottom = 128.0
+[node name="quest_title" type="Label" parent="right_side/quest_desc_panel" unique_id=1857910718]
+layout_mode = 2
+horizontal_alignment = 1
+uppercase = true
 
-[node name="quest_status" type="Label" parent="quest_desc_panel" unique_id=942166978]
-layout_mode = 0
-offset_left = 640.0
-offset_top = 24.0
-offset_right = 896.0
-offset_bottom = 96.0
+[node name="quest_entries_margin" type="MarginContainer" parent="right_side/quest_desc_panel" unique_id=1649918588]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_right = 6
 
-[node name="quest_description" type="RichTextLabel" parent="quest_desc_panel" unique_id=1809672695]
+[node name="quest_entries_scroll" type="ScrollContainer" parent="right_side/quest_desc_panel/quest_entries_margin" unique_id=1498128434]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="quest_entries" type="VBoxContainer" parent="right_side/quest_desc_panel/quest_entries_margin/quest_entries_scroll" unique_id=1849631034]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="header_summary_centre" type="CenterContainer" parent="right_side" unique_id=187030147]
 layout_mode = 0
-offset_left = 72.0
-offset_top = 128.0
-offset_right = 928.0
-offset_bottom = 608.0
+offset_right = 193.0
+offset_bottom = 155.0
+
+[node name="header_summary" type="RichTextLabel" parent="right_side/header_summary_centre" unique_id=116955115]
+custom_minimum_size = Vector2(177, 0)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 2

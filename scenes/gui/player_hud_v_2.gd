@@ -167,9 +167,8 @@ func _process(delta: float) -> void:
 		visible = false
 		return
 
-	visible = not GameMenuManager.is_open
-	if visible:
-		_update_display(delta)
+	visible = true
+	_update_display(delta)
 	
 func _update_display(delta: float) -> void:
 	# Detect selected ability costs (used by HP preview, MP section, and labels)
