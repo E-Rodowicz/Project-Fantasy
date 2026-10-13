@@ -49,7 +49,8 @@ func get_target_tiles(player_tile: Vector2i, _direction: Vector2i, world_layer: 
 	
 	return valid
 	
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	if tiles.size() < 2:
 		return
 	var landing_tile: Vector2i = tiles[0]

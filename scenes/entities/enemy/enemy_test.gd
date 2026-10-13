@@ -1,13 +1,5 @@
 extends CharacterBody2D
 
-# Signal takes an array, knows who is involved in the battle.
-# This just declares that this node can emit a signal called battle_started,
-# and when it does it will carry an array with it, the enemy 
-# and the player. Think of it like registering an event. Nothing happens
-# when you declare it, it only does something when you call 
-# emit_signal. Whatever node connects to it receives the value automatically
-# as a function argument.
-signal battle_started(combatants)
 signal health_changed(current: int, maximum: int)
 
 var player_in_range: bool = false

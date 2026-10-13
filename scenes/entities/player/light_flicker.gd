@@ -11,7 +11,7 @@ func _ready() -> void:
 	base_scale = texture_scale
 	base_energy = energy
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var t = Time.get_ticks_msec() * 0.001
 	var noise_val = sin(t * flicker_speed) * 0.6 + sin(t * flicker_speed * 2.7) * 0.4
 	texture_scale = base_scale + noise_val * scale_variance

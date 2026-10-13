@@ -115,7 +115,7 @@ var hud_enabled: bool = true
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
-	var frame_width: float = mp_flash_sheet.get_width() / MP_FLASH_FRAME_COUNT
+	var frame_width: float = floorf(mp_flash_sheet.get_width() / float(MP_FLASH_FRAME_COUNT))
 	var frame_height: float = mp_flash_sheet.get_height()
 	for i in range(MP_FLASH_FRAME_COUNT):
 		var atlas: AtlasTexture = AtlasTexture.new()
@@ -123,7 +123,7 @@ func _ready() -> void:
 		atlas.region = Rect2(i * frame_width, 0, frame_width, frame_height)
 		mp_flash_frames.append(atlas)
 		
-	var bp_frame_width: float = bp_shine_sheet.get_width() / BP_SHINE_FRAME_COUNT
+	var bp_frame_width: float = floorf(bp_shine_sheet.get_width() / float(BP_SHINE_FRAME_COUNT))
 	var bp_frame_height: float = bp_shine_sheet.get_height()
 	for i in range(BP_SHINE_FRAME_COUNT):
 		var atlas: AtlasTexture = AtlasTexture.new()
@@ -131,7 +131,7 @@ func _ready() -> void:
 		atlas.region = Rect2(i * bp_frame_width, 0, bp_frame_width, bp_frame_height)
 		bp_shine_frames.append(atlas)
 		
-	var ap_sel_w: float = ap_select_sheet.get_width() / AP_SELECT_FRAME_COUNT
+	var ap_sel_w: float = floorf(ap_select_sheet.get_width() / float(AP_SELECT_FRAME_COUNT))
 	var ap_sel_h: float = ap_select_sheet.get_height()
 	for i in range(AP_SELECT_FRAME_COUNT):
 		var atlas: AtlasTexture = AtlasTexture.new()
@@ -139,7 +139,7 @@ func _ready() -> void:
 		atlas.region = Rect2(i * ap_sel_w, 0, ap_sel_w, ap_sel_h)
 		ap_select_frames.append(atlas)
 		
-	var ap_used_w: float = ap_used_sheet.get_width() / AP_USED_FRAME_COUNT
+	var ap_used_w: float = floorf(ap_used_sheet.get_width() / float(AP_USED_FRAME_COUNT))
 	var ap_used_h: float = ap_used_sheet.get_height()
 	for i in range(AP_USED_FRAME_COUNT):
 		var atlas: AtlasTexture = AtlasTexture.new()
@@ -147,7 +147,7 @@ func _ready() -> void:
 		atlas.region = Rect2(i * ap_used_w, 0, ap_used_w, ap_used_h)
 		ap_used_frames.append(atlas)
 
-	var ap_ref_w: float = ap_refill_sheet.get_width() / AP_REFILL_FRAME_COUNT
+	var ap_ref_w: float = floorf(ap_refill_sheet.get_width() / float(AP_REFILL_FRAME_COUNT))
 	var ap_ref_h: float = ap_refill_sheet.get_height()
 	for i in range(AP_REFILL_FRAME_COUNT):
 		var atlas: AtlasTexture = AtlasTexture.new()

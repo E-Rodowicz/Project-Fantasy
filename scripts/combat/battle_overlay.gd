@@ -149,7 +149,7 @@ func find_path(from_tile: Vector2i, to_tile: Vector2i, world_layer: TileMapLayer
 	var astar := WeightedAStar.new()
 	
 	# Region origin is the top left corner of the region, region width is the size.
-	var half_size: int = int(mp_budget / 2) + 10
+	var half_size: int = int(mp_budget / 2.0) + 10
 	var region_origin := Vector2i(from_tile.x - half_size, from_tile.y - half_size)
 	var region_width: int = half_size * 2
 	

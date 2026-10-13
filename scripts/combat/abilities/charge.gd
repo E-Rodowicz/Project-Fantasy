@@ -14,7 +14,8 @@ func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: T
 	
 	return tiles
 	
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	if tiles.is_empty():
 		return
 
@@ -73,20 +74,20 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 				# Hitstop — brief freeze on impact.
 				await world_layer.get_tree().create_timer(0.08).timeout
 
-				var base: int = roll_weapon_damage(caster)
-				var dmg: int = maxi(1, roundi(base * path_dmg_pct))
-				CombatLog.add(caster.name + " charges through " + path_target.name + " for " + str(dmg) + ".")
+				var path_base: int = roll_weapon_damage(caster)
+				var path_dmg: int = maxi(1, roundi(path_base * path_dmg_pct))
+				CombatLog.add(caster.name + " charges through " + path_target.name + " for " + str(path_dmg) + ".")
 
 				var hit_pos: Vector2 = path_target.global_position
 				if path_target.is_in_group("player"):
-					PlayerData.take_damage(dmg)
+					PlayerData.take_damage(path_dmg)
 				else:
-					path_target.take_damage(dmg)
+					path_target.take_damage(path_dmg)
 
 				# Blood and reaction — fire and forget, NOT awaited.
 				if data.get("causes_blood", true):
 					CombatEffects.spawn_blood(world_layer.get_parent(), hit_pos)
-				CombatEffects.float_damage(dmg, float(dmg) / average_weapon_damage(caster), world_layer.get_parent(), hit_pos)
+				CombatEffects.float_damage(path_dmg, float(path_dmg) / average_weapon_damage(caster), world_layer.get_parent(), hit_pos)
 				CombatEffects.play_hit_reaction(path_target, attacker_position)
 				CombatEffects.shake(data.get("shake", 0.0))
 

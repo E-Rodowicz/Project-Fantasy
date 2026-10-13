@@ -10,7 +10,8 @@ func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: T
 		return []
 	return [tile]
 	
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	var damage_percent: float = data.get("damage_percent", 2.0)
 	
 	for tile in tiles:

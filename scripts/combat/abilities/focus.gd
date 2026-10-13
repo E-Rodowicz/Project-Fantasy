@@ -3,10 +3,11 @@ extends BaseAbility
 
 const FOCUS_RETICLE: PackedScene = preload("res://scenes/effects/focus_reticle.tscn")
 
-func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: TileMapLayer) -> Array:
+func get_target_tiles(_player_tile: Vector2i, _direction: Vector2i, _world_layer: TileMapLayer) -> Array:
 	return []
 	
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	# Find first enemy on path. Target is stored as a node so that it is tracked if it moves.
 	var target: Node = null
 	for tile in tiles:

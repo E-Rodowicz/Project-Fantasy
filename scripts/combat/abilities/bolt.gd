@@ -45,7 +45,8 @@ func _await_bolt_finish() -> void:
 	if _bolt_timer != null and _bolt_timer.time_left > 0.0:
 		await _bolt_timer.timeout
 
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	# Finds the first target in bolt's path.
 	var initial_target: Node = null
 	for tile in tiles:
@@ -115,7 +116,8 @@ func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: Til
 		bounce_chance = maxf(0.01, bounce_chance - 0.20)
 		bounce_fraction = maxf(0.20, bounce_fraction - 0.20)
 		
-func _find_bounce_target(from_tile: Vector2i, caster: Node, all_combatants: Array, world_layer: TileMapLayer, bounce_range: int) -> Node:
+func _find_bounce_target(from_tile: Vector2i, p_caster: Node, all_combatants: Array, world_layer: TileMapLayer, bounce_range: int) -> Node:
+	caster = p_caster
 	var candidates: Array = []
 	
 	for c in all_combatants:

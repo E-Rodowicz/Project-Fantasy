@@ -26,7 +26,8 @@ func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: T
 
 	return tiles
 
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	var damage_percent: float = data.get("damage_percent", 0.5)
 	var caster_tile: Vector2i = world_layer.local_to_map(caster.global_position)
 

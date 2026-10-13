@@ -30,8 +30,8 @@ const ROW_GAP: int = 4
 
 # --- QUEST ENTRIES ---
 const ENTRY_DIVIDER: String = "----------"
-# How far one press of up or down scrolls the quest text, in native pixels.
-const ENTRY_SCROLL_STEP: int = 8
+# Quest text scroll speed while up or down is held, in native pixels per second.
+const ENTRY_SCROLL_SPEED: float = 160.0
 
 # --- TIMINGS ---
 const HIGHLIGHT_FADE_TIME: float = 0.1
@@ -39,16 +39,18 @@ const TEXT_FADE_OUT_TIME: float = 0.06
 const TEXT_FADE_IN_TIME: float = 0.12
 # How long each quest row takes to open or close. Rows go one after another.
 const ROW_UNROLL_TIME: float = 0.06
+# The most frames to wait for the quest text's layout to settle before scrolling anyway.
+const LAYOUT_SETTLE_MAX_FRAMES: int = 10
 
 @onready var quest_list_scroll: ScrollContainer = $left_side/quest_list_panel/quest_list_scroll
 @onready var quest_list_container: Control = $left_side/quest_list_panel/quest_list_scroll/quest_list_container
 @onready var quest_desc_panel: Control = $right_side/quest_desc_panel
 @onready var quest_title: Label = $right_side/quest_desc_panel/quest_title
-@onready var quest_status: Label = $right_side/quest_desc_panel/quest_status
 @onready var quest_entries_scroll: ScrollContainer = $right_side/quest_desc_panel/quest_entries_margin/quest_entries_scroll
 @onready var quest_entries: Control = $right_side/quest_desc_panel/quest_entries_margin/quest_entries_scroll/quest_entries
 @onready var header_summary_centre: Control = $right_side/header_summary_centre
 @onready var header_summary: RichTextLabel = $right_side/header_summary_centre/header_summary
+@onready var left_side: Control = $left_side
 
 var current_state: State = State.LIST_ACTIVE
 
@@ -72,6 +74,11 @@ var highlighted_index: int = -1
 # One colour tween per list label, so a fade can be cancelled if the selection comes back mid-fade.
 var label_tweens: Array[Tween] = []
 var details_tween: Tween = null
+var list_fade_tween: Tween = null
+# True while the tab is waiting for the first scroll before fading in.
+var reveal_tab_after_scroll: bool = false
+# True while the right side is waiting for a new quest's scroll before fading back in.
+var reveal_details_after_scroll: bool = false
 # True while a section is opening or closing. Input waits until it's done.
 var is_rolling: bool = false
 # Goes up every time the quest text is rebuilt, so a delayed scroll for an old quest can tell
@@ -79,6 +86,13 @@ var is_rolling: bool = false
 var entries_version: int = 0
 # Empty space after the last entry, sized so the latest entry can always reach the top.
 var entries_spacer: Control = null
+# The exact scroll position as a decimal. scroll_vertical only holds whole pixels, so moving it
+# by tiny amounts each frame would round away to nothing.
+var entry_scroll_position: float = 0.0
+# The scroll that should happen for the current quest, kept until the journal is visible to do it.
+var entries_scroll_target: Control = null
+var entries_scroll_pending: bool = false
+var entries_reveal_tween: Tween = null
 
 func _ready() -> void:
 	# Rows carry their own gap, so the container adds none. Otherwise a closed row would still leave
@@ -98,10 +112,26 @@ func _ready() -> void:
 	_scroll_to_selected()
 	_show_details()
 
+# Input.get_axis returns -1 while the first action is held, 1 for the second, and 0 for neither.
+func _process(delta: float) -> void:
+	if current_state != State.TEXT_ACTIVE:
+		return
+	var direction: float = Input.get_axis("ui_up", "ui_down")
+	if direction == 0.0:
+		return
+	entry_scroll_position += direction * ENTRY_SCROLL_SPEED * delta
+	quest_entries_scroll.scroll_vertical = roundi(entry_scroll_position)
+	# The ScrollContainer won't go past either end. Reading back what it accepted stops the decimal
+	# position drifting beyond the end, where releasing and reversing would feel unresponsive.
+	if quest_entries_scroll.scroll_vertical != roundi(entry_scroll_position):
+		entry_scroll_position = float(quest_entries_scroll.scroll_vertical)
+
 # --- STATE ---
 # The selection animation for the active side will be triggered from here later.
 func _set_state(new_state: State) -> void:
 	current_state = new_state
+	if new_state == State.TEXT_ACTIVE:
+		entry_scroll_position = float(quest_entries_scroll.scroll_vertical)
 
 # --- INPUT ---
 func _unhandled_input(event: InputEvent) -> void:
@@ -132,10 +162,6 @@ func _input_text(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():
 		_set_state(State.LIST_ACTIVE)
 		get_viewport().set_input_as_handled()
-	if event.is_action_pressed("ui_up", true):
-		quest_entries_scroll.scroll_vertical -= ENTRY_SCROLL_STEP
-	if event.is_action_pressed("ui_down", true):
-		quest_entries_scroll.scroll_vertical += ENTRY_SCROLL_STEP
 
 func _move_selection(step: int) -> void:
 	if nav_list.is_empty():
@@ -340,23 +366,33 @@ func _set_row_height(height: float, row: Control) -> void:
 	row.custom_minimum_size.y = roundf(height)
 
 # --- RIGHT SIDE ---
-# Fades the details out, swaps the text at the invisible moment, then fades back in. Starting from
-# the current alpha means fast scrolling never makes it flicker.
+# Fades the details out, then swaps the text. The fade back in happens in _on_details_faded_out.
 func _fade_details() -> void:
+	# A new selection takes over any reveal still waiting on the previous quest's scroll.
+	if reveal_tab_after_scroll:
+		reveal_tab_after_scroll = false
+		_fade_in_list()
+	reveal_details_after_scroll = false
+
 	if details_tween != null and details_tween.is_valid():
 		details_tween.kill()
 	details_tween = create_tween()
 	details_tween.set_parallel(true)
 	details_tween.tween_property(quest_desc_panel, "modulate:a", 0.0, TEXT_FADE_OUT_TIME)
 	details_tween.tween_property(header_summary_centre, "modulate:a", 0.0, TEXT_FADE_OUT_TIME)
-	details_tween.chain().tween_callback(_show_details)
-	details_tween.chain().tween_property(quest_desc_panel, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
-	details_tween.tween_property(header_summary_centre, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
+	details_tween.chain().tween_callback(_on_details_faded_out)
+
+# A quest whose text still needs scrolling waits for it. Headers and anything else fade straight in.
+func _on_details_faded_out() -> void:
+	_show_details()
+	if entries_scroll_pending and is_visible_in_tree():
+		reveal_details_after_scroll = true
+	else:
+		_fade_in_details()
 
 func _show_details() -> void:
 	if nav_list.is_empty():
 		quest_title.text = ""
-		quest_status.text = ""
 		_clear_entries()
 		header_summary_centre.visible = false
 		return
@@ -381,12 +417,14 @@ func _show_details() -> void:
 
 # The title takes the dark shade. The status line takes the light one. Entries are coloured as
 # they're built.
-func _set_details_colour(title_colour: Color, text_colour: Color) -> void:
+func _set_details_colour(title_colour: Color, _text_colour: Color) -> void:
 	quest_title.add_theme_color_override("font_color", title_colour)
 
 # --- QUEST ENTRIES ---
 func _clear_entries() -> void:
 	entries_version += 1
+	entries_scroll_target = null
+	entries_scroll_pending = false
 	for child: Node in quest_entries.get_children():
 		child.free()
 
@@ -424,28 +462,105 @@ func _populate_entries(quest: Dictionary, text_colour: Color) -> void:
 	quest_entries.add_child(entries_spacer)
 
 	quest_entries_scroll.scroll_vertical = 0
-	if scroll_target != null:
+	entries_scroll_target = scroll_target
+	entries_scroll_pending = scroll_target != null
+	# Hidden until scrolled into place, so the jump from the top is never seen.
+	quest_entries.modulate.a = 0.0 if entries_scroll_pending else 1.0
+	if entries_scroll_pending:
 		_scroll_to_entry(scroll_target)
 
-# Frame 1: the labels are laid out and wrapped, so their positions are final. The spacer is sized
-# to just what's needed for the target to reach the top of the view.
-# Frame 2: the scroll range has grown to include the spacer, so the scroll can reach the target.
+# Waits for the layout to settle, sizes the spacer so the target can reach the top, then scrolls.
 # "await" pauses this function until the signal fires, while the rest of the game carries on.
 func _scroll_to_entry(target: Control) -> void:
-	var version: int = entries_version
-	await get_tree().process_frame
-	if version != entries_version or not is_instance_valid(target):
+	# Hidden nodes aren't laid out, so their positions are meaningless. Leave the scroll pending
+	# and let on_tab_shown() do it once the journal appears.
+	if not is_visible_in_tree():
 		return
+	var version: int = entries_version
 
-	var target_y: int = int(target.position.y)
-	var view_height: int = int(quest_entries_scroll.size.y)
-	var content_height: int = int(quest_entries.size.y)
+	# Vector3i is three whole numbers in one value, so all three measurements can be compared at once.
+	var last_measure: Vector3i = Vector3i(-1, -1, -1)
+	for i: int in range(LAYOUT_SETTLE_MAX_FRAMES):
+		await get_tree().process_frame
+		# A newer quest has replaced this one, and its own scroll will handle the reveal.
+		if version != entries_version or not is_instance_valid(target):
+			return
+		# Switching tab mid-wait stops the layout. on_tab_shown() will start this again on return.
+		if not is_visible_in_tree():
+			return
+		var measure: Vector3i = Vector3i(
+			int(target.position.y),
+			int(quest_entries.size.y),
+			int(quest_entries_scroll.size.y)
+		)
+		if measure == last_measure:
+			break
+		last_measure = measure
+
+	var target_y: int = last_measure.x
+	var content_height: int = last_measure.y
+	var view_height: int = last_measure.z
 	entries_spacer.custom_minimum_size.y = maxi(0, target_y + view_height - content_height)
 
 	await get_tree().process_frame
 	if version != entries_version or not is_instance_valid(target):
 		return
 	quest_entries_scroll.scroll_vertical = target_y
+	entries_scroll_pending = false
+
+	# Whatever was waiting on this scroll now fades in, with the entries already fully visible
+	# inside it, so title and text arrive together.
+	if reveal_tab_after_scroll:
+		reveal_tab_after_scroll = false
+		quest_entries.modulate.a = 1.0
+		_fade_in_tab()
+	elif reveal_details_after_scroll:
+		reveal_details_after_scroll = false
+		quest_entries.modulate.a = 1.0
+		_fade_in_details()
+	else:
+		_reveal_entries()
+
+# Called by game_menu whenever the journal tab is shown. If the quest text still needs its first
+# scroll, everything stays hidden until that's done, so it all fades in together.
+func on_tab_shown() -> void:
+	left_side.modulate.a = 0.0
+	quest_desc_panel.modulate.a = 0.0
+	header_summary_centre.modulate.a = 0.0
+	if entries_scroll_pending and is_instance_valid(entries_scroll_target):
+		reveal_tab_after_scroll = true
+		_scroll_to_entry(entries_scroll_target)
+	else:
+		_fade_in_tab()
+
+func _fade_in_tab() -> void:
+	_fade_in_details()
+	_fade_in_list()
+
+# Starts the right side from invisible and fades it in. Uses details_tween so it cancels, or is
+# cancelled by, the fade from moving the selection.
+func _fade_in_details() -> void:
+	if details_tween != null and details_tween.is_valid():
+		details_tween.kill()
+	quest_desc_panel.modulate.a = 0.0
+	header_summary_centre.modulate.a = 0.0
+	details_tween = create_tween()
+	details_tween.set_parallel(true)
+	details_tween.tween_property(quest_desc_panel, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
+	details_tween.tween_property(header_summary_centre, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
+	
+func _fade_in_list() -> void:
+	if list_fade_tween != null and list_fade_tween.is_valid():
+		list_fade_tween.kill()
+	left_side.modulate.a = 0.0
+	list_fade_tween = create_tween()
+	list_fade_tween.tween_property(left_side, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
+
+func _reveal_entries() -> void:
+	if entries_reveal_tween != null and entries_reveal_tween.is_valid():
+		entries_reveal_tween.kill()
+	entries_reveal_tween = create_tween()
+	entries_reveal_tween.tween_property(quest_entries, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
 
 # BBCode is a set of tags RichTextLabel reads: [center] centres the line, and [color] colours only
 # the text inside it. to_html(false) turns a Color into a hex string, leaving out the alpha.

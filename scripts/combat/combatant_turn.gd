@@ -772,6 +772,10 @@ func _execute_ability() -> void:
 	ability_instance.attacker_position = combatant.global_position
 	ability_instance.caster = combatant
 	ability_instance.attack_direction = ability_direction
+	# This "await" is needed as abilities need to have their animation finish
+	# before they continue with calculations. Without await this would continue
+	# on calculating (execute ability) while blink was still aniamting.
+	@warning_ignore("redundant_await")
 	await ability_instance.execute(combatant, execute_tiles, combatants, world_layer)
 	animating = false
 	player_tile = world_layer.local_to_map(combatant.global_position)
@@ -1151,7 +1155,7 @@ func _redraw(collapse_inward: bool = true) -> void:
 
 func _calculate_ranged_area(weapon_range: int) -> Array:
 	var tiles: Array = []
-	var max_dist: int = weapon_range / 2 + 1
+	var max_dist: int = int(weapon_range / 2.0) + 1
 	for dx in range(-max_dist, max_dist + 1):
 		for dy in range(-max_dist, max_dist + 1):
 			var mn: int = mini(abs(dx), abs(dy))
@@ -1568,10 +1572,10 @@ func _combatant_on_tile(tile: Vector2i, include_non_combat: bool = false) -> Nod
 func get_hovered_combatant() -> Node:
 	if ai_controlled or world_layer == null:
 		return null
-	if mode == Mode.ABILITY:
-		var targeting: String = active_ability.get("targeting", "")
-		if targeting == "direction" or targeting == "line" or targeting == "touch":
-			return null
+	# The card is for inspecting, so it only appears while planning movement. Attack and
+	# ability aiming have their own hit labels on the targets.
+	if mode != Mode.MOVE:
+		return null
 	return _combatant_on_tile(cursor_tile, true)
 
 func _redraw_attack() -> void:

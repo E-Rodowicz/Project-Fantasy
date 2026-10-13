@@ -18,11 +18,12 @@ func get_targeting_type() -> String:
 	return data.get("targeting", "")
 	
 # Override in each ability: return which tiles are affected.
-func get_target_tiles(player_tile: Vector2i, direction: Vector2i, world_layer: TileMapLayer) -> Array:
+func get_target_tiles(_player_tile: Vector2i, _direction: Vector2i, _world_layer: TileMapLayer) -> Array:
 	return []
 	
 # Override in each ability: do the thing.
-func execute(caster: Node, tiles: Array, all_combatants: Array, world_layer: TileMapLayer) -> void:
+func execute(p_caster: Node, _tiles: Array, _all_combatants: Array, _world_layer: TileMapLayer) -> void:
+	caster = p_caster
 	pass
 
 # Find who is standing on a tile.
@@ -38,7 +39,8 @@ func combatant_on_tile(tile: Vector2i, all_combatants: Array, world_layer: TileM
 	return null
 	
 # Roll weapon damage for the caster.
-func roll_weapon_damage(caster: Node) -> int:
+func roll_weapon_damage(p_caster: Node) -> int:
+	caster = p_caster
 	if caster.is_in_group("player"):
 		var weapon: Dictionary = PlayerData.get_equipped_weapon()
 		if weapon.is_empty():
@@ -82,7 +84,8 @@ func _deal_damage(target: Node, amount: int, do_nudge: bool = true) -> void:
 # Rolls to hit. On a miss, logs it and plays the sidestep. Returns true if it connects. Pass 
 # play_reaction = false when the caller moves the target itself, so the two don't fight over 
 # global_position.
-func attack_roll(caster: Node, target: Node, play_reaction: bool = true) -> bool:
+func attack_roll(p_caster: Node, target: Node, play_reaction: bool = true) -> bool:
+	caster = p_caster
 	if randf() < get_hit_chance(target):
 		return true
 	CombatLog.add(target.name + " dodges " + caster.name + "'s " + data.get("name", "attack").to_lower() + "!")
