@@ -41,6 +41,11 @@ const TEXT_FADE_IN_TIME: float = 0.12
 const ROW_UNROLL_TIME: float = 0.06
 # The most frames to wait for the quest text's layout to settle before scrolling anyway.
 const LAYOUT_SETTLE_MAX_FRAMES: int = 10
+# The handle never gets shorter than this, so its caps always fit.
+const HANDLE_MIN_HEIGHT: int = 8
+# Test switch: the window you're not in shows as selected, to preview the pulse and the growth.
+# Set to false to go back to showing only the window you're in.
+const PREVIEW_SELECTED_FRAMES: bool = false
 
 @onready var quest_list_scroll: ScrollContainer = $left_side/quest_list_panel/quest_list_scroll
 @onready var quest_list_container: Control = $left_side/quest_list_panel/quest_list_scroll/quest_list_container
@@ -51,6 +56,10 @@ const LAYOUT_SETTLE_MAX_FRAMES: int = 10
 @onready var header_summary_centre: Control = $right_side/header_summary_centre
 @onready var header_summary: RichTextLabel = $right_side/header_summary_centre/header_summary
 @onready var left_side: Control = $left_side
+@onready var quest_entries_margin: Control = $right_side/quest_desc_panel/quest_entries_margin
+@onready var scroll_handle: NinePatchRect = $right_side/quest_scroll_handle
+@onready var list_frame: SelectionFrame = $left_side/list_frame
+@onready var desc_frame: SelectionFrame = $right_side/desc_frame
 
 var current_state: State = State.LIST_ACTIVE
 
@@ -93,6 +102,10 @@ var entry_scroll_position: float = 0.0
 var entries_scroll_target: Control = null
 var entries_scroll_pending: bool = false
 var entries_reveal_tween: Tween = null
+# How far the text can scroll, and the strip the handle moves within, set when a quest is shown.
+var scroll_max: int = 0
+var handle_area_top: int = 0
+var handle_area_height: int = 0
 
 func _ready() -> void:
 	# Rows carry their own gap, so the container adds none. Otherwise a closed row would still leave
@@ -114,6 +127,10 @@ func _ready() -> void:
 
 # Input.get_axis returns -1 while the first action is held, 1 for the second, and 0 for neither.
 func _process(delta: float) -> void:
+	# The handle sits outside quest_desc_panel, so it copies the panel's fade, and follows the
+	# scroll every frame, however the scroll changed.
+	scroll_handle.modulate.a = quest_desc_panel.modulate.a
+	_update_scroll_handle_position()
 	if current_state != State.TEXT_ACTIVE:
 		return
 	var direction: float = Input.get_axis("ui_up", "ui_down")
@@ -127,11 +144,25 @@ func _process(delta: float) -> void:
 		entry_scroll_position = float(quest_entries_scroll.scroll_vertical)
 
 # --- STATE ---
-# The selection animation for the active side will be triggered from here later.
 func _set_state(new_state: State) -> void:
 	current_state = new_state
 	if new_state == State.TEXT_ACTIVE:
 		entry_scroll_position = float(quest_entries_scroll.scroll_vertical)
+	_update_frames()
+
+func _update_frames() -> void:
+	if current_state == State.LIST_ACTIVE:
+		list_frame.activate()
+		if PREVIEW_SELECTED_FRAMES:
+			desc_frame.select()
+		else:
+			desc_frame.deselect()
+	else:
+		desc_frame.activate()
+		if PREVIEW_SELECTED_FRAMES:
+			list_frame.select()
+		else:
+			list_frame.deselect()
 
 # --- INPUT ---
 func _unhandled_input(event: InputEvent) -> void:
@@ -425,6 +456,8 @@ func _clear_entries() -> void:
 	entries_version += 1
 	entries_scroll_target = null
 	entries_scroll_pending = false
+	scroll_handle.visible = false
+	scroll_max = 0
 	for child: Node in quest_entries.get_children():
 		child.free()
 
@@ -500,7 +533,9 @@ func _scroll_to_entry(target: Control) -> void:
 	var target_y: int = last_measure.x
 	var content_height: int = last_measure.y
 	var view_height: int = last_measure.z
-	entries_spacer.custom_minimum_size.y = maxi(0, target_y + view_height - content_height)
+	var spacer_height: int = maxi(0, target_y + view_height - content_height)
+	entries_spacer.custom_minimum_size.y = spacer_height
+	_setup_scroll_handle(content_height + spacer_height - view_height)
 
 	await get_tree().process_frame
 	if version != entries_version or not is_instance_valid(target):
@@ -524,6 +559,9 @@ func _scroll_to_entry(target: Control) -> void:
 # Called by game_menu whenever the journal tab is shown. If the quest text still needs its first
 # scroll, everything stays hidden until that's done, so it all fades in together.
 func on_tab_shown() -> void:
+	list_frame.hide_instantly()
+	desc_frame.hide_instantly()
+	_update_frames()
 	left_side.modulate.a = 0.0
 	quest_desc_panel.modulate.a = 0.0
 	header_summary_centre.modulate.a = 0.0
@@ -581,3 +619,27 @@ func _build_header_summary(section_name: String) -> String:
 	# The whole sentence takes the light shade. The number's own [color] tag inside it overrides that.
 	var text_colour: Color = QUEST_COLOURS.get(section_name, Color.WHITE)
 	return "[center][color=#" + text_colour.to_html(false) + "]" + sentence + "[/color][/center]"
+
+# Sizes the handle by how much of the text fits in view, and hides it if nothing scrolls.
+# The handle moves along the full height of the right side, title area included.
+func _setup_scroll_handle(max_scroll: int) -> void:
+	scroll_max = max_scroll
+	scroll_handle.visible = max_scroll > 0
+	if max_scroll <= 0:
+		return
+	handle_area_top = int(quest_desc_panel.position.y)
+	handle_area_height = int(quest_desc_panel.size.y)
+	var view_height: int = int(quest_entries_scroll.size.y)
+	var total_height: int = max_scroll + view_height
+	var handle_height: int = roundi(float(handle_area_height) * view_height / total_height)
+	scroll_handle.size.y = clampi(handle_height, HANDLE_MIN_HEIGHT, handle_area_height)
+	_update_scroll_handle_position()
+
+# Top of the strip when the text is at the start, bottom when it's at the end. Rounded so it
+# always lands on a whole art pixel.
+func _update_scroll_handle_position() -> void:
+	if scroll_max <= 0:
+		return
+	var travel: int = handle_area_height - int(scroll_handle.size.y)
+	var progress: float = float(quest_entries_scroll.scroll_vertical) / scroll_max
+	scroll_handle.position.y = handle_area_top + roundi(travel * progress)

@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://3cl5q14rrvy2"]
 
 [ext_resource type="Script" uid="uid://dfufkc764tewc" path="res://scenes/gui/journal_screen.gd" id="1_k67uy"]
+[ext_resource type="Texture2D" uid="uid://bxpknm6mel4d3" path="res://assets/sprites/gui/scrollbar.png" id="2_jnu3m"]
+[ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_yuaq5"]
+[ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_8ks27"]
 
 [node name="journal_screen" type="Control" unique_id=139922821]
 layout_mode = 3
@@ -31,6 +34,24 @@ vertical_scroll_mode = 3
 [node name="quest_list_container" type="VBoxContainer" parent="left_side/quest_list_panel/quest_list_scroll" unique_id=588357197]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="list_frame" type="Control" parent="left_side" unique_id=371203107]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 3.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_yuaq5")
+corner_texture = ExtResource("3_8ks27")
+colour = Color(1, 0.76862746, 0.22352941, 1)
+line_inset = 1
+pulse_speed = 0.8
+animate_arms = false
+metadata/_custom_type_script = "uid://ch3ly4m04y11c"
 
 [node name="right_side" type="Control" parent="." unique_id=1340099877]
 anchors_preset = 0
@@ -64,6 +85,15 @@ vertical_scroll_mode = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="quest_scroll_handle" type="NinePatchRect" parent="right_side" unique_id=2039083530]
+layout_mode = 0
+offset_left = 188.0
+offset_right = 192.0
+offset_bottom = 4.0
+texture = ExtResource("2_jnu3m")
+patch_margin_top = 2
+patch_margin_bottom = 2
+
 [node name="header_summary_centre" type="CenterContainer" parent="right_side" unique_id=187030147]
 layout_mode = 0
 offset_right = 193.0
@@ -76,3 +106,21 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 autowrap_mode = 2
+
+[node name="desc_frame" type="Control" parent="right_side" unique_id=1752522980]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_yuaq5")
+corner_texture = ExtResource("3_8ks27")
+colour = Color(1, 0.76862746, 0.22352941, 1)
+line_inset = 1
+pulse_speed = 0.8
+animate_arms = false
+metadata/_custom_type_script = "uid://ch3ly4m04y11c"

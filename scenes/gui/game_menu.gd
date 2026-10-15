@@ -1,10 +1,9 @@
 extends CanvasLayer
 
 const TAB_TEXT_COLOUR: Color = Color.WHITE
-const TAB_TEXT_SELECTED_COLOUR: Color = Color("f2c14e")
+const TAB_TEXT_SELECTED_COLOUR: Color = Color("ffc439")
 const TAB_FADE_TIME: float = 0.15
 const BACKGROUND_FADE_TIME: float = 0.15
-const GEM_FADE_TIME: float = 0.15
 
 # --- SLIDE ---
 const PIXEL_SCALE: int = 4
@@ -18,7 +17,6 @@ const SLIDE_OUT_TIME: float = 0.18
 @onready var tab_journal: Control = $menu_frame/tabs/tab_journal
 @onready var tab_map: Control = $menu_frame/tabs/tab_map
 @onready var screen_holder: Control = $menu_frame/content_area/screen_holder
-@onready var gem: MenuGem = $menu_frame/content_area/gem
 
 # One background per tab, in tab order: Character, Inventory, Journal, Map.
 # An empty slot falls back to the texture set on menu_frame in the editor.
@@ -45,7 +43,6 @@ var tab_selects: Array[AnimatedSprite2D] = []
 var tab_select_tweens: Array[Tween] = []
 
 var slide_tween: Tween = null
-var gem_tween: Tween = null
 # False while sliding out, so the menu ignores keys on its way off screen.
 var accepting_input: bool = true
 # Fully above the screen: the frame's own height, negative.
@@ -91,7 +88,7 @@ func _ready() -> void:
 	]
 
 	for i: int in range(screens.size()):
-		tab_sides.append(GameMenuManager.Side.GEM)
+		tab_sides.append(GameMenuManager.Side.LEFT)
 		tab_in_screen.append(false)
 
 	shown_native_y = roundi(menu_frame.position.y / PIXEL_SCALE)
@@ -164,7 +161,6 @@ func switch_tab(tab_index: int) -> void:
 	_update_background(not is_first_show)
 	_update_tab_visuals()
 	_update_side_visuals()
-	_update_gem(not is_first_show)
 
 # --- VISUALS ---
 # The menu opening on its first tab just sets the background. Switching tabs crossfades.
@@ -211,35 +207,14 @@ func _fade_tab(index: int, is_current: bool) -> void:
 	tween.tween_property(tab_labels[index], "theme_override_colors/font_color", target_colour, TAB_FADE_TIME)
 	tab_select_tweens[index] = tween
 
+# Tells a gem screen which side is selected and whether the player is inside it, so the screen
+# can show it with its frames. Screens without this function are left alone.
 func _update_side_visuals() -> void:
 	var screen: Control = screens[current_tab]
 	if not _uses_split(screen):
 		return
-	var side: int = tab_sides[current_tab]
-	(screen.get_node("left_side") as Control).modulate = _side_colour(side == GameMenuManager.Side.LEFT)
-	(screen.get_node("right_side") as Control).modulate = _side_colour(side == GameMenuManager.Side.RIGHT)
-
-func _side_colour(is_selected: bool) -> Color:
-	return Color.WHITE if is_selected else Color.DARK_GRAY
-
-# The gem's state still snaps (frame 8 or frame 1), but its appearing and disappearing fades.
-func _update_gem(animate: bool) -> void:
-	var shows_gem: bool = _uses_split(screens[current_tab])
-	if shows_gem:
-		if tab_sides[current_tab] == GameMenuManager.Side.GEM:
-			gem.set_on_instantly()
-		else:
-			gem.set_off_instantly()
-	_fade_gem(1.0 if shows_gem else 0.0, animate)
-
-func _fade_gem(target_alpha: float, animate: bool) -> void:
-	if gem_tween != null and gem_tween.is_valid():
-		gem_tween.kill()
-	if not animate:
-		gem.modulate.a = target_alpha
-		return
-	gem_tween = create_tween()
-	gem_tween.tween_property(gem, "modulate:a", target_alpha, GEM_FADE_TIME)
+	if screen.has_method("show_side_selection"):
+		screen.call("show_side_selection", tab_sides[current_tab], tab_in_screen[current_tab])
 
 # --- INPUT ---
 func _unhandled_input(event: InputEvent) -> void:
@@ -262,31 +237,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_right"):
 		_select_side(GameMenuManager.Side.RIGHT)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_down") or event.is_action_pressed("ui_up"):
-		_select_side(GameMenuManager.Side.GEM)
-		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
 		_confirm_side()
 		get_viewport().set_input_as_handled()
 
 func _select_side(side: int) -> void:
-	var old_side: int = tab_sides[current_tab]
-	if side == old_side:
+	if side == tab_sides[current_tab]:
 		return
 	tab_sides[current_tab] = side
-	if old_side == GameMenuManager.Side.GEM:
-		gem.turn_off()
-	elif side == GameMenuManager.Side.GEM:
-		gem.turn_on()
 	_update_side_visuals()
 
 func _confirm_side() -> void:
-	var side: int = tab_sides[current_tab]
-	if side == GameMenuManager.Side.GEM:
-		gem.glitter_now()
-		return
 	tab_in_screen[current_tab] = true
-	screens[current_tab].call("enter_side", side)
+	screens[current_tab].call("enter_side", tab_sides[current_tab])
+	_update_side_visuals()
 
 func _on_side_exited() -> void:
 	tab_in_screen[current_tab] = false

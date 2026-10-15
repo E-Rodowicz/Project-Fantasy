@@ -1,313 +1,153 @@
 [gd_scene format=3 uid="uid://b5toq0dl7vuby"]
 
 [ext_resource type="Script" uid="uid://dbb85yt5887p5" path="res://scenes/gui/character_screen.gd" id="1_y1ul8"]
-[ext_resource type="Texture2D" uid="uid://bm8efun1xgjce" path="res://assets/sprites/stone_wall_test.png" id="2_1g78e"]
+[ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
+[ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
 
-[node name="Control" type="Control" unique_id=1925044566]
+[node name="character_screen" type="Control" unique_id=1925044566]
 layout_mode = 3
 anchors_preset = 0
+offset_right = 400.0
+offset_bottom = 155.0
 script = ExtResource("1_y1ul8")
 
-[node name="general_stats" type="NinePatchRect" parent="." unique_id=1994890453]
-texture_filter = 1
-layout_mode = 0
-offset_left = 1216.0
-offset_right = 1664.0
-offset_bottom = 696.0
-texture = ExtResource("2_1g78e")
+[node name="left_side" type="Control" parent="." unique_id=438787536]
+anchors_preset = 0
+offset_right = 193.0
+offset_bottom = 155.0
 
-[node name="stat_strength" type="Label" parent="general_stats" unique_id=854734131]
+[node name="combat_tabs" type="VBoxContainer" parent="left_side" unique_id=407945166]
 layout_mode = 0
-offset_left = 256.0
-offset_top = 40.0
-offset_right = 332.0
-offset_bottom = 63.0
-text = "Strength: "
+offset_left = 4.0
+offset_right = 52.0
+offset_bottom = 155.0
 
-[node name="stat_vitality" type="Label" parent="general_stats" unique_id=423427664]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 64.0
-offset_right = 319.0
-offset_bottom = 87.0
-text = "Vitality: "
+[node name="tab_red" type="Label" parent="left_side/combat_tabs" unique_id=217158850]
+layout_mode = 2
 
-[node name="stat_dexterity" type="Label" parent="general_stats" unique_id=1920803225]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 88.0
-offset_right = 337.0
-offset_bottom = 111.0
-text = "Dexterity: "
+[node name="tab_green" type="Label" parent="left_side/combat_tabs" unique_id=1586548343]
+layout_mode = 2
 
-[node name="stat_speed" type="Label" parent="general_stats" unique_id=574904670]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 112.0
-offset_right = 312.0
-offset_bottom = 135.0
-text = "Speed: "
+[node name="tab_blue" type="Label" parent="left_side/combat_tabs" unique_id=1885997875]
+layout_mode = 2
 
-[node name="stat_charisma" type="Label" parent="general_stats" unique_id=1655787536]
+[node name="combat_skill_tree" type="VBoxContainer" parent="left_side" unique_id=1309587638]
 layout_mode = 0
-offset_left = 256.0
-offset_top = 136.0
-offset_right = 338.0
-offset_bottom = 159.0
-text = "Charisma: "
+offset_left = 56.0
+offset_right = 185.0
+offset_bottom = 155.0
 
-[node name="stat_intelligence" type="Label" parent="general_stats" unique_id=1037461988]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 160.0
-offset_right = 354.0
-offset_bottom = 183.0
-text = "Intelligence: "
+[node name="skills_frame" type="Control" parent="left_side" unique_id=1575493479]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 3.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_or42p")
+corner_texture = ExtResource("3_d81u7")
+colour = Color(1, 0.76862746, 0.22352941, 1)
+line_inset = 1
+pulse_speed = 0.8
+metadata/_custom_type_script = "uid://ch3ly4m04y11c"
 
-[node name="stat_luck" type="Label" parent="general_stats" unique_id=690579874]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 184.0
-offset_right = 297.0
-offset_bottom = 207.0
-text = "Luck:"
+[node name="right_side" type="Control" parent="." unique_id=1207010622]
+anchors_preset = 0
+offset_left = 207.0
+offset_right = 400.0
+offset_bottom = 155.0
 
-[node name="stat_hp" type="Label" parent="general_stats" unique_id=1138813316]
+[node name="stats_scroll" type="ScrollContainer" parent="right_side" unique_id=299445902]
 layout_mode = 0
-offset_left = 64.0
-offset_top = 384.0
-offset_right = 104.0
-offset_bottom = 407.0
-text = "HP: "
+offset_left = 6.0
+offset_right = 187.0
+offset_bottom = 155.0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="stat_damage" type="Label" parent="general_stats" unique_id=289791147]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 408.0
-offset_right = 133.0
-offset_bottom = 431.0
-text = "Damage:"
+[node name="general_stats" type="VBoxContainer" parent="right_side/stats_scroll" unique_id=1604767534]
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="stat_defence" type="Label" parent="general_stats" unique_id=2020924206]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 432.0
-offset_right = 132.0
-offset_bottom = 455.0
-text = "Defence:"
+[node name="stat_name" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=491512466]
+layout_mode = 2
 
-[node name="stat_hit_chance" type="Label" parent="general_stats" unique_id=803713613]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 480.0
-offset_right = 153.0
-offset_bottom = 503.0
-text = "Hit Chance:"
+[node name="stat_level" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1076229733]
+layout_mode = 2
 
-[node name="stat_dodge_chance" type="Label" parent="general_stats" unique_id=307523367]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 456.0
-offset_right = 184.0
-offset_bottom = 479.0
-text = "Dodge Chance: "
+[node name="stat_xp" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=354813263]
+layout_mode = 2
 
-[node name="stat_level" type="Label" parent="general_stats" unique_id=892779690]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 72.0
-offset_right = 113.0
-offset_bottom = 95.0
-text = "Level: "
+[node name="stat_hp" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=279380493]
+layout_mode = 2
 
-[node name="stat_xp" type="Label" parent="general_stats" unique_id=696014296]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 96.0
-offset_right = 104.0
-offset_bottom = 119.0
-text = "XP: "
+[node name="stat_strength" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1072785983]
+layout_mode = 2
 
-[node name="stat_carry_weight" type="Label" parent="general_stats" unique_id=28615]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 120.0
-offset_right = 173.0
-offset_bottom = 143.0
-text = "Carry Weight: "
+[node name="stat_vitality" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=133329513]
+layout_mode = 2
 
-[node name="stat_gold" type="Label" parent="general_stats" unique_id=1484712211]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 144.0
-offset_right = 109.0
-offset_bottom = 167.0
-text = "Gold: "
+[node name="stat_dexterity" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=66156162]
+layout_mode = 2
 
-[node name="stat_fire_res" type="Label" parent="general_stats" unique_id=1511184487]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 456.0
-offset_right = 384.0
-offset_bottom = 479.0
-text = "Fire Res: "
+[node name="stat_speed" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=2036071738]
+layout_mode = 2
 
-[node name="stat_lightning_res" type="Label" parent="general_stats" unique_id=1270929798]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 432.0
-offset_right = 416.0
-offset_bottom = 455.0
-text = "Lightning Res:"
+[node name="stat_charisma" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=2021403841]
+layout_mode = 2
 
-[node name="stat_ice_res" type="Label" parent="general_stats" unique_id=1929954872]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 408.0
-offset_right = 384.0
-offset_bottom = 431.0
-text = "Ice Res: "
+[node name="stat_intelligence" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1747610245]
+layout_mode = 2
 
-[node name="stat_poison_res" type="Label" parent="general_stats" unique_id=1638937837]
-layout_mode = 0
-offset_left = 256.0
-offset_top = 384.0
-offset_right = 384.0
-offset_bottom = 407.0
-text = "Poison Res: "
+[node name="stat_luck" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=585138694]
+layout_mode = 2
 
-[node name="stat_name" type="Label" parent="general_stats" unique_id=1127203963]
-layout_mode = 0
-offset_left = 64.0
-offset_top = 40.0
-offset_right = 192.0
-offset_bottom = 64.0
-text = "Name:"
+[node name="stat_carry_weight" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1958860862]
+layout_mode = 2
 
-[node name="info_panel" type="NinePatchRect" parent="." unique_id=379601861]
-layout_mode = 0
-offset_left = 960.0
-offset_right = 1216.0
-offset_bottom = 696.0
+[node name="stat_gold" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=306641839]
+layout_mode = 2
 
-[node name="info_title" type="Label" parent="info_panel" unique_id=1096608202]
-layout_mode = 0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 248.0
-offset_bottom = 56.0
+[node name="stat_damage" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1609837588]
+layout_mode = 2
 
-[node name="info_desc" type="Label" parent="info_panel" unique_id=933420046]
-layout_mode = 0
-offset_left = 8.0
-offset_top = 72.0
-offset_right = 248.0
-offset_bottom = 632.0
-autowrap_mode = 3
+[node name="stat_defence" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=189026796]
+layout_mode = 2
 
-[node name="info_bonus" type="Label" parent="info_panel" unique_id=41735022]
-layout_mode = 0
-offset_left = 8.0
-offset_top = 640.0
-offset_right = 248.0
-offset_bottom = 688.0
+[node name="stat_hit_chance" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1009591579]
+layout_mode = 2
 
-[node name="combat_tabs" type="NinePatchRect" parent="." unique_id=1226158175]
-layout_mode = 0
-offset_right = 192.0
-offset_bottom = 696.0
+[node name="stat_dodge_chance" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1799398321]
+layout_mode = 2
 
-[node name="tab_red" type="Label" parent="combat_tabs" unique_id=985856081]
-layout_mode = 0
-offset_right = 192.0
-offset_bottom = 200.0
-text = "Red"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="stat_fire_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=921033086]
+layout_mode = 2
 
-[node name="tab_green" type="Label" parent="combat_tabs" unique_id=742887423]
-layout_mode = 0
-offset_top = 248.0
-offset_right = 192.0
-offset_bottom = 448.0
-text = "Green"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="stat_lightning_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=281714818]
+layout_mode = 2
 
-[node name="tab_blue" type="Label" parent="combat_tabs" unique_id=588833804]
-layout_mode = 0
-offset_top = 496.0
-offset_right = 192.0
-offset_bottom = 696.0
-text = "Blue"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="stat_ice_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1087195653]
+layout_mode = 2
 
-[node name="combat_skill_tree" type="NinePatchRect" parent="." unique_id=117308713]
-layout_mode = 0
-offset_left = 192.0
-offset_right = 960.0
-offset_bottom = 696.0
+[node name="stat_poison_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=322259716]
+layout_mode = 2
 
-[node name="Button" type="Button" parent="combat_skill_tree" unique_id=1189419193]
-layout_mode = 0
-offset_left = 352.0
-offset_top = 64.0
-offset_right = 416.0
-offset_bottom = 128.0
-
-[node name="Button2" type="Button" parent="combat_skill_tree" unique_id=616080122]
-layout_mode = 0
-offset_left = 160.0
-offset_top = 128.0
-offset_right = 224.0
-offset_bottom = 192.0
-
-[node name="Button3" type="Button" parent="combat_skill_tree" unique_id=1335105326]
-layout_mode = 0
-offset_left = 352.0
-offset_top = 184.0
-offset_right = 416.0
-offset_bottom = 248.0
-
-[node name="Button4" type="Button" parent="combat_skill_tree" unique_id=1257047627]
-layout_mode = 0
-offset_left = 600.0
-offset_top = 128.0
-offset_right = 664.0
-offset_bottom = 192.0
-
-[node name="Button5" type="Button" parent="combat_skill_tree" unique_id=701032287]
-layout_mode = 0
-offset_left = 160.0
-offset_top = 320.0
-offset_right = 224.0
-offset_bottom = 384.0
-
-[node name="Button6" type="Button" parent="combat_skill_tree" unique_id=684893863]
-layout_mode = 0
-offset_left = 608.0
-offset_top = 320.0
-offset_right = 672.0
-offset_bottom = 384.0
-
-[node name="Button7" type="Button" parent="combat_skill_tree" unique_id=777414848]
-layout_mode = 0
-offset_left = 344.0
-offset_top = 384.0
-offset_right = 408.0
-offset_bottom = 448.0
-
-[node name="Button8" type="Button" parent="combat_skill_tree" unique_id=1719125138]
-layout_mode = 0
-offset_left = 160.0
-offset_top = 512.0
-offset_right = 224.0
-offset_bottom = 576.0
-
-[node name="Button9" type="Button" parent="combat_skill_tree" unique_id=1280988060]
-layout_mode = 0
-offset_left = 608.0
-offset_top = 512.0
-offset_right = 672.0
-offset_bottom = 576.0
+[node name="stats_frame" type="Control" parent="right_side" unique_id=1355726910]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_or42p")
+corner_texture = ExtResource("3_d81u7")
+colour = Color(1, 0.76862746, 0.22352941, 1)
+line_inset = 1
+pulse_speed = 0.8
+metadata/_custom_type_script = "uid://ch3ly4m04y11c"
