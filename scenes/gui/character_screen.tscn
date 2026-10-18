@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dbb85yt5887p5" path="res://scenes/gui/character_screen.gd" id="1_y1ul8"]
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
+[ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
 
 [node name="character_screen" type="Control" unique_id=1925044566]
 layout_mode = 3
@@ -39,6 +40,7 @@ offset_bottom = 155.0
 
 [node name="skills_frame" type="Control" parent="left_side" unique_id=1575493479]
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -4.0
@@ -60,83 +62,76 @@ offset_left = 207.0
 offset_right = 400.0
 offset_bottom = 155.0
 
-[node name="stats_scroll" type="ScrollContainer" parent="right_side" unique_id=299445902]
-layout_mode = 0
+[node name="stats_panel" type="Control" parent="right_side" unique_id=1510289022]
+anchors_preset = 0
 offset_left = 6.0
-offset_right = 187.0
-offset_bottom = 155.0
-horizontal_scroll_mode = 0
-vertical_scroll_mode = 3
+offset_right = 247.0
+offset_bottom = 206.0
+scale = Vector2(0.75, 0.75)
+script = ExtResource("4_d81u7")
 
-[node name="general_stats" type="VBoxContainer" parent="right_side/stats_scroll" unique_id=1604767534]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="header_label" type="Label" parent="right_side/stats_panel" unique_id=193870378]
+layout_mode = 0
+offset_right = 241.0
+offset_bottom = 16.0
+horizontal_alignment = 1
 
-[node name="stat_name" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=491512466]
-layout_mode = 2
+[node name="xp_bar" type="Control" parent="right_side/stats_panel" unique_id=1400074614]
+anchors_preset = 0
+offset_top = 17.0
+offset_right = 241.0
+offset_bottom = 27.0
 
-[node name="stat_level" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1076229733]
-layout_mode = 2
+[node name="xp_back" type="ColorRect" parent="right_side/stats_panel/xp_bar" unique_id=1076035263]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
 
-[node name="stat_xp" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=354813263]
-layout_mode = 2
+[node name="xp_fill" type="ColorRect" parent="right_side/stats_panel/xp_bar" unique_id=318001350]
+layout_mode = 0
+offset_bottom = 10.0
 
-[node name="stat_hp" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=279380493]
-layout_mode = 2
+[node name="xp_text" type="Label" parent="right_side/stats_panel/xp_bar" unique_id=706490666]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="stat_strength" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1072785983]
-layout_mode = 2
+[node name="columns" type="HBoxContainer" parent="right_side/stats_panel" unique_id=851802569]
+layout_mode = 0
+offset_top = 32.0
+offset_right = 241.0
+offset_bottom = 206.0
+theme_override_constants/separation = 7
+alignment = 1
 
-[node name="stat_vitality" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=133329513]
-layout_mode = 2
-
-[node name="stat_dexterity" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=66156162]
-layout_mode = 2
-
-[node name="stat_speed" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=2036071738]
-layout_mode = 2
-
-[node name="stat_charisma" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=2021403841]
-layout_mode = 2
-
-[node name="stat_intelligence" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1747610245]
-layout_mode = 2
-
-[node name="stat_luck" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=585138694]
-layout_mode = 2
-
-[node name="stat_carry_weight" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1958860862]
-layout_mode = 2
-
-[node name="stat_gold" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=306641839]
-layout_mode = 2
-
-[node name="stat_damage" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1609837588]
-layout_mode = 2
-
-[node name="stat_defence" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=189026796]
+[node name="attributes_column" type="VBoxContainer" parent="right_side/stats_panel/columns" unique_id=860265868]
+custom_minimum_size = Vector2(55, 0)
 layout_mode = 2
 
-[node name="stat_hit_chance" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1009591579]
+[node name="resources_column" type="VBoxContainer" parent="right_side/stats_panel/columns" unique_id=1102422711]
+custom_minimum_size = Vector2(55, 0)
 layout_mode = 2
 
-[node name="stat_dodge_chance" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1799398321]
+[node name="combat_column" type="VBoxContainer" parent="right_side/stats_panel/columns" unique_id=818827819]
+custom_minimum_size = Vector2(55, 0)
 layout_mode = 2
 
-[node name="stat_fire_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=921033086]
-layout_mode = 2
-
-[node name="stat_lightning_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=281714818]
-layout_mode = 2
-
-[node name="stat_ice_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=1087195653]
-layout_mode = 2
-
-[node name="stat_poison_res" type="Label" parent="right_side/stats_scroll/general_stats" unique_id=322259716]
+[node name="resistances_column" type="VBoxContainer" parent="right_side/stats_panel/columns" unique_id=1325530373]
+custom_minimum_size = Vector2(55, 0)
 layout_mode = 2
 
 [node name="stats_frame" type="Control" parent="right_side" unique_id=1355726910]
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -3.0

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://dfrfj1861c8nr"]
+
+[ext_resource type="Texture2D" uid="uid://yu1806tekr8u" path="res://assets/sprites/gui/stats/lightning_res.png" id="1_24iu1"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_knft1"]
+
+[resource]
+script = ExtResource("2_knft1")
+id = "lightning_res"
+short_name = "Lgh"
+display_name = "Lightning Resistance"
+description = "Reduces lightning damage taken."
+icon = ExtResource("1_24iu1")
+colour = Color(0.80784315, 0.7902059, 0, 1)
+is_percent = true

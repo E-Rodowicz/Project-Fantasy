@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://d08n7lg7negvq"]
+
+[ext_resource type="Texture2D" uid="uid://lbxshvusrri" path="res://assets/sprites/gui/stats/vitality.png" id="1_tyvjy"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_q40sq"]
+
+[resource]
+script = ExtResource("2_q40sq")
+id = "vitality"
+short_name = "Vit"
+display_name = "Vitality"
+description = "Increases max HP and defence."
+icon = ExtResource("1_tyvjy")
+colour = Color(0.76862746, 0.38365585, 0.09019608, 1)
+uses_colour_scale = true

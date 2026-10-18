@@ -12,21 +12,6 @@ enum State {
 
 const SELECTED_COLOUR: Color = Color.YELLOW
 
-# Top-to-bottom order of the stat labels inside general_stats.
-const STAT_ORDER: Array[String] = [
-	"stat_name", "stat_level", "stat_xp", "stat_hp",
-	"stat_strength", "stat_vitality", "stat_dexterity", "stat_speed",
-	"stat_charisma", "stat_intelligence", "stat_luck",
-	"stat_carry_weight", "stat_gold", "stat_damage", "stat_defence",
-	"stat_hit_chance", "stat_dodge_chance",
-	"stat_fire_res", "stat_lightning_res", "stat_ice_res", "stat_poison_res",
-]
-
-const LEVELABLE_STATS: Array[String] = [
-	"stat_strength", "stat_vitality", "stat_dexterity",
-	"stat_speed", "stat_charisma", "stat_intelligence", "stat_luck",
-]
-
 # --- LEFT: SKILLS ---
 @onready var combat_skill_tree: Control = $left_side/combat_skill_tree
 @onready var skills_frame: SelectionFrame = $left_side/skills_frame
@@ -37,37 +22,26 @@ const LEVELABLE_STATS: Array[String] = [
 ]
 
 # --- RIGHT: STATS ---
-@onready var stats_scroll: ScrollContainer = $right_side/stats_scroll
-@onready var general_stats: Control = $right_side/stats_scroll/general_stats
+@onready var stats_panel: StatsPanel = $right_side/stats_panel
 @onready var stats_frame: SelectionFrame = $right_side/stats_frame
 
 var current_state: State = State.IDLE
 
-# Stats. Each row is an array so a row can later hold more than one value side by side.
-var stat_rows: Array = []
-var selected_stat_row: int = 0
-var selected_stat_col: int = 0
-
-# Skills.
 var selected_combat_tab: int = 0
 var skill_nodes: Array[Button] = []
 var selected_skill_node: int = 0
 var current_tree_abilities: Array = []
 
 func _ready() -> void:
-	for stat_name: String in STAT_ORDER:
-		stat_rows.append([general_stats.get_node(stat_name) as Label])
-
 	# Picks up whatever buttons are in the tree, so skills can be added without code changes.
 	for child: Node in combat_skill_tree.get_children():
 		if child is Button:
 			skill_nodes.append(child)
 
-	_update_general_stats_display()
 	_populate_skill_tree()
 	_refresh_highlights()
 
-# --- GEM SYSTEM ---
+# --- SIDE SELECTION ---
 # Called by game_menu when the player confirms a side.
 func enter_side(side: int) -> void:
 	if side == GameMenuManager.Side.LEFT:
@@ -92,7 +66,7 @@ func _set_frame(frame: SelectionFrame, is_selected: bool, entered: bool) -> void
 # Called by game_menu whenever this tab is shown. Stats can change elsewhere, e.g. carry weight
 # from equipping, so they refresh here.
 func on_tab_shown() -> void:
-	_update_general_stats_display()
+	stats_panel.refresh()
 
 # Marking the input handled stops Q travelling on to GameMenuManager and closing the menu.
 func _exit_side() -> void:
@@ -122,24 +96,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_input_skill_tree(event)
 
 func _input_stats(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_up"):
-		selected_stat_row = maxi(0, selected_stat_row - 1)
-		selected_stat_col = mini(selected_stat_col, stat_rows[selected_stat_row].size() - 1)
-		_refresh_highlights()
-	if event.is_action_pressed("ui_down"):
-		selected_stat_row = mini(stat_rows.size() - 1, selected_stat_row + 1)
-		selected_stat_col = mini(selected_stat_col, stat_rows[selected_stat_row].size() - 1)
-		_refresh_highlights()
-	if event.is_action_pressed("ui_left"):
-		selected_stat_col = maxi(0, selected_stat_col - 1)
-		_refresh_highlights()
-	if event.is_action_pressed("ui_right"):
-		selected_stat_col = mini(stat_rows[selected_stat_row].size() - 1, selected_stat_col + 1)
-		_refresh_highlights()
-	if event.is_action_pressed("interact"):
-		_level_up_stat()
 	if event.is_action_pressed("ui_cancel"):
 		_exit_side()
+		return
+	stats_panel.handle_input(event)
 
 # The tree always shows the abilities of the highlighted tab, so you can see a tree before entering it.
 func _input_combat_tabs(event: InputEvent) -> void:
@@ -181,74 +141,15 @@ func _input_skill_tree(event: InputEvent) -> void:
 # --- HIGHLIGHTS ---
 # Yellow marks where the player's cursor is, so only the part they're in is highlighted.
 func _refresh_highlights() -> void:
-	for r: int in range(stat_rows.size()):
-		for c: int in range(stat_rows[r].size()):
-			var is_selected: bool = current_state == State.STATS_ACTIVE and r == selected_stat_row and c == selected_stat_col
-			(stat_rows[r][c] as Label).modulate = SELECTED_COLOUR if is_selected else Color.WHITE
+	stats_panel.set_cursor_visible(current_state == State.STATS_ACTIVE)
 
 	var in_skills: bool = current_state == State.COMBAT_TABS_ACTIVE or current_state == State.SKILL_TREE_ACTIVE
 	for i: int in range(combat_tabs_list.size()):
-		combat_tabs_list[i].modulate = SELECTED_COLOUR if in_skills and i == selected_combat_tab else Color.WHITE
+		UiFade.modulate(combat_tabs_list[i], SELECTED_COLOUR if in_skills and i == selected_combat_tab else Color.WHITE)
 
 	for i: int in range(skill_nodes.size()):
 		var is_selected: bool = current_state == State.SKILL_TREE_ACTIVE and i == selected_skill_node
-		skill_nodes[i].modulate = SELECTED_COLOUR if is_selected else Color.WHITE
-	
-	# Keeps the highlighted stat in view as you move through the list.
-	if current_state == State.STATS_ACTIVE:
-		var label: Label = stat_rows[selected_stat_row][selected_stat_col]
-		stats_scroll.ensure_control_visible.call_deferred(label)
-
-# --- STATS ---
-func _stat_label(stat_name: String) -> Label:
-	return general_stats.get_node(stat_name) as Label
-
-# Some values are 0 until the systems that calculate them exist.
-func _update_general_stats_display() -> void:
-	_stat_label("stat_name").text = "Name: " + PlayerData.player_name
-	_stat_label("stat_level").text = "Level: " + str(PlayerData.combat_level)
-	_stat_label("stat_xp").text = "XP: " + str(PlayerData.combat_xp) + " / " + str(PlayerData.combat_xp_to_next_level)
-	_stat_label("stat_hp").text = "HP: " + str(PlayerData.current_hp) + " / " + str(PlayerData.max_hp)
-	_stat_label("stat_strength").text = "Strength: " + str(PlayerData.strength)
-	_stat_label("stat_vitality").text = "Vitality: " + str(PlayerData.vitality)
-	_stat_label("stat_dexterity").text = "Dexterity: " + str(PlayerData.dexterity)
-	_stat_label("stat_speed").text = "Speed: " + str(PlayerData.speed)
-	_stat_label("stat_charisma").text = "Charisma: " + str(PlayerData.charisma)
-	_stat_label("stat_intelligence").text = "Intelligence: " + str(PlayerData.intelligence)
-	_stat_label("stat_luck").text = "Luck: " + str(PlayerData.luck)
-	_stat_label("stat_carry_weight").text = "Carry Weight: " + str(PlayerData.get_total_weight()) + " / " + str(PlayerData.max_carry_weight)
-	_stat_label("stat_gold").text = "Gold: " + str(PlayerData.gold)
-	_stat_label("stat_damage").text = "Damage: " + str(0)
-	_stat_label("stat_defence").text = "Defence: " + str(0)
-	_stat_label("stat_hit_chance").text = "Hit Chance: " + str(0) + "%"
-	_stat_label("stat_dodge_chance").text = "Dodge Chance: " + str(0) + "%"
-	_stat_label("stat_fire_res").text = "Fire Res: " + str(0) + "%"
-	_stat_label("stat_lightning_res").text = "Lightning Res: " + str(0) + "%"
-	_stat_label("stat_ice_res").text = "Ice Res: " + str(0) + "%"
-	_stat_label("stat_poison_res").text = "Poison Res: " + str(0) + "%"
-
-func _level_up_stat() -> void:
-	var label: Label = stat_rows[selected_stat_row][selected_stat_col]
-	var stat_name: String = label.name
-
-	if not stat_name in LEVELABLE_STATS:
-		print("This stat cannot be levelled up")
-		return
-	if PlayerData.unspent_stat_points <= 0:
-		print("No stat points available")
-		return
-
-	var clean_name: String = stat_name.replace("stat_", "")
-	var current_value: int = PlayerData.get_stat(clean_name)
-	if current_value >= PlayerData.NATURAL_STAT_CAP:
-		print("Stat is already at natural cap")
-		return
-
-	PlayerData.unspent_stat_points -= 1
-	# set() changes a property chosen by its name as a String, so "strength" sets PlayerData.strength.
-	PlayerData.set(clean_name, current_value + 1)
-	_update_general_stats_display()
-	print("Levelled up ", clean_name, " to ", current_value + 1)
+		UiFade.modulate(skill_nodes[i], SELECTED_COLOUR if is_selected else Color.WHITE)
 
 # --- SKILLS ---
 func _get_abilities_for_tab(tab_index: int) -> Array:

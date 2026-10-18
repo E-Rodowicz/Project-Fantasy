@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://bcomlamxm710f"]
+
+[ext_resource type="Texture2D" uid="uid://gwas612kiaig" path="res://assets/sprites/gui/stats/hp.png" id="1_kp3uo"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_bh4yv"]
+
+[resource]
+script = ExtResource("2_bh4yv")
+id = "hp"
+short_name = "HP"
+display_name = "Health Points"
+description = "How much damage you can take before dying."
+icon = ExtResource("1_kp3uo")
+colour = Color(0.65125984, 0, 0, 1)

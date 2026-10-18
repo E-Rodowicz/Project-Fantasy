@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://7lkdbhyesl36"]
+
+[ext_resource type="Texture2D" uid="uid://cccds27dcxdlr" path="res://assets/sprites/gui/stats/strength.png" id="1_qhhtt"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_1xpes"]
+
+[resource]
+script = ExtResource("2_1xpes")
+id = "strength"
+short_name = "Str"
+display_name = "Strength"
+description = "Increases melee damage and carry weight."
+icon = ExtResource("1_qhhtt")
+colour = Color(0.513153, 0.003469649, 0.2083937, 1)
+uses_colour_scale = true

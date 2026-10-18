@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://bmjbpcro7pu28"]
+
+[ext_resource type="Texture2D" uid="uid://c0fm2qrcamo1g" path="res://assets/sprites/gui/stats/hit_chance.png" id="1_6llqd"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_y568n"]
+
+[resource]
+script = ExtResource("2_y568n")
+id = "hit_chance"
+short_name = "Hit"
+display_name = "Hit Chance"
+description = "Probability of landing a hit."
+icon = ExtResource("1_6llqd")
+colour = Color(0.63337463, 0.64468336, 0.2926633, 1)
+is_percent = true

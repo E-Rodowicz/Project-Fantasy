@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://41l2ihbvge3x"]
+
+[ext_resource type="Texture2D" uid="uid://bw4lgqrnr77go" path="res://assets/sprites/gui/stats/dodge_chance.png" id="1_saalw"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_7etr6"]
+
+[resource]
+script = ExtResource("2_7etr6")
+id = "dodge_chance"
+short_name = "Ddg"
+display_name = "Dodge Chance"
+description = "Probability of dodging an attack."
+icon = ExtResource("1_saalw")
+colour = Color(0.4401049, 0.7433311, 0.5573905, 1)
+is_percent = true

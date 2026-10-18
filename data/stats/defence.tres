@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://8icxi3j5ww00"]
+
+[ext_resource type="Texture2D" uid="uid://b3yjxkb1f05uh" path="res://assets/sprites/gui/stats/defence.png" id="1_p0rri"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_mqy72"]
+
+[resource]
+script = ExtResource("2_mqy72")
+id = "defence"
+short_name = "Def"
+display_name = "Defence"
+description = "Reduces incoming damage."
+icon = ExtResource("1_p0rri")
+colour = Color(0, 0.0044090585, 0.8156727, 1)

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://b5o5i7dnrnm3j"]
+
+[ext_resource type="Texture2D" uid="uid://df7886vh4ag4t" path="res://assets/sprites/gui/stats/dexterity.png" id="1_balvo"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_koogt"]
+
+[resource]
+script = ExtResource("2_koogt")
+id = "dexterity"
+short_name = "Dex"
+display_name = "Dexterity"
+description = "Increases dagger damage and hit chance."
+icon = ExtResource("1_balvo")
+colour = Color(0.65954024, 0.8862745, 0.21568629, 1)
+uses_colour_scale = true

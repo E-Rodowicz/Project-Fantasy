@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://rhbsnup16pje"]
+
+[ext_resource type="Texture2D" uid="uid://7mn5lflnvfjh" path="res://assets/sprites/gui/stats/poison_res.png" id="1_raoei"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_ycob5"]
+
+[resource]
+script = ExtResource("2_ycob5")
+id = "poison_res"
+short_name = "Psn"
+display_name = "Poison Resistance"
+description = "Reduces poison damage taken."
+icon = ExtResource("1_raoei")
+colour = Color(0.35079136, 0.76306057, 0.05032392, 1)
+is_percent = true

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://oxfi0yecju81"]
+
+[ext_resource type="Texture2D" uid="uid://be3tbmlr2pv6y" path="res://assets/sprites/gui/stats/damage.png" id="1_i874c"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_1c1is"]
+
+[resource]
+script = ExtResource("2_1c1is")
+id = "damage"
+short_name = "Dmg"
+display_name = "Damage"
+description = "Calculated from weapon base damage and relevant stats."
+icon = ExtResource("1_i874c")
+colour = Color(0.87486136, 0.02317594, 0.23359238, 1)

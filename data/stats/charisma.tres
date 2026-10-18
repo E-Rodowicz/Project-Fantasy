@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://b4bejjn3jwno"]
+
+[ext_resource type="Texture2D" uid="uid://okypu725s1lj" path="res://assets/sprites/gui/stats/charisma.png" id="1_6nj4d"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_k60fu"]
+
+[resource]
+script = ExtResource("2_k60fu")
+id = "charisma"
+short_name = "Cha"
+display_name = "Charisma"
+description = "Affects NPC interactions and prices."
+icon = ExtResource("1_6nj4d")
+colour = Color(0.5561075, 0, 1, 1)
+uses_colour_scale = true

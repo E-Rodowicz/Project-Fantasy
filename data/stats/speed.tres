@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://bepupgdqq7a0e"]
+
+[ext_resource type="Texture2D" uid="uid://bofayarc1h6fi" path="res://assets/sprites/gui/stats/speed.png" id="1_04vo1"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_wutot"]
+
+[resource]
+script = ExtResource("2_wutot")
+id = "speed"
+short_name = "Spd"
+display_name = "Speed"
+description = "Increases dodge chance and movement."
+icon = ExtResource("1_04vo1")
+colour = Color(0.039215706, 0.98039216, 0.7281312, 1)
+uses_colour_scale = true

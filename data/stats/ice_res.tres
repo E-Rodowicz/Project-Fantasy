@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://s03pt5ard1xf"]
+
+[ext_resource type="Texture2D" uid="uid://bpskeuxpuirpa" path="res://assets/sprites/gui/stats/ice_res.png" id="1_kybkn"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_5vnut"]
+
+[resource]
+script = ExtResource("2_5vnut")
+id = "ice_res"
+short_name = "Ice"
+display_name = "Ice Resistance"
+description = "Reduces ice damage taken."
+icon = ExtResource("1_kybkn")
+colour = Color(0.41220707, 0.7257255, 0.83540225, 1)
+is_percent = true

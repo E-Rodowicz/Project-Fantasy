@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatDef" format=3 uid="uid://c1g0rj6orf1d5"]
+
+[ext_resource type="Texture2D" uid="uid://plmb8yypucd6" path="res://assets/sprites/gui/stats/fire_res.png" id="1_ebkih"]
+[ext_resource type="Script" uid="uid://drv2gjvj2jjgp" path="res://scripts/data/stat_def.gd" id="2_dy27f"]
+
+[resource]
+script = ExtResource("2_dy27f")
+id = "fire_res"
+short_name = "Fir"
+display_name = "Fire Resistance"
+description = "Reduces fire damage taken."
+icon = ExtResource("1_ebkih")
+colour = Color(0.78936666, 0.24693863, 0.08839776, 1)
+is_percent = true
