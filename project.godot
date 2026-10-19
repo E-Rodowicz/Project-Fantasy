@@ -36,6 +36,7 @@ TurnOrderScreen="*uid://b3c86wl4oqvqj"
 SkillInfoScreen="*uid://bqeqrr5oknhnx"
 HoverInfoPanel="*uid://ba1kvqsyx6bqd"
 StatDB="*uid://bl13scaxu7mue"
+KeyboardOnly="*uid://cpjccxen0b7i"
 
 [display]
 

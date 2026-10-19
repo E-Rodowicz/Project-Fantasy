@@ -72,6 +72,9 @@ var sections: Dictionary = {
 var nav_list: Array = []
 var selected_index: int = 0
 
+# Tells game_menu not to fade this screen in, since the journal does its own fade (it waits for
+# the quest text to scroll into place first).
+var fades_itself: bool = true
 # One row and one label per nav_list entry, in the same order.
 var entry_rows: Array[Control] = []
 var entry_labels: Array[Label] = []

@@ -4,6 +4,8 @@
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
 [ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
+[ext_resource type="Texture2D" uid="uid://cud64l8jdtmmk" path="res://assets/sprites/gui/main_menu/xp_bar_empty.png" id="5_ylf4e"]
+[ext_resource type="Texture2D" uid="uid://ddy3uu4s8ybrc" path="res://assets/sprites/gui/main_menu/xp_bar_full.png" id="6_1uwcm"]
 
 [node name="character_screen" type="Control" unique_id=1925044566]
 layout_mode = 3
@@ -62,48 +64,41 @@ offset_left = 207.0
 offset_right = 400.0
 offset_bottom = 155.0
 
-[node name="stats_panel" type="Control" parent="right_side" unique_id=1510289022]
+[node name="xp_bar" type="TextureProgressBar" parent="right_side" unique_id=805142782]
+layout_mode = 0
+offset_left = 22.0
+offset_top = 14.0
+offset_right = 171.0
+offset_bottom = 21.0
+texture_under = ExtResource("5_ylf4e")
+texture_progress = ExtResource("6_1uwcm")
+texture_progress_offset = Vector2(2, 2)
+
+[node name="xp_text" type="Label" parent="right_side/xp_bar" unique_id=1243337447]
+layout_mode = 1
+offset_top = -6.0
+offset_right = 199.0
+offset_bottom = 17.0
+scale = Vector2(0.75, 0.75)
+theme_override_constants/outline_size = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="stats_panel" type="Control" parent="right_side" unique_id=1510289022 node_paths=PackedStringArray("xp_bar", "xp_text")]
 anchors_preset = 0
 offset_left = 6.0
 offset_right = 247.0
 offset_bottom = 206.0
 scale = Vector2(0.75, 0.75)
 script = ExtResource("4_d81u7")
+xp_bar = NodePath("../xp_bar")
+xp_text = NodePath("../xp_bar/xp_text")
 
 [node name="header_label" type="Label" parent="right_side/stats_panel" unique_id=193870378]
 layout_mode = 0
 offset_right = 241.0
 offset_bottom = 16.0
 horizontal_alignment = 1
-
-[node name="xp_bar" type="Control" parent="right_side/stats_panel" unique_id=1400074614]
-anchors_preset = 0
-offset_top = 17.0
-offset_right = 241.0
-offset_bottom = 27.0
-
-[node name="xp_back" type="ColorRect" parent="right_side/stats_panel/xp_bar" unique_id=1076035263]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 1)
-
-[node name="xp_fill" type="ColorRect" parent="right_side/stats_panel/xp_bar" unique_id=318001350]
-layout_mode = 0
-offset_bottom = 10.0
-
-[node name="xp_text" type="Label" parent="right_side/stats_panel/xp_bar" unique_id=706490666]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="columns" type="HBoxContainer" parent="right_side/stats_panel" unique_id=851802569]
 layout_mode = 0

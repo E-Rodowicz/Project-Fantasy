@@ -9,6 +9,7 @@ default_font = ExtResource("1_h0s5u")
 default_font_size = 16
 
 [node name="SkillInfoScreen" type="CanvasLayer" unique_id=1539670264]
+layer = 18
 scale = Vector2(4, 4)
 transform = Transform2D(4, 0, 0, 4, 0, 0)
 script = ExtResource("1_enaxx")
@@ -32,10 +33,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 7
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 7
-theme_override_constants/margin_bottom = 7
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="vbox" type="VBoxContainer" parent="frame/content" unique_id=815744455]
 layout_mode = 2
@@ -51,7 +52,15 @@ expand_mode = 1
 [node name="title" type="Label" parent="frame/content/vbox/header" unique_id=313858740]
 layout_mode = 2
 
-[node name="body" type="Label" parent="frame/content/vbox" unique_id=1823932180]
+[node name="corner" type="Label" parent="frame/content/vbox/header" unique_id=809357190]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+
+[node name="body" type="RichTextLabel" parent="frame/content/vbox" unique_id=536364685]
 layout_mode = 2
 size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 autowrap_mode = 2

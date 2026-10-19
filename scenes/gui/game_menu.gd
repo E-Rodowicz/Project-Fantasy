@@ -9,6 +9,8 @@ const BACKGROUND_FADE_TIME: float = 0.15
 const PIXEL_SCALE: int = 4
 const SLIDE_IN_TIME: float = 0.25
 const SLIDE_OUT_TIME: float = 0.18
+# How long a tab's screen takes to fade in when shown.
+const SCREEN_FADE_TIME: float = 0.12
 
 @onready var menu_frame: TextureRect = $menu_frame
 @onready var tab_select: AnimatedSprite2D = $menu_frame/tabs/tab_select
@@ -44,6 +46,7 @@ var tab_select_tweens: Array[Tween] = []
 
 var slide_tween: Tween = null
 # False while sliding out, so the menu ignores keys on its way off screen.
+var screen_fade_tween: Tween = null
 var accepting_input: bool = true
 # Fully above the screen: the frame's own height, negative.
 var hidden_native_y: int = 0
@@ -155,6 +158,7 @@ func switch_tab(tab_index: int) -> void:
 	var screen: Control = screens[current_tab]
 	screen.visible = true
 	screen.process_mode = Node.PROCESS_MODE_INHERIT
+	_fade_in_screen(screen)
 	if screen.has_method("on_tab_shown"):
 		screen.call("on_tab_shown")
 
@@ -255,3 +259,16 @@ func _confirm_side() -> void:
 func _on_side_exited() -> void:
 	tab_in_screen[current_tab] = false
 	_update_side_visuals()
+# Every tab fades in when shown. A screen with its own fade-in sets fades_itself = true and is
+# left alone. get() reads a variable by name and returns null if the screen doesn't have it, so
+# screens without the flag need nothing.
+
+func _fade_in_screen(screen: Control) -> void:
+	if screen_fade_tween != null and screen_fade_tween.is_valid():
+		screen_fade_tween.kill()
+	if screen.get("fades_itself") == true:
+		screen.modulate.a = 1.0
+		return
+	screen.modulate.a = 0.0
+	screen_fade_tween = create_tween()
+	screen_fade_tween.tween_property(screen, "modulate:a", 1.0, SCREEN_FADE_TIME)

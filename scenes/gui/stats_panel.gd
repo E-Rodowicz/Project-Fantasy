@@ -5,6 +5,8 @@ extends Control
 # cursor around them. character_screen passes it the arrow keys while the stats side is entered.
 class_name StatsPanel
 
+# Test switch: set between 0.0 and 1.0 to preview the XP bar that full (0.5 = half). -1 uses real XP.
+const TEST_XP_RATIO: float = 0.5
 # Test switch: shows the widest values each stat can have, to check the layout holds them.
 const TEST_WIDEST_VALUES: bool = true
 const TEST_VALUES: Dictionary = {
@@ -24,9 +26,23 @@ const NAME_GAP: int = 3
 # The two rows above the columns, as cursor positions. Columns start at row 0.
 const HEADER_ROW: int = -2
 const XP_ROW: int = -1
+# How long E has to be held on a stat to open its info window. A shorter press is a tap.
+# Holding E on a stat: nothing for the delay (so taps never flash), then it turns white character
+# by character over the charge time, and the info window opens.
+const INFO_CHARGE_DELAY: float = 0.2
+const INFO_CHARGE_TIME: float = 0.3
+# How long the stat stays fully white before the window opens, so the last character is seen.
+const INFO_FULL_HOLD: float = 0.12
+# Length of each step of the white/yellow flash when the window opens.
+const FLASH_STEP: float = 0.06
+# How many white/yellow flashes play when the window opens.
+const FLASH_COUNT: int = 4
 
 @export var title_colour: Color = Color("ffc439")
-@export var xp_fill_colour: Color = Color("ffc439")
+# The XP bar sits outside this panel so its art isn't shrunk by the panel's 0.75 scale. These
+# exported slots take the nodes directly: drag them in from the scene tree in the Inspector.
+@export var xp_bar: TextureProgressBar = null
+@export var xp_text: Label = null
 
 # Left to right. Each column is a list of sections, each with a title and its stat ids, top to
 # bottom. "at_bottom" pushes a section down to the bottom of its column.
@@ -46,9 +62,6 @@ const COLUMNS: Array = [
 ]
 
 @onready var header_label: Label = $header_label
-@onready var xp_bar: Control = $xp_bar
-@onready var xp_fill: ColorRect = $xp_bar/xp_fill
-@onready var xp_text: Label = $xp_bar/xp_text
 @onready var column_nodes: Array[Control] = [
 	$columns/attributes_column,
 	$columns/resources_column,
@@ -71,9 +84,19 @@ var name_width: int = 0
 var selected_col: int = 0
 var selected_row: int = 0
 var cursor_visible: bool = false
+# Each stat's whole cell (icon, name and number), by id. The info window grows out of it.
+var cell_nodes: Dictionary = {}
+# How long E has been held, or -1 when it isn't being held.
+# What's charging right now: its id, its icon (if it has one) and its labels, with the white
+# copies laid over them.
+var charging_id: String = ""
+var charge_icon: TextureRect = null
+var charge_labels: Array[Label] = []
+var charge_clips: Array[Control] = []
+# How long E has been held, or -1 when it isn't being held.
+var info_hold_timer: float = -1.0
 
 func _ready() -> void:
-	xp_fill.color = xp_fill_colour
 	name_width = _measure_widest_name()
 	_build_columns()
 	refresh()
@@ -134,6 +157,7 @@ func _make_cell(stat_id: String) -> Control:
 	cell_labels[stat_id] = value_label
 	cell_name_labels[stat_id] = name_label
 	cell_icons[stat_id] = icon
+	cell_nodes[stat_id] = cell
 	return cell
 
 # get_theme_font finds the font a Label here would use (your m3x6 from the menu theme), and
@@ -155,10 +179,21 @@ func _measure_widest_name() -> int:
 func refresh() -> void:
 	header_label.text = PlayerData.player_name + " - Lv " + str(PlayerData.combat_level)
 
-	var xp: int = PlayerData.combat_xp
 	var xp_needed: int = maxi(1, PlayerData.combat_xp_to_next_level)
+	var xp: int = PlayerData.combat_xp
+	if TEST_XP_RATIO >= 0.0:
+		xp = roundi(xp_needed * TEST_XP_RATIO)
 	var ratio: float = clampf(float(xp) / xp_needed, 0.0, 1.0)
-	xp_fill.size.x = roundi(xp_bar.size.x * ratio)
+
+	# max_value is the fill art's width in pixels, so each point of value is exactly one pixel.
+	var fill_width: int = xp_bar.texture_progress.get_width() if xp_bar.texture_progress != null else int(xp_bar.size.x)
+	xp_bar.max_value = fill_width
+	var fill_pixels: int = roundi(fill_width * ratio)
+	# Any XP at all shows at least one pixel, so a fresh level never looks completely empty.
+	if xp > 0:
+		fill_pixels = maxi(fill_pixels, 1)
+	xp_bar.value = fill_pixels
+
 	xp_text.text = _short_number(xp) + "/" + _short_number(xp_needed)
 
 	for stat_id: String in cell_labels.keys():
@@ -208,6 +243,9 @@ func _get_value(stat_id: String) -> int:
 # --- CURSOR ---
 # Returns true if it used the key, so character_screen knows the key was dealt with.
 func handle_input(event: InputEvent) -> bool:
+	if event.is_action_pressed("interact"):
+		info_hold_timer = 0.0
+		return true
 	if event.is_action_pressed("ui_up"):
 		_move(0, -1)
 		return true
@@ -225,6 +263,7 @@ func handle_input(event: InputEvent) -> bool:
 # Up from the top of a column goes to the XP bar, then the header. Down from them goes back into
 # the column you were in. Left and right keep the same row where the next column is long enough.
 func _move(dx: int, dy: int) -> void:
+	_end_charge()
 	if dy < 0:
 		if selected_row == HEADER_ROW:
 			return
@@ -240,10 +279,10 @@ func _move(dx: int, dy: int) -> void:
 	_update_highlight()
 
 # Shows the yellow cursor only while the player is inside the stats side.
-func set_cursor_visible(is_visible: bool) -> void:
-	cursor_visible = is_visible
+func set_cursor_visible(show_cursor: bool) -> void:
+	cursor_visible = show_cursor
 	_update_highlight()
-
+	
 # The selected stat's name and number turn yellow. Otherwise the name keeps the stat's colour and
 # the number keeps its value colour. Icons always keep the stat's colour.
 func _update_highlight() -> void:
@@ -269,3 +308,172 @@ func get_selected_id() -> String:
 	if selected_row == XP_ROW:
 		return "xp"
 	return nav_columns[selected_col][selected_row]
+	
+# --- INFO WINDOW ---
+# Counts how long E is held. Let go early and it was a tap, which does nothing yet; stat
+# upgrading will hook in there. Hold through the charge and the info window opens.
+func _process(delta: float) -> void:
+	if info_hold_timer < 0.0:
+		return
+	if not Input.is_action_pressed("interact") or not cursor_visible:
+		_end_charge()
+		return
+	info_hold_timer += delta
+	if info_hold_timer < INFO_CHARGE_DELAY:
+		return
+	if charging_id == "":
+		_begin_charge()
+	var charge_elapsed: float = info_hold_timer - INFO_CHARGE_DELAY
+	var progress: float = clampf(charge_elapsed / INFO_CHARGE_TIME, 0.0, 1.0)
+	_apply_charge(progress)
+	if charge_elapsed >= INFO_CHARGE_TIME + INFO_FULL_HOLD:
+		_complete_charge()
+
+func _begin_charge() -> void:
+	charging_id = get_selected_id()
+	charge_icon = null
+	if charging_id == "header":
+		charge_labels = [header_label]
+	elif charging_id == "xp":
+		charge_labels = [xp_text]
+	else:
+		charge_icon = cell_icons[charging_id]
+		charge_labels = [cell_name_labels[charging_id], cell_labels[charging_id]]
+	if charge_icon != null:
+		_kill_fade(charge_icon)
+		charge_icon.modulate = SELECTED_COLOUR
+	for label: Label in charge_labels:
+		charge_clips.append(_make_white_overlay(label))
+
+# Works out how many "steps" are lit: the icon counts as one, then every character in order.
+func _apply_charge(progress: float) -> void:
+	var total: int = 1 if charge_icon != null else 0
+	for label: Label in charge_labels:
+		total += label.text.length()
+	# +1 lights the first step straight away; mini stops it going past the end.
+	var lit: int = mini(total, floori(progress * total) + 1)
+
+	if charge_icon != null:
+		charge_icon.modulate = Color.WHITE if lit >= 1 else SELECTED_COLOUR
+		lit -= 1
+	for i: int in range(charge_labels.size()):
+		var label: Label = charge_labels[i]
+		var count: int = clampi(lit, 0, label.text.length())
+		charge_clips[i].size.x = _text_width_to(label, count)
+		lit -= label.text.length()
+
+# Cancelled (let go early, or moved): removes the white copies and fades back to normal.
+func _end_charge() -> void:
+	var was_charging: bool = charging_id != ""
+	_clear_charge()
+	if was_charging:
+		_update_highlight()
+
+# Charge finished: flash, then open the window.
+func _complete_charge() -> void:
+	var icon: TextureRect = charge_icon
+	var labels: Array[Label] = charge_labels.duplicate()
+	_clear_charge()
+	_flash(icon, labels)
+	_open_info()
+
+func _clear_charge() -> void:
+	info_hold_timer = -1.0
+	for clip: Control in charge_clips:
+		clip.queue_free()
+	charge_clips.clear()
+	if charge_icon != null and charge_icon.has_meta("fade_target"):
+		charge_icon.remove_meta("fade_target")
+	charging_id = ""
+	charge_icon = null
+	charge_labels = []
+
+# White, yellow, white, yellow, each held for FLASH_STEP. Callbacks switch the colour instantly
+# and intervals hold it, so it reads as a flash rather than a fade.
+func _flash(icon: TextureRect, labels: Array[Label]) -> void:
+	if icon != null:
+		_kill_fade(icon)
+	for label: Label in labels:
+		_kill_fade(label)
+	var tween: Tween = create_tween()
+	for i: int in range(FLASH_COUNT):
+		tween.tween_callback(_set_parts_colour.bind(icon, labels, Color.WHITE))
+		tween.tween_interval(FLASH_STEP)
+		tween.tween_callback(_set_parts_colour.bind(icon, labels, SELECTED_COLOUR))
+		tween.tween_interval(FLASH_STEP)
+	tween.tween_callback(_update_highlight)
+
+func _set_parts_colour(icon: TextureRect, labels: Array[Label], colour: Color) -> void:
+	if icon != null:
+		icon.modulate = colour
+	for label: Label in labels:
+		label.add_theme_color_override("font_color", colour)
+
+# A white copy of the label inside a box that clips it. clip_contents hides everything outside
+# the box, so widening the box reveals the white text one character at a time over the original.
+func _make_white_overlay(label: Label) -> Control:
+	var clip: Control = Control.new()
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.size = Vector2(0, label.size.y)
+
+	var copy: Label = Label.new()
+	copy.text = label.text
+	copy.horizontal_alignment = label.horizontal_alignment
+	copy.vertical_alignment = label.vertical_alignment
+	copy.size = label.size
+	copy.add_theme_color_override("font_color", Color.WHITE)
+
+	clip.add_child(copy)
+	label.add_child(clip)
+	return clip
+
+# How wide the box must be to show the first `count` characters. For centred labels the text
+# starts partway in, so that offset is added first.
+func _text_width_to(label: Label, count: int) -> float:
+	if count <= 0:
+		return 0.0
+	var font: Font = label.get_theme_font("font")
+	var font_size: int = label.get_theme_font_size("font_size")
+	var start: float = 0.0
+	if label.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER:
+		var full_width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		start = floorf((label.size.x - full_width) / 2.0)
+	var part_width: float = font.get_string_size(label.text.substr(0, count), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	return ceilf(start + part_width)
+
+# Stops any UiFade running on a node, so the charge can set its colour directly.
+func _kill_fade(item: CanvasItem) -> void:
+	if item.has_meta("fade_tween"):
+		var tween: Tween = item.get_meta("fade_tween")
+		if tween != null and tween.is_valid():
+			tween.kill()
+	if item.has_meta("fade_target"):
+		item.remove_meta("fade_target")
+
+func _open_info() -> void:
+	var selected: String = get_selected_id()
+	if selected == "header":
+		SkillInfoScreen.open_info(_screen_rect(header_label), null, Color.WHITE,
+			PlayerData.player_name, "Level " + str(PlayerData.combat_level))
+	elif selected == "xp":
+		var xp: int = PlayerData.combat_xp
+		var xp_needed: int = PlayerData.combat_xp_to_next_level
+		var body_text: String = "XP: " + str(xp) + " / " + str(xp_needed) + "\n" \
+			+ str(maxi(0, xp_needed - xp)) + " more to reach level " + str(PlayerData.combat_level + 1) + "."
+		SkillInfoScreen.open_info(_screen_rect(xp_bar), null, Color.WHITE, "Experience", body_text)
+	else:
+		var def: StatDef = StatDB.get_stat(selected)
+		if def == null:
+			return
+		var label: Label = cell_labels[selected]
+		var value_colour: Color = value_colours.get(selected, Color.WHITE)
+		var body_text: String = "Current: [color=#" + value_colour.to_html(false) + "]" + label.text + "[/color]\n" + def.description
+		SkillInfoScreen.open_info(_screen_rect(cell_nodes[selected]), def.icon, def.colour,
+			def.display_name, body_text)
+
+# Where a node sits on the screen in real pixels, with every scale above it included (the
+# menu's 4x, this panel's 0.75), which is what the info window expects to grow out of.
+func _screen_rect(node: Control) -> Rect2:
+	var xform: Transform2D = node.get_global_transform_with_canvas()
+	return Rect2(xform.origin, node.size * xform.get_scale())

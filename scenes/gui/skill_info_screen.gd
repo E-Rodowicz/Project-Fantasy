@@ -19,7 +19,8 @@ const OPEN_AT: float = 0.50
 const WINDOW_WIDTH: int = 230
 # Screen is 270 tall - this leaves an 8px gap top and bottom.
 const MAX_HEIGHT: int = 254
-
+# Keys that close the window and carry on to the menu, so the menu reacts to them as normal.
+const MENU_ACTIONS: Array[String] = ["open_menu", "open_character", "open_inventory", "open_journal", "open_map"]
 const RESOURCE_NAMES: Dictionary = {"ap": "AP", "bp": "BP", "mp": "MP", "sc": "SC"}
 
 enum State {IDLE, HOLDING, CHARGING, OPENING, OPEN, CLOSING}
@@ -29,12 +30,14 @@ enum State {IDLE, HOLDING, CHARGING, OPENING, OPEN, CLOSING}
 @onready var content: MarginContainer = $frame/content
 @onready var icon: TextureRect = $frame/content/vbox/header/icon
 @onready var title: Label = $frame/content/vbox/header/title
-@onready var body: Label = $frame/content/vbox/body
+@onready var body: RichTextLabel = $frame/content/vbox/body
+@onready var corner: Label = $frame/content/vbox/header/corner
 
 # --- STATE ---
 var state: int = State.IDLE
 var held_slot: int = -1
 var hold_timer: float = 0.0
+# The hotbar slot the window came from, or -1 when it was opened with open_info().
 var open_slot: int = -1
 # Hotbar slots whose press this screen took. Their releases must never reach combat,
 # or letting go would select the ability.
@@ -42,9 +45,13 @@ var swallow_releases: Array = []
 # Where the window grows out of and shrinks back into, in native pixels.
 var slot_rect: Rect2 = Rect2()
 var frame_tween: Tween = null
-# Size the window grows to this time, worked out from its content in _open.
+# Size the window grows to this time, worked out from its content.
 var window_size: Vector2 = Vector2.ZERO
-
+# What the pause and combat input lock were before the window opened, put back when it closes.
+var was_paused: bool = false
+var was_input_locked: bool = false
+# Whether the pause and input lock have been given back yet. Stops it happening twice.
+var pause_restored: bool = false
 
 func _ready() -> void:
 	# Must keep running while the game is paused, since opening pauses it.
@@ -52,8 +59,7 @@ func _ready() -> void:
 	visible = false
 	content.visible = false
 
-
-# --- HOLD DETECTION ---
+# --- HOLD DETECTION (HOTBAR) ---
 func _process(delta: float) -> void:
 	match state:
 		State.IDLE:
@@ -126,7 +132,14 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if state == State.IDLE or state == State.HOLDING or state == State.CHARGING:
+	# While closing, keys go back to the game, so a Tab pressed during the shrink still reaches the menu.
+	if state == State.IDLE or state == State.HOLDING or state == State.CHARGING or state == State.CLOSING:
+		return
+
+	# Menu keys close the window and carry on to the menu, which opens, closes or switches tab.
+	if state == State.OPEN and not event.is_echo() and _is_menu_key(event):
+		_close()
+		_restore_pause()
 		return
 
 	# The window is on screen from here on, so every key stops here.
@@ -134,18 +147,51 @@ func _input(event: InputEvent) -> void:
 	if pressed != -1:
 		_swallow_release_of(pressed)
 	if state == State.OPEN and not event.is_echo():
-		if event.is_action_pressed("ui_cancel") or pressed == open_slot:
+		var closes: bool = event.is_action_pressed("ui_cancel")
+		# A hotbar window also closes on its own key.
+		if open_slot != -1 and pressed == open_slot:
+			closes = true
+		# A window opened with open_info() has no slot, so E closes it.
+		if open_slot == -1 and event.is_action_pressed("interact"):
+			closes = true
+		if closes:
 			_close()
 	get_viewport().set_input_as_handled()
 
 
 # --- OPEN / CLOSE ---
+# Opens from a hotbar slot.
 func _open(slot: int) -> void:
 	state = State.OPENING
 	open_slot = slot
 	_fill_content(slot)
+	_show_window(_slot_rect_native(slot))
 
-	# Does nothing in combat, where the tree is already paused.
+
+# Opens the window from anywhere: grows out of source_rect (in real screen pixels), showing the
+# given icon, tinted, with a title and body text. Does nothing if a window is already up.
+func open_info(source_rect: Rect2, icon_texture: Texture2D, icon_tint: Color, title_text: String, body_text: String, corner_text: String = "") -> void:
+	if state != State.IDLE:
+		return
+	state = State.OPENING
+	open_slot = -1
+	held_slot = -1
+	icon.texture = icon_texture
+	icon.modulate = icon_tint
+	# The title matches the icon's colour, so a stat's name shows in that stat's colour.
+	title.add_theme_color_override("font_color", icon_tint)
+	title.text = title_text
+	body.text = body_text
+	corner.text = corner_text
+	# This layer works in native pixels, so divide the screen rect by our scale.
+	_show_window(Rect2(source_rect.position / scale, source_rect.size / scale))
+
+
+# Measures the content, then grows the window out of source_rect (native pixels).
+func _show_window(source_rect: Rect2) -> void:
+	pause_restored = false
+	was_paused = get_tree().paused
+	was_input_locked = BattleManager.input_locked
 	get_tree().paused = true
 	BattleManager.input_locked = true
 
@@ -164,10 +210,10 @@ func _open(slot: int) -> void:
 	var needed_height: float = ceilf(content.get_combined_minimum_size().y)
 	window_size = Vector2(WINDOW_WIDTH, minf(needed_height, MAX_HEIGHT))
 
-	# Now grow out of the slot as normal.
+	# Now grow out of the source as normal.
 	content.visible = false
 	frame.modulate.a = 1.0
-	slot_rect = _slot_rect_native(slot)
+	slot_rect = source_rect
 	_apply_grow(0.0)
 
 	_tween_frame(0.0, 1.0, GROW_TIME, Tween.EASE_OUT)
@@ -192,10 +238,8 @@ func _on_closed() -> void:
 	visible = false
 	open_slot = -1
 	held_slot = -1
-	# Paused if and only if a battle is running - combat owns the pause during a fight.
-	get_tree().paused = BattleManager.active
-	BattleManager.input_locked = false
-
+	# Puts things back exactly as they were, so closing inside the menu leaves it paused.
+	_restore_pause()
 
 # --- GROW / SHRINK ---
 func _tween_frame(from_t: float, to_t: float, duration: float, ease_type: Tween.EaseType) -> void:
@@ -205,7 +249,7 @@ func _tween_frame(from_t: float, to_t: float, duration: float, ease_type: Tween.
 	frame_tween.tween_method(_apply_grow, from_t, to_t, duration).set_trans(Tween.TRANS_CUBIC).set_ease(ease_type)
 
 
-# t = 0 is sitting on the slot, t = 1 is full size in the centre. Position and size are
+# t = 0 is sitting on the source, t = 1 is full size in the centre. Position and size are
 # both rounded, so every frame of the animation lands on whole pixels.
 func _apply_grow(t: float) -> void:
 	var centre_rect: Rect2 = _centre_rect()
@@ -227,8 +271,12 @@ func _centre_rect() -> Rect2:
 
 # --- CONTENT ---
 func _fill_content(slot: int) -> void:
+	title.add_theme_color_override("font_color", Color.WHITE)
+	corner.text = ""
 	# Reuse the hotbar's icon so attack/ranged attack picks the right one automatically.
 	icon.texture = HotbarDisplay.slot_icons[slot].texture
+	# Ability icons are full colour, so clear any tint left from a stat window.
+	icon.modulate = Color.WHITE
 	var ability_id: String = PlayerData.get_hotbar_ability(slot)
 	if ability_id == "basic_attack":
 		_fill_basic_attack()
@@ -291,3 +339,18 @@ func _cost_text(cost: Dictionary) -> String:
 	for resource in cost.keys():
 		parts.append(str(cost[resource]) + " " + RESOURCE_NAMES.get(resource, resource.to_upper()))
 	return ", ".join(parts)
+	
+	# Puts the pause and combat input lock back as they were before the window opened. Only once, so
+# a menu opened by Tab mid-shrink isn't unpaused when the shrink finishes.
+func _restore_pause() -> void:
+	if pause_restored:
+		return
+	pause_restored = true
+	get_tree().paused = was_paused
+	BattleManager.input_locked = was_input_locked
+
+func _is_menu_key(event: InputEvent) -> bool:
+	for action: String in MENU_ACTIONS:
+		if event.is_action_pressed(action):
+			return true
+	return false
