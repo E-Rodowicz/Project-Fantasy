@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://b5toq0dl7vuby"]
 
 [ext_resource type="Script" uid="uid://dbb85yt5887p5" path="res://scenes/gui/character_screen.gd" id="1_y1ul8"]
+[ext_resource type="Script" uid="uid://cjibwoqc2y8q5" path="res://scenes/gui/ability_panel.gd" id="2_1uwcm"]
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
 [ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
@@ -19,26 +20,61 @@ anchors_preset = 0
 offset_right = 193.0
 offset_bottom = 155.0
 
-[node name="combat_tabs" type="VBoxContainer" parent="left_side" unique_id=407945166]
+[node name="ability_panel" type="Control" parent="left_side" unique_id=322259621]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_1uwcm")
+
+[node name="red_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2064267788]
 layout_mode = 0
-offset_left = 4.0
-offset_right = 52.0
-offset_bottom = 155.0
+offset_right = 192.0
+offset_bottom = 145.0
 
-[node name="tab_red" type="Label" parent="left_side/combat_tabs" unique_id=217158850]
-layout_mode = 2
+[node name="label" type="Label" parent="left_side/ability_panel/red_button" unique_id=353687859]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="tab_green" type="Label" parent="left_side/combat_tabs" unique_id=1586548343]
-layout_mode = 2
-
-[node name="tab_blue" type="Label" parent="left_side/combat_tabs" unique_id=1885997875]
-layout_mode = 2
-
-[node name="combat_skill_tree" type="VBoxContainer" parent="left_side" unique_id=1309587638]
+[node name="green_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2070488819]
 layout_mode = 0
-offset_left = 56.0
-offset_right = 185.0
-offset_bottom = 155.0
+offset_top = 53.0
+offset_right = 193.0
+offset_bottom = 198.0
+
+[node name="label" type="Label" parent="left_side/ability_panel/green_button" unique_id=1537277518]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="blue_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2127453962]
+layout_mode = 0
+offset_top = 106.0
+offset_right = 192.0
+offset_bottom = 251.0
+
+[node name="label" type="Label" parent="left_side/ability_panel/blue_button" unique_id=940359372]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="skills_frame" type="Control" parent="left_side" unique_id=1575493479]
 layout_mode = 1
