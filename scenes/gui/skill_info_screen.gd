@@ -187,6 +187,13 @@ func open_info(source_rect: Rect2, icon_texture: Texture2D, icon_tint: Color, ti
 	_show_window(Rect2(source_rect.position / scale, source_rect.size / scale))
 
 
+# Opens the window for an ability from anywhere, such as the skill tree, growing out of
+# source_rect (real screen pixels). Uses the same text as the hotbar's window.
+func open_ability_info(source_rect: Rect2, ability_id: String) -> void:
+	var data: Dictionary = AbilityDB.get_ability(ability_id)
+	open_info(source_rect, data.get("icon", null), Color.WHITE, data.get("name", ""), _ability_body_text(ability_id))
+
+
 # Measures the content, then grows the window out of source_rect (native pixels).
 func _show_window(source_rect: Rect2) -> void:
 	pause_restored = false
@@ -287,7 +294,12 @@ func _fill_content(slot: int) -> void:
 func _fill_ability(ability_id: String) -> void:
 	var data: Dictionary = AbilityDB.get_ability(ability_id)
 	title.text = data.get("name", "")
+	body.text = _ability_body_text(ability_id)
 
+
+# The window's text for an ability: tree, cost, charges, requirements, then the description.
+func _ability_body_text(ability_id: String) -> String:
+	var data: Dictionary = AbilityDB.get_ability(ability_id)
 	var lines: Array = []
 	var tree_name: String = data.get("tree", "")
 	if tree_name != "":
@@ -308,7 +320,7 @@ func _fill_ability(ability_id: String) -> void:
 
 	lines.append("")
 	lines.append(data.get("description", ""))
-	body.text = "\n".join(lines)
+	return "\n".join(lines)
 
 
 func _fill_basic_attack() -> void:
@@ -339,8 +351,8 @@ func _cost_text(cost: Dictionary) -> String:
 	for resource in cost.keys():
 		parts.append(str(cost[resource]) + " " + RESOURCE_NAMES.get(resource, resource.to_upper()))
 	return ", ".join(parts)
-	
-	# Puts the pause and combat input lock back as they were before the window opened. Only once, so
+
+# Puts the pause and combat input lock back as they were before the window opened. Only once, so
 # a menu opened by Tab mid-shrink isn't unpaused when the shrink finishes.
 func _restore_pause() -> void:
 	if pause_restored:

@@ -9,6 +9,7 @@ var abilities: Dictionary = {
 		"name": "Charge",
 		"icon": preload("res://assets/sprites/gui/ability_red_charge.png"),
 		"tree": "red",
+		"tree_slot": Vector2i(2, 0),
 		"level_req": 2,
 		"cost": {"ap": 1},
 		"sp_cost": 3,
@@ -27,6 +28,7 @@ var abilities: Dictionary = {
 		"name": "Cleave",
 		"icon": preload("res://assets/sprites/gui/ability_red_cleave.png"),
 		"tree": "red",
+		"tree_slot": Vector2i(3, 0),
 		"level_req": 2,
 		"cost": {"ap": 1},
 		"sp_cost": 3,
@@ -47,6 +49,7 @@ var abilities: Dictionary = {
 		"name": "Blink",
 		"icon": preload("res://assets/sprites/gui/ability_green_blink.png"),
 		"tree": "green",
+		"tree_slot": Vector2i(2, 0),
 		"level_req": 2,
 		"cost": {"ap": 1, "mp": 3},
 		"sp_cost": 3,
@@ -64,6 +67,7 @@ var abilities: Dictionary = {
 		"requires_ranged_weapon": true,
 		"icon": preload("res://assets/sprites/gui/ability_green_focus.png"),
 		"tree": "green",
+		"tree_slot": Vector2i(3, 0),
 		"level_req": 2,
 		"cost": {"ap": 1},
 		"sp_cost": 3,
@@ -86,6 +90,7 @@ var abilities: Dictionary = {
 		"name": "Bolt",
 		"icon": preload("res://assets/sprites/gui/ability_blue_bolt.png"),
 		"tree": "blue",
+		"tree_slot": Vector2i(2, 0),
 		"level_req": 2,
 		"cost": {"bp": 1, "sc": 1},
 		"sp_cost": 3,
@@ -105,6 +110,7 @@ var abilities: Dictionary = {
 		"name": "Flametouch",
 		"icon": preload("res://assets/sprites/gui/ability_blue_flametouch.png"),
 		"tree": "blue",
+		"tree_slot": Vector2i(3, 0),
 		"level_req": 2,
 		"cost": {"bp": 1, "sc": 1},
 		"sp_cost": 3,
@@ -128,7 +134,7 @@ func create_ability(ability_id: String) -> BaseAbility:
 	if not abilities.has(ability_id):
 		push_error("AbilityDB: Unknown ability: " + ability_id)
 		return null
-	
+
 	var instance: BaseAbility = null
 	match ability_id:
 		"cleave":
@@ -143,7 +149,7 @@ func create_ability(ability_id: String) -> BaseAbility:
 			instance = BlinkAbility.new()
 		"focus":
 			instance = FocusAbility.new()
-	
+
 	if instance != null:
 		instance.setup(abilities[ability_id])
 	return instance

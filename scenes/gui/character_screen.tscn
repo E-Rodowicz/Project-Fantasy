@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://cjibwoqc2y8q5" path="res://scenes/gui/ability_panel.gd" id="2_1uwcm"]
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
+[ext_resource type="Texture2D" uid="uid://c3l6duhyp5j7s" path="res://assets/sprites/gui/ability_locked.png" id="3_fgwb8"]
 [ext_resource type="Texture2D" uid="uid://8yiblwtc1dkc" path="res://assets/sprites/gui/main_menu/skill_menu_button_red.png" id="3_xu6kk"]
 [ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
 [ext_resource type="Texture2D" uid="uid://cr26d6bqlrmvu" path="res://assets/sprites/gui/main_menu/skill_menu_button_green.png" id="4_fgwb8"]
@@ -31,6 +32,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_1uwcm")
+lock_texture = ExtResource("3_fgwb8")
 
 [node name="red_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2064267788]
 layout_mode = 0
