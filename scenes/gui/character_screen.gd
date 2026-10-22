@@ -48,7 +48,18 @@ func _set_frame(frame: SelectionFrame, is_selected: bool, entered: bool) -> void
 # from equipping, so they refresh here.
 func on_tab_shown() -> void:
 	stats_panel.refresh()
+
+# Called by game_menu when the player leaves this tab, so it starts fresh next time.
+# The state is set directly rather than through _exit_side, because game_menu resets its own
+# side tracking and doesn't need the side_exited signal.
+func on_tab_hidden() -> void:
+	current_state = State.IDLE
+	_refresh_cursors()
+	stats_panel.reset_cursor()
 	ability_panel.reset()
+	# Without this, a frame left as a full border would visibly shrink back to brackets on return.
+	skills_frame.hide_instantly()
+	stats_frame.hide_instantly()
 
 # Marking the input handled stops Q travelling on to GameMenuManager and closing the menu.
 func _exit_side() -> void:

@@ -24,6 +24,14 @@ const COUNT_COLOURS: Dictionary = {
 }
 const SELECTED_COLOUR: Color = Color.YELLOW
 
+# --- SECTIONS ---
+# true = collapsed. The journal goes back to this every time it's left.
+const DEFAULT_SECTIONS: Dictionary = {
+	"Active Quests": false,
+	"Completed Quests": true,
+	"Failed Quests": true,
+}
+
 # --- LIST LAYOUT ---
 # Space under each entry, in native pixels. Takes the place of the VBoxContainer's separation.
 const ROW_GAP: int = 4
@@ -63,11 +71,9 @@ const PREVIEW_SELECTED_FRAMES: bool = false
 
 var current_state: State = State.LIST_ACTIVE
 
-var sections: Dictionary = {
-	"Active Quests": false,
-	"Completed Quests": true,
-	"Failed Quests": true,
-}
+# duplicate() makes an editable copy. A const Dictionary is read-only, so toggling a section
+# would error if this pointed at DEFAULT_SECTIONS itself.
+var sections: Dictionary = DEFAULT_SECTIONS.duplicate()
 
 var nav_list: Array = []
 var selected_index: int = 0
@@ -114,7 +120,14 @@ func _ready() -> void:
 	# Rows carry their own gap, so the container adds none. Otherwise a closed row would still leave
 	# a gap, and the headers below would jump instead of slide.
 	quest_list_container.add_theme_constant_override("separation", 0)
+	_reset_view()
 
+# Default sections, cursor on the first quest, list scrolled to the top, back in the list.
+func _reset_view() -> void:
+	current_state = State.LIST_ACTIVE
+	sections = DEFAULT_SECTIONS.duplicate()
+	reveal_tab_after_scroll = false
+	reveal_details_after_scroll = false
 	_build_nav_list()
 	_populate_quest_list()
 
@@ -124,6 +137,7 @@ func _ready() -> void:
 			selected_index = i
 			break
 
+	quest_list_scroll.scroll_vertical = 0
 	_apply_list_colours_instantly()
 	_scroll_to_selected()
 	_show_details()
@@ -445,7 +459,6 @@ func _show_details() -> void:
 	else:
 		var quest: Dictionary = entry["quest"]
 		quest_title.text = quest.get("title", "Unknown")
-		# A single space keeps the label one line tall, so it works as the blank line under the title.
 		_populate_entries(quest, text_colour)
 		header_summary_centre.visible = false
 
@@ -473,7 +486,7 @@ func _make_entry_label(text: String, colour: Color, is_divider: bool) -> Label:
 	else:
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	return label
-	
+
 # Builds one label per entry, oldest first, with a divider between each. Quests saved with a
 # single "description" instead of "entries" still show, as one entry.
 func _populate_entries(quest: Dictionary, text_colour: Color) -> void:
@@ -574,6 +587,11 @@ func on_tab_shown() -> void:
 	else:
 		_fade_in_tab()
 
+# Called by game_menu when the player leaves the journal, so it starts fresh next time. The
+# journal is already hidden here, so the quest text's scroll waits for on_tab_shown().
+func on_tab_hidden() -> void:
+	_reset_view()
+
 func _fade_in_tab() -> void:
 	_fade_in_details()
 	_fade_in_list()
@@ -589,7 +607,7 @@ func _fade_in_details() -> void:
 	details_tween.set_parallel(true)
 	details_tween.tween_property(quest_desc_panel, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
 	details_tween.tween_property(header_summary_centre, "modulate:a", 1.0, TEXT_FADE_IN_TIME)
-	
+
 func _fade_in_list() -> void:
 	if list_fade_tween != null and list_fade_tween.is_valid():
 		list_fade_tween.kill()

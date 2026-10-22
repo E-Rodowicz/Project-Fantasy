@@ -4,7 +4,10 @@
 [ext_resource type="Script" uid="uid://cjibwoqc2y8q5" path="res://scenes/gui/ability_panel.gd" id="2_1uwcm"]
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
+[ext_resource type="Texture2D" uid="uid://8yiblwtc1dkc" path="res://assets/sprites/gui/main_menu/skill_menu_button_red.png" id="3_xu6kk"]
 [ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
+[ext_resource type="Texture2D" uid="uid://cr26d6bqlrmvu" path="res://assets/sprites/gui/main_menu/skill_menu_button_green.png" id="4_fgwb8"]
+[ext_resource type="Texture2D" uid="uid://c67eurbabrriu" path="res://assets/sprites/gui/main_menu/skill_menu_button_blue.png" id="5_fe72q"]
 [ext_resource type="Texture2D" uid="uid://cud64l8jdtmmk" path="res://assets/sprites/gui/main_menu/xp_bar_empty.png" id="5_ylf4e"]
 [ext_resource type="Texture2D" uid="uid://ddy3uu4s8ybrc" path="res://assets/sprites/gui/main_menu/xp_bar_full.png" id="6_1uwcm"]
 
@@ -32,7 +35,8 @@ script = ExtResource("2_1uwcm")
 [node name="red_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2064267788]
 layout_mode = 0
 offset_right = 192.0
-offset_bottom = 145.0
+offset_bottom = 50.0
+texture = ExtResource("3_xu6kk")
 
 [node name="label" type="Label" parent="left_side/ability_panel/red_button" unique_id=353687859]
 layout_mode = 1
@@ -41,14 +45,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+text = "Warrior"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="green_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2070488819]
 layout_mode = 0
-offset_top = 53.0
-offset_right = 193.0
-offset_bottom = 198.0
+offset_top = 52.0
+offset_right = 192.0
+offset_bottom = 103.0
+texture = ExtResource("4_fgwb8")
 
 [node name="label" type="Label" parent="left_side/ability_panel/green_button" unique_id=1537277518]
 layout_mode = 1
@@ -57,14 +63,16 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+text = "Rogue"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="blue_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2127453962]
 layout_mode = 0
-offset_top = 106.0
+offset_top = 105.0
 offset_right = 192.0
-offset_bottom = 251.0
+offset_bottom = 155.0
+texture = ExtResource("5_fe72q")
 
 [node name="label" type="Label" parent="left_side/ability_panel/blue_button" unique_id=940359372]
 layout_mode = 1
@@ -73,6 +81,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+text = "Mage"
 horizontal_alignment = 1
 vertical_alignment = 1
 

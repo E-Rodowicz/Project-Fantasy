@@ -21,7 +21,7 @@ const SELECTED_COLOUR: Color = Color.YELLOW
 const ICON_SIZE: int = 8
 # Gap between the icon, the name and the number, in the panel's own pixels.
 const ICON_GAP: int = 2
-# Extra space between a stat's name and its number.Y
+# Extra space between a stat's name and its number.
 const NAME_GAP: int = 3
 # The two rows above the columns, as cursor positions. Columns start at row 0.
 const HEADER_ROW: int = -2
@@ -77,16 +77,15 @@ var cell_labels: Dictionary = {}
 var cell_name_labels: Dictionary = {}
 # The colour each number should be when not selected: white, or green/red for percentages.
 var value_colours: Dictionary = {}
-# Width of the widest short name, so every number starts at the same x.
 # Each stat's icon, by id.
 var cell_icons: Dictionary = {}
+# Width of the widest short name, so every number starts at the same x.
 var name_width: int = 0
 var selected_col: int = 0
 var selected_row: int = 0
 var cursor_visible: bool = false
 # Each stat's whole cell (icon, name and number), by id. The info window grows out of it.
 var cell_nodes: Dictionary = {}
-# How long E has been held, or -1 when it isn't being held.
 # What's charging right now: its id, its icon (if it has one) and its labels, with the white
 # copies laid over them.
 var charging_id: String = ""
@@ -278,11 +277,18 @@ func _move(dx: int, dy: int) -> void:
 		selected_row = mini(selected_row, nav_columns[selected_col].size() - 1)
 	_update_highlight()
 
+# Puts the cursor back on the first stat. Called when the player leaves the tab.
+func reset_cursor() -> void:
+	_end_charge()
+	selected_col = 0
+	selected_row = 0
+	_update_highlight()
+
 # Shows the yellow cursor only while the player is inside the stats side.
 func set_cursor_visible(show_cursor: bool) -> void:
 	cursor_visible = show_cursor
 	_update_highlight()
-	
+
 # The selected stat's name and number turn yellow. Otherwise the name keeps the stat's colour and
 # the number keeps its value colour. Icons always keep the stat's colour.
 func _update_highlight() -> void:
@@ -308,7 +314,7 @@ func get_selected_id() -> String:
 	if selected_row == XP_ROW:
 		return "xp"
 	return nav_columns[selected_col][selected_row]
-	
+
 # --- INFO WINDOW ---
 # Counts how long E is held. Let go early and it was a tap, which does nothing yet; stat
 # upgrading will hook in there. Hold through the charge and the info window opens.

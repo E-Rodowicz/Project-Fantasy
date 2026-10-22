@@ -17,6 +17,8 @@ const SELECTED_COLOUR: Color = Color.YELLOW
 const TITLE_COLOUR: Color = Color("ffc439")
 const FADE_TIME: float = 0.12
 const SLIDE_TIME: float = 0.25
+# How many pixels above true centre the title sits once its button has slid up.
+const TITLE_RAISE: int = 4
 
 @onready var tree_buttons: Array[NinePatchRect] = [
 	$red_button,
@@ -106,13 +108,16 @@ func _on_closed() -> void:
 	state = PanelState.CHOOSING
 	_update_highlight()
 
-# Snaps straight back to the three buttons with no animation. Called when the tab is shown, so
-# reopening the menu never lands you halfway into a tree.
+# Snaps straight back to the three buttons with no animation, cursor on the first one. Called
+# when the player leaves the tab, so it always opens fresh.
 func reset() -> void:
 	_kill_tween()
 	state = PanelState.CHOOSING
+	# Slide and fade both act on whichever button is selected, so they must run before the
+	# selection changes, or the old button would be left slid up or faded out.
 	_apply_slide(0.0)
 	_apply_fade(1.0)
+	selected_tree = 0
 	_update_highlight()
 
 func _kill_tween() -> void:
@@ -136,7 +141,7 @@ func _apply_slide(t: float) -> void:
 	var button_open_y: float = -hidden_height
 	# Shifting the label down by half the hidden part puts its centre in the middle of the
 	# part still showing.
-	var label_open_y: float = label_home_y[selected_tree] + floori(hidden_height / 2.0)
+	var label_open_y: float = label_home_y[selected_tree] + floori(hidden_height / 2.0) - TITLE_RAISE
 	button.position.y = roundf(lerpf(button_home_y[selected_tree], button_open_y, t))
 	label.position.y = roundf(lerpf(label_home_y[selected_tree], label_open_y, t))
 

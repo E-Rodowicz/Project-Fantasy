@@ -69,7 +69,7 @@ func _ready() -> void:
 		tab_labels.append(label)
 
 	select_offset = tab_select.position - tab_character.position
-	
+
 	for tab: Control in tabs:
 		# duplicate() copies the node with all its settings, including its SpriteFrames.
 		var selector: AnimatedSprite2D = tab_select.duplicate() as AnimatedSprite2D
@@ -81,7 +81,7 @@ func _ready() -> void:
 		selector.play("default")
 		tab_selects.append(selector)
 		tab_select_tweens.append(null)
-	tab_select.visible = false	
+	tab_select.visible = false
 
 	screens = [
 		_add_screen(character_scene.instantiate() as Control),
@@ -151,8 +151,16 @@ func switch_tab(tab_index: int) -> void:
 		return
 
 	if current_tab != -1:
-		screens[current_tab].visible = false
-		screens[current_tab].process_mode = Node.PROCESS_MODE_DISABLED
+		var old_screen: Control = screens[current_tab]
+		old_screen.visible = false
+		# Lets the screen reset itself, so every tab starts fresh when you come back to it.
+		# Any screen can opt in just by having an on_tab_hidden() function.
+		if old_screen.has_method("on_tab_hidden"):
+			old_screen.call("on_tab_hidden")
+		old_screen.process_mode = Node.PROCESS_MODE_DISABLED
+		# The menu's own memory of the tab: back to the left side, not entered.
+		tab_sides[current_tab] = GameMenuManager.Side.LEFT
+		tab_in_screen[current_tab] = false
 
 	current_tab = tab_index
 	var screen: Control = screens[current_tab]
@@ -211,7 +219,7 @@ func _fade_tab(index: int, is_current: bool) -> void:
 	tween.tween_property(tab_labels[index], "theme_override_colors/font_color", target_colour, TAB_FADE_TIME)
 	tab_select_tweens[index] = tween
 
-# Tells a gem screen which side is selected and whether the player is inside it, so the screen
+# Tells a split screen which side is selected and whether the player is inside it, so the screen
 # can show it with its frames. Screens without this function are left alone.
 func _update_side_visuals() -> void:
 	var screen: Control = screens[current_tab]
@@ -259,10 +267,10 @@ func _confirm_side() -> void:
 func _on_side_exited() -> void:
 	tab_in_screen[current_tab] = false
 	_update_side_visuals()
+
 # Every tab fades in when shown. A screen with its own fade-in sets fades_itself = true and is
 # left alone. get() reads a variable by name and returns null if the screen doesn't have it, so
 # screens without the flag need nothing.
-
 func _fade_in_screen(screen: Control) -> void:
 	if screen_fade_tween != null and screen_fade_tween.is_valid():
 		screen_fade_tween.kill()
