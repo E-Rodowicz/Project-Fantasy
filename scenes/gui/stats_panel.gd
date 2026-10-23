@@ -294,6 +294,8 @@ func set_cursor_visible(show_cursor: bool) -> void:
 func _update_highlight() -> void:
 	_set_colour(header_label, Color.WHITE, cursor_visible and selected_row == HEADER_ROW)
 	_set_colour(xp_text, Color.WHITE, cursor_visible and selected_row == XP_ROW)
+	UiFade.pop(header_label, cursor_visible and selected_row == HEADER_ROW)
+	UiFade.pop(xp_text, cursor_visible and selected_row == XP_ROW)
 	for col: int in range(nav_columns.size()):
 		for row: int in range(nav_columns[col].size()):
 			var stat_id: String = nav_columns[col][row]
@@ -303,6 +305,7 @@ func _update_highlight() -> void:
 			_set_colour(cell_name_labels[stat_id], name_colour, is_selected)
 			_set_colour(cell_labels[stat_id], value_colours.get(stat_id, Color.WHITE), is_selected)
 			UiFade.modulate(cell_icons[stat_id], SELECTED_COLOUR if is_selected else name_colour)
+			UiFade.pop(cell_nodes[stat_id], is_selected)
 
 func _set_colour(label: Label, normal_colour: Color, is_selected: bool) -> void:
 	UiFade.label_colour(label, SELECTED_COLOUR if is_selected else normal_colour)

@@ -35,6 +35,8 @@ const GRID_COLUMNS: int = 6
 const TREE_TOP: int = 34
 # Empty pixels between an icon and the cursor box around it.
 const CURSOR_GAP: int = 1
+# How far the selected tree button rises while choosing, in pixels.
+const POP_HEIGHT: int = 1
 # Fully transparent, for fading things out.
 const HIDDEN: Color = Color(1, 1, 1, 0)
 # Nudges the hotbar key number from the icon's bottom-right corner, in pixels.
@@ -63,6 +65,8 @@ var cursor_visible: bool = false
 var button_home_y: Array[float] = []
 var label_home_y: Array[float] = []
 var slide_tween: Tween = null
+# Where the chosen button was when its slide began, popped or not.
+var slide_start_y: float = 0.0
 
 # --- OPEN TREE ---
 # Everything inside an open tree is built in code. tree_view fades in and out as one, so its
@@ -87,9 +91,6 @@ var info_hold_timer: float = -1.0
 var charge_started: bool = false
 
 func _ready() -> void:
-	# Hides anything outside the panel's rect, which is what cuts off the top half of the
-	# chosen button once it slides up.
-	clip_contents = true
 	for i: int in range(tree_buttons.size()):
 		button_home_y.append(tree_buttons[i].position.y)
 		label_home_y.append(tree_labels[i].position.y)
@@ -176,6 +177,9 @@ func _input_tree(event: InputEvent) -> bool:
 func _open_tree() -> void:
 	state = PanelState.OPENING
 	_update_highlight()
+	slide_start_y = tree_buttons[selected_tree].position.y
+	# Only needed while a button can be half off the top.
+	clip_contents = true
 	_build_tree(TREE_IDS[selected_tree])
 	_kill_tween()
 	slide_tween = create_tween()
@@ -201,6 +205,7 @@ func _close_tree() -> void:
 	slide_tween.tween_callback(_on_closed)
 
 func _on_closed() -> void:
+	clip_contents = false
 	state = PanelState.CHOOSING
 	_clear_tree()
 	_update_highlight()
@@ -213,7 +218,8 @@ func reset() -> void:
 	state = PanelState.CHOOSING
 	# Slide and fade both act on whichever button is selected, so they must run before the
 	# selection changes, or the old button would be left slid up or faded out.
-	_apply_slide(0.0)
+	tree_labels[selected_tree].position.y = label_home_y[selected_tree]
+	clip_contents = false
 	_apply_fade(1.0)
 	tree_view.modulate.a = 0.0
 	_clear_tree()
@@ -242,7 +248,7 @@ func _apply_slide(t: float) -> void:
 	# Shifting the label down by half the hidden part puts its centre in the middle of the
 	# part still showing.
 	var label_open_y: float = label_home_y[selected_tree] + floori(hidden_height / 2.0) - TITLE_RAISE
-	button.position.y = roundf(lerpf(button_home_y[selected_tree], button_open_y, t))
+	button.position.y = roundf(lerpf(slide_start_y, button_open_y, t))
 	label.position.y = roundf(lerpf(label_home_y[selected_tree], label_open_y, t))
 
 # --- TREE BUILDING ---
@@ -501,3 +507,10 @@ func _update_highlight() -> void:
 			elif not choosing:
 				colour = TITLE_COLOUR
 		UiFade.label_colour(tree_labels[i], colour)
+
+	for i: int in range(tree_buttons.size()):
+		# While a tree is opening, open or closing, the slide owns the chosen button's position.
+		if i == selected_tree and state != PanelState.CHOOSING:
+			continue
+		var popped: bool = i == selected_tree and cursor_visible
+		tree_buttons[i].position.y = button_home_y[i] - (POP_HEIGHT if popped else 0)
