@@ -61,8 +61,10 @@ func on_tab_hidden() -> void:
 	skills_frame.hide_instantly()
 	stats_frame.hide_instantly()
 
-# Marking the input handled stops Q travelling on to GameMenuManager and closing the menu.
 func _exit_side() -> void:
+	# Backing out of a side forgets where the cursor was, so going back in starts fresh.
+	stats_panel.reset_cursor()
+	ability_panel.reset()
 	_set_state(State.IDLE)
 	get_viewport().set_input_as_handled()
 	side_exited.emit()

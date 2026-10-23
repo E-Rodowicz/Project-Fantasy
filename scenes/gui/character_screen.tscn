@@ -4,11 +4,13 @@
 [ext_resource type="Script" uid="uid://cjibwoqc2y8q5" path="res://scenes/gui/ability_panel.gd" id="2_1uwcm"]
 [ext_resource type="Script" uid="uid://ch3ly4m04y11c" path="res://scenes/gui/selection_frame.gd" id="2_or42p"]
 [ext_resource type="Texture2D" uid="uid://w18qrn6e2hv6" path="res://assets/sprites/gui/main_menu/selection_corner.png" id="3_d81u7"]
-[ext_resource type="Texture2D" uid="uid://c3l6duhyp5j7s" path="res://assets/sprites/gui/ability_locked.png" id="3_fgwb8"]
+[ext_resource type="Texture2D" uid="uid://c4abdlluva1ew" path="res://assets/sprites/gui/ability_locked_red.png" id="3_v6sg4"]
 [ext_resource type="Texture2D" uid="uid://8yiblwtc1dkc" path="res://assets/sprites/gui/main_menu/skill_menu_button_red.png" id="3_xu6kk"]
 [ext_resource type="Script" uid="uid://cswwjqruxe0s5" path="res://scenes/gui/stats_panel.gd" id="4_d81u7"]
+[ext_resource type="Texture2D" uid="uid://qsq0gwmpratr" path="res://assets/sprites/gui/ability_locked_blue.png" id="4_fgoca"]
 [ext_resource type="Texture2D" uid="uid://cr26d6bqlrmvu" path="res://assets/sprites/gui/main_menu/skill_menu_button_green.png" id="4_fgwb8"]
 [ext_resource type="Texture2D" uid="uid://c67eurbabrriu" path="res://assets/sprites/gui/main_menu/skill_menu_button_blue.png" id="5_fe72q"]
+[ext_resource type="Texture2D" uid="uid://8glh6sttkr63" path="res://assets/sprites/gui/ability_locked_green.png" id="5_s05oe"]
 [ext_resource type="Texture2D" uid="uid://cud64l8jdtmmk" path="res://assets/sprites/gui/main_menu/xp_bar_empty.png" id="5_ylf4e"]
 [ext_resource type="Texture2D" uid="uid://ddy3uu4s8ybrc" path="res://assets/sprites/gui/main_menu/xp_bar_full.png" id="6_1uwcm"]
 
@@ -32,7 +34,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("2_1uwcm")
-lock_texture = ExtResource("3_fgwb8")
+red_lock_texture = ExtResource("3_v6sg4")
+green_lock_texture = ExtResource("5_s05oe")
+blue_lock_texture = ExtResource("4_fgoca")
 
 [node name="red_button" type="NinePatchRect" parent="left_side/ability_panel" unique_id=2064267788]
 layout_mode = 0

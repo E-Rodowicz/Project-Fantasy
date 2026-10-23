@@ -28,11 +28,13 @@ var overlay_tween_speed: float = 0.25
 var slot_charge_labels: Array = []
 var slot_charge_fade_labels: Array = []
 var slot_charge_values: Array = []
-var charge_fade_speed: float = 0.3
+var charge_fade_speed: float = 0.15
 var slot_labels: Array = []
 var slot_orbs: Array = []
 var slot_empty_orbs: Array = []
 var slot_orb_empty: Array = []
+# Whether the slot's orb is showing at all. An emptied slot hides it, so a new SC ability always fades it back in.
+var slot_orb_shown: Array = []
 var slot_ranged_icons: Array = []
 var slot_ranged_shown: Array = []
 var label_rest_y: Array = []
@@ -54,9 +56,26 @@ var previous_active_slot: int = -1
 
 var hud_enabled: bool = true
 
+# How long a slot takes to fade out when its ability is taken off the hotbar.
+const SLOT_VANISH_TIME: float = 0.2
+# The SC count's size and where it sits, relative to the slot's top-left corner. Both count
+# labels use these, so the fading copy always lines up with the real one.
+const CHARGE_SCALE: float = 0.87
+const CHARGE_OFFSET: Vector2 = Vector2(14, -3)
+
+# The ability each slot is showing, so a change can be spotted and animated.
+var slot_shown_ids: Array[String] = []
+var slot_change_tweens: Array[Tween] = []
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_slots()
+	# Starts matching the hotbar, so nothing animates on the first frame.
+	for i: int in range(10):
+		var ability_id: String = PlayerData.get_hotbar_ability(i)
+		slot_shown_ids.append(ability_id)
+		slot_change_tweens.append(null)
+		slot_labels[i].modulate.a = 1.0 if ability_id != "" else 0.0
 	_update_display()
 	
 func _process(_delta: float) -> void:
@@ -102,7 +121,6 @@ func _build_slots() -> void:
 		key_label.position = Vector2(pos_x - 1, pos_y - 5)
 		label_rest_y.append(key_label.position.y)
 		key_label.z_index = 2
-		key_label.visible = false
 		background.add_child(key_label)
 		slot_labels.append(key_label)
 		
@@ -116,22 +134,23 @@ func _build_slots() -> void:
 		charge_label.add_theme_constant_override("outline_size", 1)
 		charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		charge_label.size = Vector2(9, 9)
-		charge_label.position = Vector2(pos_x + 14, pos_y + icon_size.y - 21)
+		charge_label.position = Vector2(pos_x, pos_y) + CHARGE_OFFSET
 		charge_label.z_index = 3
-		charge_label.scale = Vector2(0.82, 0.82)
+		charge_label.scale = Vector2(CHARGE_SCALE, CHARGE_SCALE)
 		background.add_child(charge_label)
 		slot_charge_labels.append(charge_label)
 		
 		var charge_fade_label: Label = Label.new()
 		charge_fade_label.add_theme_font_size_override("font_size", 6)
+		charge_fade_label.add_theme_font_override("font", charge_font)
 		charge_fade_label.add_theme_color_override("font_color", Color.WHITE)
 		charge_fade_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		charge_fade_label.add_theme_constant_override("outline_size", 1)
 		charge_fade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		charge_fade_label.size = Vector2(9, 9)
-		charge_fade_label.position = Vector2(pos_x + 14, pos_y + icon_size.y - 21)
+		charge_fade_label.position = Vector2(pos_x, pos_y) + CHARGE_OFFSET
 		charge_fade_label.z_index = 3
-		charge_fade_label.scale = Vector2(0.82, 0.82)
+		charge_fade_label.scale = Vector2(CHARGE_SCALE, CHARGE_SCALE)
 		charge_fade_label.modulate = Color(1, 1, 1, 0)
 		background.add_child(charge_fade_label)
 		slot_charge_fade_labels.append(charge_fade_label)
@@ -163,6 +182,7 @@ func _build_slots() -> void:
 		background.add_child(empty_orb)
 		slot_empty_orbs.append(empty_orb)
 		slot_orb_empty.append(true)
+		slot_orb_shown.append(false)
 		
 		var overlay_rect: TextureRect = TextureRect.new()
 		overlay_rect.texture = reject_cross_texture
@@ -259,20 +279,24 @@ func _update_display() -> void:
 	# Refreshes each slot's icon texture.
 	for i in range(10):
 		var ability_id: String = PlayerData.get_hotbar_ability(i)
-		
+
+		var changed: bool = ability_id != slot_shown_ids[i]
+		# Instant when an ability arrives, or leaves because it moved to another key. Only an
+		# ability taken off the hotbar altogether fades out. has() checks if an Array contains a value.
+		var snap: bool = changed and (ability_id != "" or PlayerData.hotbar.has(slot_shown_ids[i]))
+		if changed:
+			_animate_slot_change(i, ability_id, snap)
+			slot_shown_ids[i] = ability_id
+
+		# An emptied slot keeps its old icon while it fades out. _clear_slot_icon removes it after.
 		if ability_id == "basic_attack":
 			if PlayerData.is_ranged_weapon_equipped():
 				slot_icons[i].texture = ranged_attack_icon
 			else:
 				slot_icons[i].texture = basic_attack_icon
-			slot_labels[i].visible = ability_id != ""
 		elif ability_id != "":
 			var data: Dictionary = AbilityDB.get_ability(ability_id)
 			slot_icons[i].texture = data.get("icon", null)
-			slot_labels[i].visible = ability_id != ""
-		else:
-			slot_icons[i].texture = null
-			slot_labels[i].visible = ability_id != ""
 			
 		var wanted_charge: String = ""
 		if ability_id != "" and ability_id != "basic_attack":
@@ -282,7 +306,12 @@ func _update_display() -> void:
 				wanted_charge = str(PlayerData.get_spell_charges(ability_id))
 
 		if wanted_charge != slot_charge_values[i]:
-			_fade_charge_value(i, slot_charge_values[i], wanted_charge)
+			if snap:
+				slot_charge_labels[i].text = wanted_charge
+				slot_charge_labels[i].modulate.a = 1.0
+				slot_charge_fade_labels[i].modulate.a = 0.0
+			else:
+				_fade_charge_value(i, slot_charge_values[i], wanted_charge)
 			slot_charge_values[i] = wanted_charge
 		
 		var wants_ranged_icon: bool = false
@@ -293,8 +322,7 @@ func _update_display() -> void:
 		if wants_ranged_icon != slot_ranged_shown[i]:
 			slot_ranged_shown[i] = wants_ranged_icon
 			var target_a: float = 1.0 if wants_ranged_icon else 0.0
-			var t: Tween = create_tween()
-			t.tween_property(slot_ranged_icons[i], "modulate:a", target_a, overlay_tween_speed)
+			_set_alpha(slot_ranged_icons[i], target_a, snap, overlay_tween_speed)
 			
 		if ability_id != "" and ability_id != "basic_attack":
 			var data2: Dictionary = AbilityDB.get_ability(ability_id)
@@ -303,14 +331,13 @@ func _update_display() -> void:
 				var charges: int = PlayerData.get_spell_charges(ability_id)
 				var is_empty: bool = charges <= 0
 
-				if is_empty != slot_orb_empty[i]:
+				if is_empty != slot_orb_empty[i] or not slot_orb_shown[i]:
 					slot_orb_empty[i] = is_empty
+					slot_orb_shown[i] = true
 					var orb_alpha: float = 0.0 if is_empty else 1.0
 					var empty_alpha: float = 1.0 if is_empty else 0.0
-					var crossfade: Tween = create_tween()
-					crossfade.set_parallel(true)
-					crossfade.tween_property(slot_orbs[i], "modulate:a", orb_alpha, overlay_tween_speed)
-					crossfade.tween_property(slot_empty_orbs[i], "modulate:a", empty_alpha, overlay_tween_speed)
+					_set_alpha(slot_orbs[i], orb_alpha, snap, overlay_tween_speed)
+					_set_alpha(slot_empty_orbs[i], empty_alpha, snap, overlay_tween_speed)
 
 				if not is_empty:
 					if slot_orbs[i].modulate.a < 1.0:
@@ -326,11 +353,9 @@ func _update_display() -> void:
 						slot_orbs[i].stop()
 						slot_orbs[i].frame = 0
 			else:
-				slot_orbs[i].modulate = Color(1, 1, 1, 0)
-				slot_empty_orbs[i].modulate = Color(1, 1, 1, 0)
+				_hide_orbs(i, snap)
 		else:
-			slot_orbs[i].modulate = Color(1, 1, 1, 0)
-			slot_empty_orbs[i].modulate = Color(1, 1, 1, 0)
+			_hide_orbs(i, snap)
 			
 		if BattleManager.active and BattleManager.player_turn != null and ability_id != "":
 			var reasons: Array = BattleManager.player_turn.get_slot_block_reasons(i)
@@ -338,8 +363,7 @@ func _update_display() -> void:
 			if is_blocked != slot_blocked[i]:
 				slot_blocked[i] = is_blocked
 				var target_alpha: float = 1.0 if is_blocked else 0.0
-				var tween: Tween = create_tween()
-				tween.tween_property(slot_overlays[i], "modulate:a", target_alpha, overlay_tween_speed)
+				_set_alpha(slot_overlays[i], target_alpha, snap, overlay_tween_speed)
 		else:
 			var out_blocked: bool = false
 			if ability_id == "basic_attack":
@@ -369,8 +393,7 @@ func _update_display() -> void:
 			if out_blocked != slot_blocked[i]:
 				slot_blocked[i] = out_blocked
 				var target_alpha: float = 1.0 if out_blocked else 0.0
-				var tween: Tween = create_tween()
-				tween.tween_property(slot_overlays[i], "modulate:a", target_alpha, overlay_tween_speed)
+				_set_alpha(slot_overlays[i], target_alpha, snap, overlay_tween_speed)
 
 	# Only animates when the active slot changes, not every frame.
 	if current_active_slot != previous_active_slot:
@@ -404,6 +427,60 @@ func _update_display() -> void:
 		BattleManager.rejected_hotbar_slot = -1
 		if rejected_slot < slot_icons.size():
 			_play_reject(rejected_slot)
+
+# Hides the slot's orbs with the icon. Runs once, not every frame, thanks to slot_orb_shown.
+func _hide_orbs(slot: int, snap: bool) -> void:
+	if not slot_orb_shown[slot]:
+		return
+	slot_orb_shown[slot] = false
+	_set_alpha(slot_orbs[slot], 0.0, snap, SLOT_VANISH_TIME)
+	_set_alpha(slot_empty_orbs[slot], 0.0, snap, SLOT_VANISH_TIME)
+
+# Arriving: shows at once and flashes, like in the tree. Leaving because it moved: clears at once.
+# Taken off the hotbar altogether: fades out.
+func _animate_slot_change(slot: int, ability_id: String, snap: bool) -> void:
+	var icon: TextureRect = slot_icons[slot]
+	var label: Label = slot_labels[slot]
+	var old_tween: Tween = slot_change_tweens[slot]
+	if old_tween != null and old_tween.is_valid():
+		old_tween.kill()
+	UiFade.stop(icon)
+
+	if ability_id != "":
+		icon.modulate = Color.WHITE
+		label.modulate.a = 1.0
+		UiFade.flash(icon)
+	elif snap:
+		icon.texture = null
+		icon.modulate = Color.WHITE
+		label.modulate.a = 0.0
+	else:
+		var tween: Tween = create_tween()
+		tween.tween_property(icon, "modulate:a", 0.0, SLOT_VANISH_TIME)
+		# parallel() runs a step alongside the one before it, so the number fades with the icon.
+		tween.parallel().tween_property(label, "modulate:a", 0.0, SLOT_VANISH_TIME)
+		tween.tween_callback(_clear_slot_icon.bind(slot))
+		slot_change_tweens[slot] = tween
+
+# Fades a node's alpha, or sets it straight away when snap is true. Any fade still running on it
+# is stopped first, so a quick swap can't be undone by an older fade finishing late.
+func _set_alpha(item: CanvasItem, alpha: float, snap: bool, duration: float) -> void:
+	if item.has_meta("alpha_tween"):
+		var old_tween: Tween = item.get_meta("alpha_tween")
+		if old_tween != null and old_tween.is_valid():
+			old_tween.kill()
+	if snap:
+		item.modulate.a = alpha
+		return
+	var tween: Tween = create_tween()
+	tween.tween_property(item, "modulate:a", alpha, duration)
+	item.set_meta("alpha_tween", tween)
+
+# Only clears if the slot is still empty, in case something was put back on it mid-fade.
+func _clear_slot_icon(slot: int) -> void:
+	if PlayerData.get_hotbar_ability(slot) == "":
+		slot_icons[slot].texture = null
+		slot_icons[slot].modulate = Color.WHITE
 
 func _animate_selection(old_slot: int, new_slot: int) -> void:
 	if old_slot >= 0 and old_slot < slot_icons.size():
@@ -503,19 +580,15 @@ func _play_reject(slot: int) -> void:
 		slot_ranged_icons[slot].frame = 0
 		slot_ranged_icons[slot].play("default")
 		
+	# Two red flashes, one after the other, on the empty orb and its count.
 	if slot_orb_empty[slot] and slot_empty_orbs[slot].modulate.a > 0:
 		var orb_flash: Tween = create_tween()
-		orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
-		orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 1, 1, 1), 0.1)
-		
-	if slot_orb_empty[slot] and slot_empty_orbs[slot].modulate.a > 0:
-		var orb_flash: Tween = create_tween()
-		orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
-		orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 1, 1, 1), 0.1)
-
 		var label_flash: Tween = create_tween()
-		label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
-		label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 1, 1, 1), 0.1)
+		for i: int in range(2):
+			orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
+			orb_flash.tween_property(slot_empty_orbs[slot], "modulate", Color(1, 1, 1, 1), 0.1)
+			label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 0.3, 0.3, 1), 0.1)
+			label_flash.tween_property(slot_charge_labels[slot], "modulate", Color(1, 1, 1, 1), 0.1)
 	
 func _show_ability_name(slot: int) -> void:
 	var ability_id: String = PlayerData.get_hotbar_ability(slot)

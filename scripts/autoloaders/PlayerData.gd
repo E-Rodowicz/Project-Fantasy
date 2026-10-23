@@ -102,16 +102,17 @@ var gold: int = 0
 var journal: Dictionary = {}
 
 func _ready() -> void:
-	learn_ability("cleave")
-	hotbar[1] = "cleave"
 	learn_ability("charge")
 	hotbar[2] = "charge"
+	#learn_ability("cleave")
+	#hotbar[1] = "cleave"
+	red_points = 2
 	learn_ability("flametouch")
 	hotbar[3] = "flametouch"
 	learn_ability("bolt")
 	hotbar[4] = "bolt"
-	learn_ability("blink")
-	hotbar[5] = "blink"
+	#earn_ability("blink")
+	#hotbar[5] = "blink"
 	learn_ability("focus")
 	hotbar[6] = "focus"
 	equipped_items["slot_right_weapon"] = ItemDB.get_item("long_bow")
@@ -351,6 +352,17 @@ func learn_ability(ability_id: String) -> void:
 		if max_sc > 0:
 			spell_charges[ability_id] = max_sc
 		
+# How many points are in a tree, by its AbilityDB name ("red", "green" or "blue").
+func get_tree_points(tree_id: String) -> int:
+	match tree_id:
+		"red":
+			return red_points
+		"green":
+			return green_points
+		"blue":
+			return blue_points
+	return 0
+		
 # ============================================================
 # HOTBAR
 # 10 slots: index 0 = key 1 (locked to basic attack), index 1-9 = keys 2-0.
@@ -362,16 +374,16 @@ var hotbar: Array = ["basic_attack", "", "", "", "", "", "", "", "", ""]
 func assign_hotbar(slot: int, ability_id: String) -> void:
 	if slot == 0:
 		return
-	# If the ability is on this slot, return.
+	# Pressing the slot the ability is already on takes it off.
 	if hotbar[slot] == ability_id:
 		hotbar[slot] = ""
 		return
-	# Removes the ability from its current slot (if its on any slot) then prevents the ability from
-	# appearing on two slots at once.
-	for i in range(hotbar.size()):
-		if hotbar[i] == ability_id:
-			hotbar[i] = ""
-	# Places it on requested slot.
+	# find() gives the position of a value in an Array, or -1 if it isn't there.
+	var old_slot: int = hotbar.find(ability_id)
+	# Swap: whatever was on the target slot moves to where this ability came from. If this
+	# ability wasn't on the hotbar yet, there's nowhere to move the other one, so it comes off.
+	if old_slot != -1:
+		hotbar[old_slot] = hotbar[slot]
 	hotbar[slot] = ability_id
 	
 # Slot 0 = key 1 ... slot 9 = key 0.

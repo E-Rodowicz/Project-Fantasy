@@ -52,12 +52,21 @@ var was_paused: bool = false
 var was_input_locked: bool = false
 # Whether the pause and input lock have been given back yet. Stops it happening twice.
 var pause_restored: bool = false
+# Laid over the header icon, for a lock on an ability that isn't unlocked yet.
+var icon_overlay: TextureRect = null
 
 func _ready() -> void:
 	# Must keep running while the game is paused, since opening pauses it.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	content.visible = false
+	icon_overlay = TextureRect.new()
+	icon_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_overlay.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Fills its parent, so the overlay matches the header icon whatever size that is.
+	icon_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon_overlay.visible = false
+	icon.add_child(icon_overlay)
 
 # --- HOLD DETECTION (HOTBAR) ---
 func _process(delta: float) -> void:
@@ -173,6 +182,7 @@ func _open(slot: int) -> void:
 func open_info(source_rect: Rect2, icon_texture: Texture2D, icon_tint: Color, title_text: String, body_text: String, corner_text: String = "") -> void:
 	if state != State.IDLE:
 		return
+	_set_icon_extras(null, null)
 	state = State.OPENING
 	open_slot = -1
 	held_slot = -1
@@ -188,11 +198,20 @@ func open_info(source_rect: Rect2, icon_texture: Texture2D, icon_tint: Color, ti
 
 
 # Opens the window for an ability from anywhere, such as the skill tree, growing out of
-# source_rect (real screen pixels). Uses the same text as the hotbar's window.
-func open_ability_info(source_rect: Rect2, ability_id: String) -> void:
+# source_rect (real screen pixels). icon_material and overlay_texture copy how the icon looks
+# where it came from, e.g. the greyscale shader and a lock.
+func open_ability_info(source_rect: Rect2, ability_id: String, icon_material: Material = null, overlay_texture: Texture2D = null) -> void:
+	if state != State.IDLE:
+		return
 	var data: Dictionary = AbilityDB.get_ability(ability_id)
 	open_info(source_rect, data.get("icon", null), Color.WHITE, data.get("name", ""), _ability_body_text(ability_id))
+	# open_info clears these, so they're set after it.
+	_set_icon_extras(icon_material, overlay_texture)
 
+func _set_icon_extras(icon_material: Material, overlay_texture: Texture2D) -> void:
+	icon.material = icon_material
+	icon_overlay.texture = overlay_texture
+	icon_overlay.visible = overlay_texture != null
 
 # Measures the content, then grows the window out of source_rect (native pixels).
 func _show_window(source_rect: Rect2) -> void:
@@ -278,6 +297,7 @@ func _centre_rect() -> Rect2:
 
 # --- CONTENT ---
 func _fill_content(slot: int) -> void:
+	_set_icon_extras(null, null)
 	title.add_theme_color_override("font_color", Color.WHITE)
 	corner.text = ""
 	# Reuse the hotbar's icon so attack/ranged attack picks the right one automatically.

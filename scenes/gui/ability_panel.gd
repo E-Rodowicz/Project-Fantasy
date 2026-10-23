@@ -16,6 +16,8 @@ const SELECTED_COLOUR: Color = Color.YELLOW
 # The open tree's title is a structural marker, not the cursor, so it uses gold.
 const TITLE_COLOUR: Color = Color("ffc439")
 const FADE_TIME: float = 0.12
+# How long the open tree's contents (icons, locks, cursor) take to fade in or out.
+const TREE_FADE_TIME: float = 0.07
 const SLIDE_TIME: float = 0.25
 # How many pixels above true centre the title sits once its button has slid up.
 const TITLE_RAISE: int = 4
@@ -33,9 +35,15 @@ const GRID_COLUMNS: int = 6
 const TREE_TOP: int = 34
 # Empty pixels between an icon and the cursor box around it.
 const CURSOR_GAP: int = 1
+# Fully transparent, for fading things out.
+const HIDDEN: Color = Color(1, 1, 1, 0)
+# Nudges the hotbar key number from the icon's bottom-right corner, in pixels.
+const BADGE_NUDGE: Vector2 = Vector2(-15, -7)
 
-# Drawn over the icon of any ability you don't have yet. Same size as an ability icon.
-@export var lock_texture: Texture2D = null
+# Shown instead of an ability's icon while it's locked, one per tree. Same size as an ability icon.
+@export var red_lock_texture: Texture2D = null
+@export var green_lock_texture: Texture2D = null
+@export var blue_lock_texture: Texture2D = null
 
 @onready var tree_buttons: Array[NinePatchRect] = [
 	$red_button,
@@ -61,13 +69,18 @@ var slide_tween: Tween = null
 # children (icons, cursor, charge animation) fade with it.
 var tree_view: Control = null
 var icon_holder: Control = null
-var cursor_box: ReferenceRect = null
 var charge_sprite: AnimatedSprite2D = null
 var greyscale_material: ShaderMaterial = null
 # The open tree's abilities, their icons and their grid positions, all in the same order.
 var node_ids: Array[String] = []
 var node_icons: Array[TextureRect] = []
 var node_slots: Array[Vector2i] = []
+# Each ability's cursor box, hotbar key number, and the key that number currently shows.
+var node_boxes: Array[ReferenceRect] = []
+var node_badges: Array[Label] = []
+var node_badge_keys: Array[String] = []
+# Each ability's lock texture, or null if it isn't locked. The info window copies it.
+var node_locks: Array[Texture2D] = []
 var selected_node: int = 0
 # How long E has been held on an ability, or -1 when it isn't being held.
 var info_hold_timer: float = -1.0
@@ -92,17 +105,6 @@ func _build_tree_view() -> void:
 
 	icon_holder = Control.new()
 	tree_view.add_child(icon_holder)
-
-	# ReferenceRect is a built-in node that draws just a rectangle's outline.
-	cursor_box = ReferenceRect.new()
-	# On by default, which would hide the box in the running game.
-	cursor_box.editor_only = false
-	cursor_box.border_color = SELECTED_COLOUR
-	cursor_box.border_width = 1.0
-	var box_size: int = ICON_SIZE + (CURSOR_GAP + 1) * 2
-	cursor_box.size = Vector2(box_size, box_size)
-	cursor_box.visible = false
-	tree_view.add_child(cursor_box)
 
 	# The hotbar's own charge animation, so holding E here looks exactly like holding a hotbar key.
 	charge_sprite = AnimatedSprite2D.new()
@@ -179,7 +181,7 @@ func _open_tree() -> void:
 	slide_tween = create_tween()
 	slide_tween.tween_method(_apply_fade, 1.0, 0.0, FADE_TIME)
 	slide_tween.tween_method(_apply_slide, 0.0, 1.0, SLIDE_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	slide_tween.tween_property(tree_view, "modulate:a", 1.0, FADE_TIME)
+	slide_tween.tween_property(tree_view, "modulate:a", 1.0, TREE_FADE_TIME)
 	slide_tween.tween_callback(_on_opened)
 
 func _on_opened() -> void:
@@ -193,7 +195,7 @@ func _close_tree() -> void:
 	_update_highlight()
 	_kill_tween()
 	slide_tween = create_tween()
-	slide_tween.tween_property(tree_view, "modulate:a", 0.0, FADE_TIME)
+	slide_tween.tween_property(tree_view, "modulate:a", 0.0, TREE_FADE_TIME)
 	slide_tween.tween_method(_apply_slide, 1.0, 0.0, SLIDE_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	slide_tween.tween_method(_apply_fade, 0.0, 1.0, FADE_TIME)
 	slide_tween.tween_callback(_on_closed)
@@ -255,20 +257,36 @@ func _build_tree(tree_id: String) -> void:
 		var slot: Vector2i = data.get("tree_slot", Vector2i.ZERO)
 
 		var icon: TextureRect = TextureRect.new()
-		icon.texture = data.get("icon", null)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.size = Vector2(ICON_SIZE, ICON_SIZE)
 		icon.position = _slot_position(slot)
-		if not PlayerData.has_ability(ability_id):
+		var lock: Texture2D = null
+		if PlayerData.has_ability(ability_id):
+			icon.texture = data.get("icon", null)
+		elif PlayerData.get_tree_points(tree_id) >= data.get("level_req", 0):
+			icon.texture = data.get("icon", null)
 			icon.material = greyscale_material
+		else:
+			icon.texture = data.get("icon", null)
+			icon.material = greyscale_material
+			lock = _lock_texture_for(tree_id)
 			# Children don't use their parent's material, so the lock keeps its own colours.
-			icon.add_child(_make_lock())
+			icon.add_child(_make_lock(lock))
+		# Children don't use their parent's material, so the box and number never go grey.
+		var box: ReferenceRect = _make_cursor_box()
+		icon.add_child(box)
+		var badge: Label = _make_badge()
+		icon.add_child(badge)
 		icon_holder.add_child(icon)
 
 		node_ids.append(ability_id)
 		node_icons.append(icon)
 		node_slots.append(slot)
+		node_boxes.append(box)
+		node_badges.append(badge)
+		node_badge_keys.append("")
+		node_locks.append(lock)
 
 	# Start on the top-left ability: the lowest row, then the lowest column in it.
 	selected_node = 0
@@ -278,14 +296,52 @@ func _build_tree(tree_id: String) -> void:
 		if slot.y < best.y or (slot.y == best.y and slot.x < best.x):
 			selected_node = i
 	_update_cursor()
+	_refresh_badges(false)
 
-func _make_lock() -> TextureRect:
+func _lock_texture_for(tree_id: String) -> Texture2D:
+	match tree_id:
+		"red":
+			return red_lock_texture
+		"green":
+			return green_lock_texture
+		"blue":
+			return blue_lock_texture
+	return null
+	
+# The tree's lock, laid exactly over the icon. Draw it with a transparent background so the
+# grey icon shows through around it.
+func _make_lock(texture: Texture2D) -> TextureRect:
 	var lock: TextureRect = TextureRect.new()
-	lock.texture = lock_texture
+	lock.texture = texture
 	lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	lock.size = Vector2(ICON_SIZE, ICON_SIZE)
 	return lock
+
+# A 1px yellow outline with a gap around the icon. Starts hidden. _update_cursor fades it.
+func _make_cursor_box() -> ReferenceRect:
+	var box: ReferenceRect = ReferenceRect.new()
+	# On by default, which would hide the box in the running game.
+	box.editor_only = false
+	box.border_color = SELECTED_COLOUR
+	box.border_width = 1.0
+	var offset: int = CURSOR_GAP + 1
+	box.position = Vector2(-offset, -offset)
+	box.size = Vector2(ICON_SIZE + offset * 2, ICON_SIZE + offset * 2)
+	box.modulate = HIDDEN
+	return box
+
+# The hotbar key the ability is on, in the icon's bottom-right corner. Starts hidden.
+func _make_badge() -> Label:
+	var badge: Label = Label.new()
+	badge.size = Vector2(ICON_SIZE, ICON_SIZE)
+	badge.position = BADGE_NUDGE
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	badge.add_theme_color_override("font_outline_color", Color.BLACK)
+	badge.add_theme_constant_override("outline_size", 1)
+	badge.modulate = HIDDEN
+	return badge
 
 func _clear_tree() -> void:
 	for child: Node in icon_holder.get_children():
@@ -294,7 +350,10 @@ func _clear_tree() -> void:
 	node_icons.clear()
 	node_slots.clear()
 	selected_node = 0
-	cursor_box.visible = false
+	node_boxes.clear()
+	node_badges.clear()
+	node_badge_keys.clear()
+	node_locks.clear()
 
 # Where an icon goes for a grid position. The grid is centred across the panel, and the icon
 # is centred inside its cell.
@@ -328,25 +387,51 @@ func _move_cursor(dx: int, dy: int) -> void:
 	selected_node = best
 	_cancel_charge()
 	_update_cursor()
-
+	
+# Every ability has its own box. The selected one fades in while the others fade out.
 func _update_cursor() -> void:
-	if node_icons.is_empty():
-		cursor_box.visible = false
-		return
-	cursor_box.visible = true
-	var offset: float = CURSOR_GAP + 1
-	cursor_box.position = node_icons[selected_node].position - Vector2(offset, offset)
+	for i: int in range(node_boxes.size()):
+		UiFade.modulate(node_boxes[i], Color.WHITE if i == selected_node else HIDDEN)
 
 # --- HOTBAR ---
-# Only abilities you have can go on the hotbar. Slot 0 is the attack, which assign_hotbar
-# refuses by itself. Pressing the slot an ability is already on takes it off.
+# Only abilities you have can go on the hotbar, and never on slot 0, the attack. Pressing the
+# slot an ability is already on takes it off.
 func _assign_to_hotbar(slot: int) -> void:
-	if node_ids.is_empty():
+	if node_ids.is_empty() or slot == 0:
 		return
 	var ability_id: String = node_ids[selected_node]
 	if not PlayerData.has_ability(ability_id):
 		return
 	PlayerData.assign_hotbar(slot, ability_id)
+	_refresh_badges(true)
+
+# Checks every ability, since one change can move or knock off another. A new key shows at once,
+# and the icon flashes if flash is true. Coming off the hotbar fades the number out.
+func _refresh_badges(flash: bool) -> void:
+	for i: int in range(node_ids.size()):
+		var key: String = _hotbar_key_for(node_ids[i])
+		if key == node_badge_keys[i]:
+			continue
+		node_badge_keys[i] = key
+		var badge: Label = node_badges[i]
+		if key == "":
+			UiFade.modulate(badge, HIDDEN)
+		else:
+			badge.text = key
+			UiFade.stop(badge)
+			badge.modulate = Color.WHITE
+			if flash:
+				UiFade.flash(node_icons[i])
+
+# Slot 0 is key 1, up to slot 9 as key 0. % gives the remainder after dividing, so (9 + 1) % 10
+# is 0. Empty if the ability isn't on the hotbar.
+func _hotbar_key_for(ability_id: String) -> String:
+	if not PlayerData.has_ability(ability_id):
+		return ""
+	for i: int in range(PlayerData.hotbar.size()):
+		if PlayerData.hotbar[i] == ability_id:
+			return str((i + 1) % 10)
+	return ""
 
 # --- INFO WINDOW ---
 # Same timings as holding a hotbar key. Let go before the delay and it was a tap, which will
@@ -368,7 +453,8 @@ func _process(delta: float) -> void:
 		# The animation is left to play out and hides itself when it ends, like on the hotbar.
 		info_hold_timer = -1.0
 		charge_started = false
-		SkillInfoScreen.open_ability_info(_screen_rect(node_icons[selected_node]), node_ids[selected_node])
+		var icon: TextureRect = node_icons[selected_node]
+		SkillInfoScreen.open_ability_info(_screen_rect(icon), node_ids[selected_node], icon.material, node_locks[selected_node])
 
 # speed_scale stretches the animation so it lasts exactly charge_time, whatever its frame rate.
 func _start_charge(charge_time: float) -> void:
