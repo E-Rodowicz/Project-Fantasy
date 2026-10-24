@@ -1,6 +1,6 @@
 # Project Fantasy
 
-A top-down, turn-based tactics CRPG built in Godot 4 with GDScript. Inspired by old-school Ultima's Gothic. It has grid-based exploration that drops straight into tactical combat on the same map with no separate battle screen.
+A top-down, turn-based tactics CRPG built in Godot 4 with GDScript. Inspired by old-school Ultima's (Graphically and gameplay-wise) & Gothic's (Gameplay-wise). It has grid-based exploration that drops straight into tactical combat on the same map with no separate battle screen.
 
 This is a solo project in active development.
 
