@@ -38,12 +38,6 @@ var unspent_skill_points: int = 0
 # Starting with 3 for a cheeky testing session.
 var unspent_stat_points: int = 3 
 
-# Red (Warrior), Green (Rogue), and Blue (Mage) tree investment
-# These store how many points have been put into each tree
-var red_points: int = 0
-var green_points: int = 0
-var blue_points: int = 0
-
 var learned_abilities: Array = []
 
 var max_hp: int = 20
@@ -102,11 +96,11 @@ var gold: int = 0
 var journal: Dictionary = {}
 
 func _ready() -> void:
+	unspent_skill_points = 5
 	learn_ability("charge")
 	hotbar[2] = "charge"
 	#learn_ability("cleave")
 	#hotbar[1] = "cleave"
-	red_points = 2
 	learn_ability("flametouch")
 	hotbar[3] = "flametouch"
 	learn_ability("bolt")
@@ -272,6 +266,21 @@ func get_stat(stat_name: String) -> int:
 		"luck":         return luck
 	return 0
 
+# The attributes an attribute point can go into.
+const UPGRADABLE_STATS: Array[String] = ["strength", "vitality", "dexterity", "speed", "intelligence", "charisma"]
+
+func can_raise_stat(stat_name: String) -> bool:
+	return unspent_stat_points > 0 and stat_name in UPGRADABLE_STATS and get_stat(stat_name) < NATURAL_STAT_CAP
+
+# Spends a point on a stat. Returns true if it worked, so the screen knows whether to react.
+func raise_stat(stat_name: String) -> bool:
+	if not can_raise_stat(stat_name):
+		return false
+	unspent_stat_points -= 1
+	# set() is get()'s partner: it changes a variable by its name.
+	set(stat_name, get(stat_name) + 1)
+	return true
+
 # ============================================================
 # FUNCTIONS - INVENTORY
 # ============================================================
@@ -352,17 +361,34 @@ func learn_ability(ability_id: String) -> void:
 		if max_sc > 0:
 			spell_charges[ability_id] = max_sc
 		
-# How many points are in a tree, by its AbilityDB name ("red", "green" or "blue").
+# A tree's points are the SP cost of every ability you own in it, so buying one raises its tree.
 func get_tree_points(tree_id: String) -> int:
-	match tree_id:
-		"red":
-			return red_points
-		"green":
-			return green_points
-		"blue":
-			return blue_points
-	return 0
-		
+	var total: int = 0
+	for ability_id: String in learned_abilities:
+		var data: Dictionary = AbilityDB.get_ability(ability_id)
+		if data.get("tree", "") == tree_id:
+			total += data.get("sp_cost", 0)
+	return total
+	
+# Needs enough points in the ability's tree, and enough unspent points to pay for it.
+func can_buy_ability(ability_id: String) -> bool:
+	if has_ability(ability_id):
+		return false
+	var data: Dictionary = AbilityDB.get_ability(ability_id)
+	if get_tree_points(data.get("tree", "")) < data.get("tree_points_req", 0):
+		return false
+	return unspent_skill_points >= data.get("sp_cost", 0)
+
+# Returns true if it was bought, so the panel knows whether to react.
+func buy_ability(ability_id: String) -> bool:
+	if not can_buy_ability(ability_id):
+		return false
+	unspent_skill_points -= AbilityDB.get_ability(ability_id).get("sp_cost", 0)
+	learn_ability(ability_id)
+	auto_assign_hotbar(ability_id)
+	return true
+
+	
 # ============================================================
 # HOTBAR
 # 10 slots: index 0 = key 1 (locked to basic attack), index 1-9 = keys 2-0.
@@ -410,6 +436,14 @@ func get_hotbar_slot_released(event: InputEvent) -> int:
 		if event.is_action_released(HOTBAR_ACTIONS[i]):
 			return i
 	return -1
+	
+# Puts an ability on the leftmost empty slot. Slot 0 is always the attack, so it starts from 1,
+# which is key 2. Does nothing if every slot is taken.
+func auto_assign_hotbar(ability_id: String) -> void:
+	for i: int in range(1, hotbar.size()):
+		if hotbar[i] == "":
+			hotbar[i] = ability_id
+			return
 	
 # ============================================================
 # FUNCTIONS - SPELL CHARGES

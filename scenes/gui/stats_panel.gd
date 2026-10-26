@@ -8,7 +8,7 @@ class_name StatsPanel
 # Test switch: set between 0.0 and 1.0 to preview the XP bar that full (0.5 = half). -1 uses real XP.
 const TEST_XP_RATIO: float = 0.5
 # Test switch: shows the widest values each stat can have, to check the layout holds them.
-const TEST_WIDEST_VALUES: bool = true
+const TEST_WIDEST_VALUES: bool = false
 const TEST_VALUES: Dictionary = {
 	"strength": 0, "vitality": 8, "dexterity": 2,
 	"speed": 4, "charisma": 5, "intelligence": 10,
@@ -37,6 +37,41 @@ const INFO_FULL_HOLD: float = 0.12
 const FLASH_STEP: float = 0.06
 # How many white/yellow flashes play when the window opens.
 const FLASH_COUNT: int = 4
+# The upgrade: snaps white and fades back to yellow, pops up past the selected size and settles.
+const UPGRADE_FLASH_TIME: float = 0.4
+const UPGRADE_POP_SCALE: float = 1.35
+const UPGRADE_POP_UP_TIME: float = 0.06
+const UPGRADE_POP_SETTLE_TIME: float = 0.3
+# The "+1" that floats off the number.
+const PLUS_ONE_COLOUR: Color = Color("ffc439")
+const PLUS_ONE_DISTANCE: int = 6
+const PLUS_ONE_TIME: float = 0.8
+const PLUS_ONE_HOLD: float = 0.2
+const SHINE_SHADER: Shader = preload("res://shaders/shine.gdshader")
+# How long one sweep takes to cross a stat, how often it repeats, and the delay between each
+# attribute's sweep, so it ripples down the column.
+const SHINE_SWEEP_TIME: float = 0.4
+const SHINE_INTERVAL: float = 1.2
+const SHINE_STAGGER: float = 0.08
+# The band's width in the panel's own pixels, and how much it leans.
+const SHINE_WIDTH: float = 6.0
+const SHINE_SLANT: float = 0.5
+# Where the band is parked when nothing should shine: far off to the left.
+const SHINE_OFF: float = -100000.0
+# 1 is fully white inside the band.
+const SHINE_STRENGTH: float = 1.0
+# --- REJECTING ---
+const REJECT_COLOUR: Color = Color(0.95, 0.048, 0.0, 1.0)
+# The shake, in pixels from rest: left, right, left, home. One step every SHAKE_STEP_TIME.
+const SHAKE_STEPS: Array[int] = [-1, 1, -1, 0]
+const SHAKE_STEP_TIME: float = 0.05
+# The floating message: how far it rises, how long that takes, and how long it stays solid first.
+const FLOAT_DISTANCE: int = 10
+const FLOAT_TIME: float = 1.2
+const FLOAT_HOLD_TIME: float = 0.4
+# Pixels between the top of the stat and the bottom of the message when it appears.
+const FLOAT_GAP: int = 2
+const FLOAT_OUTLINE_SIZE: int = 6
 
 @export var title_colour: Color = Color("ffc439")
 # The XP bar sits outside this panel so its art isn't shrunk by the panel's 0.75 scale. These
@@ -94,6 +129,11 @@ var charge_labels: Array[Label] = []
 var charge_clips: Array[Control] = []
 # How long E has been held, or -1 when it isn't being held.
 var info_hold_timer: float = -1.0
+var shine_time: float = 0.0
+# Each upgradable attribute's shine material, by id. Shared by its icon, name and number.
+var shine_materials: Dictionary = {}
+# The floating message on screen, if any. A new rejection replaces it.
+var reject_text: Label = null
 
 func _ready() -> void:
 	name_width = _measure_widest_name()
@@ -157,6 +197,17 @@ func _make_cell(stat_id: String) -> Control:
 	cell_name_labels[stat_id] = name_label
 	cell_icons[stat_id] = icon
 	cell_nodes[stat_id] = cell
+	# One material per attribute, shared by its three parts, so a single band crosses all of them.
+	if stat_id in PlayerData.UPGRADABLE_STATS:
+		var shine: ShaderMaterial = ShaderMaterial.new()
+		shine.shader = SHINE_SHADER
+		shine.set_shader_parameter("shine_pos", SHINE_OFF)
+		shine.set_shader_parameter("shine_slant", SHINE_SLANT)
+		shine.set_shader_parameter("shine_strength", SHINE_STRENGTH)
+		icon.material = shine
+		name_label.material = shine
+		value_label.material = shine
+		shine_materials[stat_id] = shine
 	return cell
 
 # get_theme_font finds the font a Label here would use (your m3x6 from the menu theme), and
@@ -318,14 +369,177 @@ func get_selected_id() -> String:
 		return "xp"
 	return nav_columns[selected_col][selected_row]
 
+# --- UPGRADING ---
+# Tapping E on an attribute spends a point on it. Anything else (header, XP, other stats) is
+# turned down by raise_stat, so nothing happens.
+# Sweeps a band across every attribute that can still be raised, one after another down the
+# column. The selected one is left alone, since the cursor already marks it.
+func _update_shine(delta: float) -> void:
+	if PlayerData.unspent_stat_points > 0:
+		shine_time += delta
+	else:
+		shine_time = 0.0
+	var selected_id: String = get_selected_id() if cursor_visible else ""
+	for i: int in range(PlayerData.UPGRADABLE_STATS.size()):
+		var stat_id: String = PlayerData.UPGRADABLE_STATS[i]
+		if not shine_materials.has(stat_id):
+			continue
+		var shine: ShaderMaterial = shine_materials[stat_id]
+		# fposmod is % for floats, and always comes out positive, so each attribute repeats on the
+		# same loop, just later the further down it is.
+		var t: float = fposmod(shine_time - i * SHINE_STAGGER, SHINE_INTERVAL) / SHINE_SWEEP_TIME
+		if t > 1.0 or stat_id == selected_id or not PlayerData.can_raise_stat(stat_id):
+			shine.set_shader_parameter("shine_pos", SHINE_OFF)
+			continue
+		var cell: Control = cell_nodes[stat_id]
+		var rect: Rect2 = cell.get_global_rect()
+		# Converts the width from the panel's pixels into canvas units, which the shader works in.
+		var width: float = SHINE_WIDTH * cell.get_global_transform().get_scale().x
+		# Starts just clear of the top-left corner and ends just clear of the bottom-right, so the
+		# slanted band fully enters and leaves.
+		var start: float = rect.position.x + rect.position.y * SHINE_SLANT - width
+		var finish: float = rect.end.x + rect.end.y * SHINE_SLANT + width
+		shine.set_shader_parameter("shine_pos", lerpf(start, finish, t))
+		shine.set_shader_parameter("shine_width", width)
+
+func _try_upgrade() -> void:
+	var stat_id: String = get_selected_id()
+	if not PlayerData.raise_stat(stat_id):
+		if stat_id in PlayerData.UPGRADABLE_STATS and PlayerData.get_stat(stat_id) >= PlayerData.NATURAL_STAT_CAP:
+			_reject(stat_id, "Attribute at a natural max")
+		return
+	refresh()
+	_play_upgrade(stat_id)
+
+# The selected stat is pure yellow, which modulate can't brighten any further, so the flash
+# switches it to white instead and fades back.
+func _play_upgrade(stat_id: String) -> void:
+	var icon: TextureRect = cell_icons[stat_id]
+	var labels: Array[Label] = [cell_name_labels[stat_id], cell_labels[stat_id]]
+	_kill_fade(icon)
+	for label: Label in labels:
+		_kill_fade(label)
+	_set_parts_colour(icon, labels, Color.WHITE)
+	UiFade.modulate(icon, SELECTED_COLOUR, UPGRADE_FLASH_TIME)
+	for label: Label in labels:
+		UiFade.label_colour(label, SELECTED_COLOUR, UPGRADE_FLASH_TIME)
+	_upgrade_pop(cell_nodes[stat_id])
+	_float_plus_one(cell_labels[stat_id])
+
+# Up past the selected size and back down to it. Stored as the cell's "pop_tween", the same slot
+# UiFade.pop uses, so if the cursor moves away mid-pop, UiFade kills this one and takes over.
+func _upgrade_pop(cell: Control) -> void:
+	if cell.has_meta("pop_tween"):
+		var old_tween: Tween = cell.get_meta("pop_tween")
+		if old_tween != null and old_tween.is_valid():
+			old_tween.kill()
+	# The second value is what get_meta gives back if the meta isn't there.
+	var base: Vector2 = cell.get_meta("pop_base_scale", Vector2.ONE)
+	var tween: Tween = cell.create_tween()
+	tween.tween_property(cell, "scale", base * UPGRADE_POP_SCALE, UPGRADE_POP_UP_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(cell, "scale", base * UiFade.POP_SCALE, UPGRADE_POP_SETTLE_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	cell.set_meta("pop_tween", tween)
+
+# A gold "+1" just right of the number, which holds for a moment, then rises and fades.
+# It's a child of the number, so it pops with the cell.
+func _float_plus_one(value_label: Label) -> void:
+	var plus: Label = Label.new()
+	plus.text = "+1"
+	plus.add_theme_color_override("font_color", PLUS_ONE_COLOUR)
+	plus.add_theme_color_override("font_outline_color", Color.BLACK)
+	plus.add_theme_constant_override("outline_size", 1)
+	value_label.add_child(plus)
+	# The minimum size comes from the new text straight away, before the container re-lays it out.
+	var start_y: float = 0.0
+	plus.position = Vector2(value_label.get_combined_minimum_size().x + 1, start_y)
+
+	var tween: Tween = plus.create_tween()
+	tween.set_parallel(true)
+	tween.tween_method(_set_plus_offset.bind(plus, start_y), 0.0, float(PLUS_ONE_DISTANCE), PLUS_ONE_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(plus, "modulate:a", 0.0, PLUS_ONE_TIME - PLUS_ONE_HOLD).set_delay(PLUS_ONE_HOLD)
+	tween.chain().tween_callback(plus.queue_free)
+
+func _set_plus_offset(offset: float, plus: Label, start_y: float) -> void:
+	plus.position.y = start_y - roundf(offset)
+	
+# --- REJECTING ---
+func _reject(stat_id: String, message: String) -> void:
+	var cell: Control = cell_nodes[stat_id]
+	_shake(cell)
+	_float_text(cell, message)
+
+# The cell sits in a container, which sets its position. The shake moves it anyway and always
+# finishes back where it started, so the container never notices.
+func _shake(cell: Control) -> void:
+	# Home is only recorded when it isn't already shaking, or a second shake would take a
+	# mid-shake position as home.
+	var already_shaking: bool = false
+	if cell.has_meta("shake_tween"):
+		var old_tween: Tween = cell.get_meta("shake_tween")
+		if old_tween != null and old_tween.is_valid():
+			old_tween.kill()
+			already_shaking = true
+	if not already_shaking:
+		cell.set_meta("shake_rest_x", cell.position.x)
+	var rest_x: float = cell.get_meta("shake_rest_x")
+	_set_shake_offset(0.0, cell, rest_x)
+	var tween: Tween = cell.create_tween()
+	var from: int = 0
+	for step: int in SHAKE_STEPS:
+		tween.tween_method(_set_shake_offset.bind(cell, rest_x), float(from), float(step), SHAKE_STEP_TIME)
+		from = step
+	cell.set_meta("shake_tween", tween)
+
+func _set_shake_offset(offset: float, cell: Control, rest_x: float) -> void:
+	cell.position.x = rest_x + roundf(offset)
+
+# Red text over the stat that holds for a moment, then drifts up while fading. It's a child of
+# this panel rather than the cell, so it doesn't shake or pop with it.
+func _float_text(cell: Control, message: String) -> void:
+	if is_instance_valid(reject_text):
+		reject_text.queue_free()
+	var label: Label = Label.new()
+	label.text = message
+	label.add_theme_color_override("font_color", REJECT_COLOUR)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", FLOAT_OUTLINE_SIZE)
+	add_child(label)
+	reject_text = label
+
+	var text_size: Vector2 = label.get_combined_minimum_size()
+	label.size = text_size
+	# Draws above the selection frame, which comes after this panel in the scene tree.
+	label.z_index = 1
+	# The middle of the top of the stat, moved from the cell's own space into this panel's.
+	var cell_top: Vector2 = Vector2(cell.get_combined_minimum_size().x / 2.0, 0.0)
+	var top_centre: Vector2 = get_global_transform().affine_inverse() * (cell.get_global_transform() * cell_top)
+	var x: float = roundf(top_centre.x - text_size.x / 2.0)
+	var start_y: float = roundf(top_centre.y - text_size.y - FLOAT_GAP)
+	label.position = Vector2(x, start_y)
+
+	var tween: Tween = label.create_tween()
+	tween.set_parallel(true)
+	tween.tween_method(_set_float_offset.bind(label, start_y), 0.0, float(FLOAT_DISTANCE), FLOAT_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, FLOAT_TIME - FLOAT_HOLD_TIME).set_delay(FLOAT_HOLD_TIME)
+	tween.chain().tween_callback(label.queue_free)
+
+func _set_float_offset(offset: float, label: Label, start_y: float) -> void:
+	label.position.y = start_y - roundf(offset)
+	
 # --- INFO WINDOW ---
-# Counts how long E is held. Let go early and it was a tap, which does nothing yet; stat
-# upgrading will hook in there. Hold through the charge and the info window opens.
+# Counts how long E is held. Let go early and it was a tap, which spends an attribute point on
+# the selected stat. Hold through the charge and the info window opens.
 func _process(delta: float) -> void:
+	_update_shine(delta)
 	if info_hold_timer < 0.0:
 		return
 	if not Input.is_action_pressed("interact") or not cursor_visible:
+		# Let go before the charge delay means it was a tap. Worked out before _end_charge,
+		# which resets info_hold_timer.
+		var was_tap: bool = cursor_visible and info_hold_timer < INFO_CHARGE_DELAY
 		_end_charge()
+		if was_tap:
+			_try_upgrade()
 		return
 	info_hold_timer += delta
 	if info_hold_timer < INFO_CHARGE_DELAY:

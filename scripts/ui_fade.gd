@@ -40,12 +40,13 @@ static func modulate(item: CanvasItem, colour: Color, duration: float = DEFAULT_
 	item.set_meta("fade_target", colour)
 	
 # Pops a node bright and settles it back to normal. Shares the fade's slot in meta, so a flash
-# and a fade on the same node never fight: whichever starts last wins.
-static func flash(item: CanvasItem) -> void:
+# and a fade on the same node never fight: whichever starts last wins. The defaults are the
+# hotbar's flash; pass your own for a bigger one.
+static func flash(item: CanvasItem, colour: Color = FLASH_COLOUR, pop_time: float = FLASH_POP_TIME, settle_time: float = FLASH_SETTLE_TIME) -> void:
 	_kill_old_fade(item)
 	var tween: Tween = item.create_tween()
-	tween.tween_property(item, "modulate", FLASH_COLOUR, FLASH_POP_TIME)
-	tween.tween_property(item, "modulate", Color.WHITE, FLASH_SETTLE_TIME)
+	tween.tween_property(item, "modulate", colour, pop_time)
+	tween.tween_property(item, "modulate", Color.WHITE, settle_time)
 	item.set_meta("fade_tween", tween)
 	item.set_meta("fade_target", Color.WHITE)
 

@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://8glh6sttkr63" path="res://assets/sprites/gui/ability_locked_green.png" id="5_s05oe"]
 [ext_resource type="Texture2D" uid="uid://cud64l8jdtmmk" path="res://assets/sprites/gui/main_menu/xp_bar_empty.png" id="5_ylf4e"]
 [ext_resource type="Texture2D" uid="uid://ddy3uu4s8ybrc" path="res://assets/sprites/gui/main_menu/xp_bar_full.png" id="6_1uwcm"]
+[ext_resource type="Script" uid="uid://2y0s24x6jko8" path="res://scenes/gui/skill_points_label.gd" id="11_fgoca"]
 
 [node name="character_screen" type="Control" unique_id=1925044566]
 layout_mode = 3
@@ -109,6 +110,18 @@ line_inset = 1
 pulse_speed = 0.8
 metadata/_custom_type_script = "uid://ch3ly4m04y11c"
 
+[node name="skill_points_label" type="Label" parent="left_side" unique_id=453132487]
+layout_mode = 0
+offset_top = 151.45
+offset_right = 193.0
+offset_bottom = 174.45003
+theme_override_colors/font_color = Color(1, 0.76862746, 0.22352941, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("11_fgoca")
+
 [node name="right_side" type="Control" parent="." unique_id=1207010622]
 anchors_preset = 0
 offset_left = 207.0
@@ -192,3 +205,18 @@ colour = Color(1, 0.76862746, 0.22352941, 1)
 line_inset = 1
 pulse_speed = 0.8
 metadata/_custom_type_script = "uid://ch3ly4m04y11c"
+
+[node name="stat_points_label" type="Label" parent="right_side" unique_id=535345225]
+layout_mode = 0
+offset_top = 150.22
+offset_right = 193.0
+offset_bottom = 173.22003
+theme_override_colors/font_color = Color(1, 0.76862746, 0.22352941, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("11_fgoca")
+points_variable = "unspent_stat_points"
+point_name = "attribute point"
+singular_text = "You have an attribute point to spend!"

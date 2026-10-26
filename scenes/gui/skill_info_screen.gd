@@ -323,7 +323,7 @@ func _ability_body_text(ability_id: String) -> String:
 	var lines: Array = []
 	var tree_name: String = data.get("tree", "")
 	if tree_name != "":
-		lines.append(tree_name.capitalize() + " tree, level " + str(data.get("level_req", 1)))
+		lines.append(tree_name.capitalize() + " tree, needs " + str(data.get("tree_points_req", 0)) + " points in it")
 
 	var cost: Dictionary = data.get("cost", {})
 	if not cost.is_empty():
