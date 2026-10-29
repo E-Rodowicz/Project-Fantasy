@@ -411,6 +411,32 @@ func assign_hotbar(slot: int, ability_id: String) -> void:
 	if old_slot != -1:
 		hotbar[old_slot] = hotbar[slot]
 	hotbar[slot] = ability_id
+
+# Where an ability pushed off `slot` would go. If the placed ability is already on the hotbar,
+# the two swap. Otherwise it's the leftmost free slot, or -1 if there's nowhere, so it comes off.
+func get_displaced_slot(slot: int, ability_id: String) -> int:
+	var old_slot: int = hotbar.find(ability_id)
+	if old_slot != -1:
+		return old_slot
+	for i: int in range(1, hotbar.size()):
+		if i != slot and hotbar[i] == "":
+			return i
+	return -1
+
+# Puts an ability on a slot, moving it off any slot it was already on. Whatever was there goes
+# to get_displaced_slot, or off the hotbar. Unlike assign_hotbar, it never takes an ability off.
+func place_on_hotbar(slot: int, ability_id: String) -> void:
+	if slot == 0 or hotbar[slot] == ability_id:
+		return
+	# Worked out before anything changes, since it depends on the hotbar as it is now.
+	var displaced: String = hotbar[slot]
+	var displaced_to: int = get_displaced_slot(slot, ability_id)
+	var old_slot: int = hotbar.find(ability_id)
+	if old_slot != -1:
+		hotbar[old_slot] = ""
+	hotbar[slot] = ability_id
+	if displaced != "" and displaced_to != -1:
+		hotbar[displaced_to] = displaced
 	
 # Slot 0 = key 1 ... slot 9 = key 0.
 const HOTBAR_ACTIONS: Array = [

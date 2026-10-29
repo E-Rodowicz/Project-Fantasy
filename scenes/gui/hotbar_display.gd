@@ -28,7 +28,8 @@ var overlay_tween_speed: float = 0.25
 var slot_charge_labels: Array = []
 var slot_charge_fade_labels: Array = []
 var slot_charge_values: Array = []
-var charge_fade_speed: float = 0.15
+# The same as the badge's own fade, so the number and the badge under it go together.
+var charge_fade_speed: float = SLOT_VANISH_TIME
 var slot_labels: Array = []
 var slot_orbs: Array = []
 var slot_empty_orbs: Array = []
@@ -66,6 +67,8 @@ const CHARGE_OFFSET: Vector2 = Vector2(14, -3)
 # The ability each slot is showing, so a change can be spotted and animated.
 var slot_shown_ids: Array[String] = []
 var slot_change_tweens: Array[Tween] = []
+# Slots that change at once instead of fading during the current refresh(). See refresh().
+var snap_slots: Array[int] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -281,11 +284,11 @@ func _update_display() -> void:
 		var ability_id: String = PlayerData.get_hotbar_ability(i)
 
 		var changed: bool = ability_id != slot_shown_ids[i]
-		# Instant when an ability arrives, or leaves because it moved to another key. Only an
-		# ability taken off the hotbar altogether fades out. has() checks if an Array contains a value.
-		var snap: bool = changed and (ability_id != "" or PlayerData.hotbar.has(slot_shown_ids[i]))
+		# Icons, key numbers, charge badges and numbers all fade in and out when a slot changes,
+		# unless refresh() was told this slot should change at once.
+		var snap: bool = i in snap_slots
 		if changed:
-			_animate_slot_change(i, ability_id, snap)
+			_animate_slot_change(i, ability_id)
 			slot_shown_ids[i] = ability_id
 
 		# An emptied slot keeps its old icon while it fades out. _clear_slot_icon removes it after.
@@ -436,31 +439,27 @@ func _hide_orbs(slot: int, snap: bool) -> void:
 	_set_alpha(slot_orbs[slot], 0.0, snap, SLOT_VANISH_TIME)
 	_set_alpha(slot_empty_orbs[slot], 0.0, snap, SLOT_VANISH_TIME)
 
-# Arriving: shows at once and flashes, like in the tree. Leaving because it moved: clears at once.
-# Taken off the hotbar altogether: fades out.
-func _animate_slot_change(slot: int, ability_id: String, snap: bool) -> void:
+# Arriving: the icon shows at once and flashes, like in the tree, and its key number fades in.
+# Leaving, whether it came off or moved to another slot: the icon and number fade out, and the
+# icon is cleared once they're gone.
+func _animate_slot_change(slot: int, ability_id: String) -> void:
 	var icon: TextureRect = slot_icons[slot]
 	var label: Label = slot_labels[slot]
 	var old_tween: Tween = slot_change_tweens[slot]
 	if old_tween != null and old_tween.is_valid():
 		old_tween.kill()
 	UiFade.stop(icon)
-
+	var tween: Tween = create_tween()
+	slot_change_tweens[slot] = tween
 	if ability_id != "":
 		icon.modulate = Color.WHITE
-		label.modulate.a = 1.0
 		UiFade.flash(icon)
-	elif snap:
-		icon.texture = null
-		icon.modulate = Color.WHITE
-		label.modulate.a = 0.0
+		tween.tween_property(label, "modulate:a", 1.0, SLOT_VANISH_TIME)
 	else:
-		var tween: Tween = create_tween()
 		tween.tween_property(icon, "modulate:a", 0.0, SLOT_VANISH_TIME)
 		# parallel() runs a step alongside the one before it, so the number fades with the icon.
 		tween.parallel().tween_property(label, "modulate:a", 0.0, SLOT_VANISH_TIME)
 		tween.tween_callback(_clear_slot_icon.bind(slot))
-		slot_change_tweens[slot] = tween
 
 # Fades a node's alpha, or sets it straight away when snap is true. Any fade still running on it
 # is stopped first, so a quick swap can't be undone by an older fade finishing late.
@@ -520,6 +519,8 @@ func _fade_charge_value(slot: int, old_value: String, new_value: String) -> void
 
 	# Old value appears on the twin label and fades out.
 	fade_label.text = old_value
+	# Takes the main label's current colour, so the old number doesn't brighten as it starts fading.
+	fade_label.add_theme_color_override("font_color", main_label.get_theme_color("font_color"))
 	fade_label.modulate = Color(1, 1, 1, 1)
 	var out_tween: Tween = create_tween()
 	out_tween.tween_property(fade_label, "modulate:a", 0.0, charge_fade_speed)
@@ -704,3 +705,41 @@ func get_slot_screen_rect(slot: int) -> Rect2:
 	var local_pos: Vector2 = Vector2(first_slot_offset.x + (slot_spacing * slot), first_slot_offset.y)
 	var screen_pos: Vector2 = background.global_position + local_pos * background.scale
 	return Rect2(screen_pos, icon_size * background.scale)
+
+# --- PLACING (used by the ability panel) ---
+# The parts of a slot that belong to its ability rather than the slot: the icon, the charge badge
+# and numbers, the ranged icon and the reject cross. The key number stays, since it's the slot's.
+# Controls and Node2Ds are listed apart because they don't share a type with visible on it.
+func _slot_controls(slot: int) -> Array[Control]:
+	return [slot_icons[slot], slot_charge_labels[slot], slot_charge_fade_labels[slot], slot_overlays[slot]]
+
+func _slot_sprites(slot: int) -> Array[Node2D]:
+	return [slot_orbs[slot], slot_empty_orbs[slot], slot_ranged_icons[slot]]
+
+# Slides an ability's parts sideways by offset pixels without moving the slot, badge and numbers
+# included. Each part remembers where it was built, so an offset of 0 always puts it back exactly.
+func set_slot_offset(slot: int, slot_offset: float) -> void:
+	for part: Control in _slot_controls(slot):
+		if not part.has_meta("rest_x"):
+			part.set_meta("rest_x", part.position.x)
+		part.position.x = part.get_meta("rest_x") + slot_offset
+	for part: Node2D in _slot_sprites(slot):
+		if not part.has_meta("rest_x"):
+			part.set_meta("rest_x", part.position.x)
+		part.position.x = part.get_meta("rest_x") + slot_offset
+
+# Hides a slot's ability while a copy of it moves. Uses visible rather than modulate, since the
+# hotbar fades these with modulate itself.
+func set_slot_hidden(slot: int, hidden: bool) -> void:
+	for part: Control in _slot_controls(slot):
+		part.visible = not hidden
+	for part: Node2D in _slot_sprites(slot):
+		part.visible = not hidden
+
+# Updates the slots now instead of next frame, so a change lands on the same frame the copies go.
+# Slots listed in snap change at once rather than fading. That's for an ability that has visibly
+# been carried there, so its badge doesn't fade out in one place and back in at another.
+func refresh(snap: Array[int] = []) -> void:
+	snap_slots = snap
+	_update_display()
+	snap_slots = []

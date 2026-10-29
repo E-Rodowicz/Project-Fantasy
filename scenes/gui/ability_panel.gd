@@ -9,7 +9,8 @@ enum PanelState {
 	CHOOSING,
 	OPENING,
 	TREE_OPEN,
-	CLOSING
+	CLOSING,
+	PLACING
 }
 
 const SELECTED_COLOUR: Color = Color.YELLOW
@@ -78,6 +79,25 @@ const COST_FADE_TIME: float = 0.3
 const CURSOR_PULSE_SPEED: float = 0.5
 const CURSOR_PULSE_MIN: float = 0.55
 const FLOAT_OUTLINE_SIZE: int = 4
+# --- POINTS INVESTED ---
+# Pixels between a tree button's bottom edge and its points text.
+const BUTTON_POINTS_INSET: int = 4
+# Pixels in from the open tree's bottom-right corner.
+const CORNER_POINTS_INSET: int = 3
+const POINTS_OUTLINE_SIZE: int = 5
+const POINTS_SCALE: float = 0.75
+# --- HOTBAR PLACING ---
+# Above the hotbar and the menu, both on layer 1, and below the info window on 18.
+const PLACE_LAYER: int = 5
+# Flying between the panel and the hotbar, moving along the hotbar, and settling into a slot.
+const PLACE_FLY_TIME: float = 0.25
+const PLACE_MOVE_TIME: float = 0.12
+const PLACE_SETTLE_TIME: float = 0.15
+# The floating ability pulses between normal and this bright.
+const PLACE_PULSE_SPEED: float = 1
+const PLACE_PULSE_MAX: float = 1.4
+# Over its own slot it pulses red instead: green and blue drop to this, leaving red.
+const PLACE_REMOVE_TINT: float = 0.3
 
 # Shown instead of an ability's icon while it's locked, one per tree. Same size as an ability icon.
 @export var red_lock_texture: Texture2D = null
@@ -141,12 +161,39 @@ var charge_started: bool = false
 var cursor_pulse_time: float = 0.0
 # The floating message on screen, if any. A new rejection replaces it.
 var reject_text: Label = null
+# Each tree button's "Points invested" text, in button order.
+var button_points: Array[Label] = []
+# The same count in the open tree's top-right corner.
+var corner_points: Label = null
+# The floating copy lives on its own layer, in screen pixels.
+var place_layer: CanvasLayer = null
+var place_ghost: TextureRect = null
+# A copy of an ability knocked off the hotbar, while it fades.
+var place_displaced: TextureRect = null
+# Hotbar slots whose real ability is hidden until the change is made.
+var place_hidden: Array[int] = []
+# The slot whose real ability is sliding across to make room, or -1, and the tween sliding it.
+var place_slid: int = -1
+var place_slide_tween: Tween = null
+# Slots the hotbar should change at once rather than fade, because something was carried there.
+var place_snap: Array[int] = []
+var place_tween: Tween = null
+var place_slot: int = 1
+# True while flying or settling, so keys wait until it arrives.
+var place_busy: bool = false
+# True between pressing E and the change being made.
+var place_settling: bool = false
+# True while it settles onto its own slot on the way to being taken off.
+var place_removing: bool = false
+var place_pulse_time: float = 0.0
 
 func _ready() -> void:
 	for i: int in range(tree_buttons.size()):
 		button_home_y.append(tree_buttons[i].position.y)
 		label_home_y.append(tree_labels[i].position.y)
 	_build_tree_view()
+	_build_points_labels()
+	_build_place_overlay()
 	_update_highlight()
 
 # The parts of the open tree that never change: the holder the icons go in, the cursor box and
@@ -171,6 +218,44 @@ func _build_tree_view() -> void:
 	greyscale_material = ShaderMaterial.new()
 	greyscale_material.shader = GREYSCALE_SHADER
 
+# A points label for each tree button, along its bottom, plus one for the open tree's corner.
+func _build_points_labels() -> void:
+	for i: int in range(tree_buttons.size()):
+		var button: NinePatchRect = tree_buttons[i]
+		var label: Label = _make_points_label(TREE_IDS[i])
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.add_child(label)
+		# The height is only known once it's in the tree, since the font comes from the theme.
+		var height: float = label.get_combined_minimum_size().y
+		# Size is before scale, so the width is divided back up to still span the whole button.
+		label.size = Vector2(button.size.x / POINTS_SCALE, height)
+		label.position = Vector2(0, roundf(button.size.y - height * POINTS_SCALE - BUTTON_POINTS_INSET))
+		button_points.append(label)
+
+	# Right-aligned, so the number can grow leftwards without anything moving.
+	corner_points = _make_points_label(TREE_IDS[0])
+	corner_points.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tree_view.add_child(corner_points)
+	_refresh_points()
+
+func _make_points_label(tree_id: String) -> Label:
+	var label: Label = Label.new()
+	label.text = _points_text(tree_id)
+	label.add_theme_color_override("font_color", _cost_colour_for(tree_id))
+	label.add_theme_color_override("font_outline_color", _cost_outline_for(tree_id))
+	label.add_theme_constant_override("outline_size", POINTS_OUTLINE_SIZE)
+	label.scale = Vector2.ONE * POINTS_SCALE
+	return label
+
+func _points_text(tree_id: String) -> String:
+	return "Points Invested: " + str(PlayerData.get_tree_points(tree_id))
+
+# The corner shows whichever tree is selected, so it's right before and while that tree is open.
+func _refresh_points() -> void:
+	for i: int in range(button_points.size()):
+		button_points[i].text = _points_text(TREE_IDS[i])
+	corner_points.text = _points_text(TREE_IDS[selected_tree])
+	
 # --- INPUT ---
 # Returns true if it used the key. Q while choosing returns false, so character_screen
 # knows to back out of the side.
@@ -180,6 +265,8 @@ func handle_input(event: InputEvent) -> bool:
 			return _input_choosing(event)
 		PanelState.TREE_OPEN:
 			return _input_tree(event)
+		PanelState.PLACING:
+			return _input_placing(event)
 	# Mid-animation: Q is swallowed so it can't exit the side halfway through a slide.
 	return event.is_action_pressed("ui_cancel")
 
@@ -265,6 +352,7 @@ func _on_closed() -> void:
 # Snaps straight back to the three buttons with no animation, cursor on the first one. Called
 # when the player leaves the tab, so it always opens fresh.
 func reset() -> void:
+	_end_placing_instantly()
 	_kill_tween()
 	_cancel_charge()
 	state = PanelState.CHOOSING
@@ -275,6 +363,9 @@ func reset() -> void:
 	_apply_fade(1.0)
 	tree_view.modulate.a = 0.0
 	_clear_tree()
+	for label: Label in button_points:
+		UiFade.stop(label)
+		label.modulate = Color.WHITE
 	selected_tree = 0
 	_update_highlight()
 
@@ -289,6 +380,8 @@ func _apply_fade(alpha: float) -> void:
 	for i: int in range(tree_buttons.size()):
 		if i != selected_tree:
 			tree_buttons[i].modulate.a = alpha
+	# The chosen button stays, but its points text fades with the others, at exactly the same time.
+	button_points[selected_tree].modulate.a = alpha
 
 # t = 0 is the button at home, t = 1 is half off the top of the panel. Only the chosen button
 # ever moves, so the others are always still at home.
@@ -308,6 +401,13 @@ func _apply_slide(t: float) -> void:
 # decides which are colour, grey, or grey and locked.
 func _build_tree(tree_id: String) -> void:
 	_clear_tree()
+	# The corner takes the opening tree's colours. The panel's width is certain by now, unlike in _ready.
+	corner_points.add_theme_color_override("font_color", _cost_colour_for(tree_id))
+	corner_points.add_theme_color_override("font_outline_color", _cost_outline_for(tree_id))
+	var corner_height: float = corner_points.get_combined_minimum_size().y
+	corner_points.size = Vector2((size.x - CORNER_POINTS_INSET * 2) / POINTS_SCALE, corner_height)
+	corner_points.position = Vector2(CORNER_POINTS_INSET, roundf(size.y - corner_height * POINTS_SCALE - CORNER_POINTS_INSET))
+	_refresh_points()
 	for ability_id: String in AbilityDB.abilities.keys():
 		var data: Dictionary = AbilityDB.abilities[ability_id]
 		if data.get("tree", "") != tree_id:
@@ -367,6 +467,26 @@ func _lock_texture_for(tree_id: String) -> Texture2D:
 			return blue_lock_texture
 	return null
 
+func _cost_colour_for(tree_id: String) -> Color:
+	match tree_id:
+		"red":
+			return red_cost_colour
+		"green":
+			return green_cost_colour
+		"blue":
+			return blue_cost_colour
+	return Color.WHITE
+
+func _cost_outline_for(tree_id: String) -> Color:
+	match tree_id:
+		"red":
+			return red_cost_outline
+		"green":
+			return green_cost_outline
+		"blue":
+			return blue_cost_outline
+	return Color.BLACK
+
 # Owned: full colour. Not owned: grey. Not enough points in the tree yet: grey with the lock.
 # Runs after building and after every purchase, since buying one can unlock others.
 func _refresh_icons() -> void:
@@ -423,20 +543,8 @@ func _make_cost_label(tree_id: String, cost: int) -> Label:
 	label.position = COST_NUDGE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	var colour: Color = Color.WHITE
-	var outline: Color = Color.BLACK
-	match tree_id:
-		"red":
-			colour = red_cost_colour
-			outline = red_cost_outline
-		"green":
-			colour = green_cost_colour
-			outline = green_cost_outline
-		"blue":
-			colour = blue_cost_colour
-			outline = blue_cost_outline
-	label.add_theme_color_override("font_color", colour)
-	label.add_theme_color_override("font_outline_color", outline)
+	label.add_theme_color_override("font_color", _cost_colour_for(tree_id))
+	label.add_theme_color_override("font_outline_color", _cost_outline_for(tree_id))
 	label.add_theme_constant_override("outline_size", 5)
 	# Remembered so the shake can put it back exactly here, wherever it's been placed.
 	label.set_meta("rest_x", label.position.x)
@@ -510,7 +618,7 @@ func _assign_to_hotbar(slot: int) -> void:
 	PlayerData.assign_hotbar(slot, ability_id)
 	_refresh_badges(true)
 
-# Checks every ability, since one change can move or knock off another. A new key shows at once,
+# Checks every ability, since one change can move or knock off another. A new key fades in,
 # and the icon flashes if flash is true. Coming off the hotbar fades the number out.
 func _refresh_badges(flash: bool) -> void:
 	for i: int in range(node_ids.size()):
@@ -522,9 +630,11 @@ func _refresh_badges(flash: bool) -> void:
 		if key == "":
 			UiFade.modulate(badge, HIDDEN)
 		else:
+			# The new key fades in, from nothing even if it's replacing an old one.
 			badge.text = key
 			UiFade.stop(badge)
-			badge.modulate = Color.WHITE
+			badge.modulate = HIDDEN
+			UiFade.modulate(badge, Color.WHITE)
 			if flash:
 				UiFade.flash(node_icons[i])
 
@@ -542,6 +652,10 @@ func _hotbar_key_for(ability_id: String) -> String:
 # Tapping E on an ability buys it if you can: a hard flash, a pop, and a gold ring bursting out.
 func _try_buy() -> void:
 	var ability_id: String = node_ids[selected_node]
+	# Already owned: a tap takes it to the hotbar instead.
+	if PlayerData.has_ability(ability_id):
+		_start_placing()
+		return
 	if not PlayerData.buy_ability(ability_id):
 		# Owned or locked: nothing to say. Otherwise the only thing stopping it is the price.
 		if not PlayerData.has_ability(ability_id) and node_locks[selected_node] == null:
@@ -558,6 +672,8 @@ func _try_buy() -> void:
 	cost_tween.tween_property(cost, "modulate", HIDDEN, COST_FADE_TIME).set_delay(COST_FADE_DELAY)
 	_play_buy_burst(icon)
 	_play_buy_pop(icon)
+	_refresh_points()
+	UiFade.flash(corner_points)
 
 # A one-off gold ring that grows out from the cursor box and fades, then deletes itself.
 # It goes in tree_view, so it fades with the tree if you close it mid-burst.
@@ -692,12 +808,244 @@ func _pulse_cursor(delta: float) -> void:
 	var wave: float = 0.5 + 0.5 * cos(cursor_pulse_time * TAU * CURSOR_PULSE_SPEED)
 	var brightness: float = lerpf(CURSOR_PULSE_MIN, 1.0, wave)
 	node_boxes[selected_node].border_color = SELECTED_COLOUR.darkened(1.0 - brightness)
+	# The floating ability on the hotbar pulses bright and normal.
+	# Left alone while busy, so a fade on the copy isn't overwritten.
+	if state == PanelState.PLACING and place_ghost.visible and not place_busy:
+		place_pulse_time += delta
+		var place_wave: float = 0.5 + 0.5 * cos(place_pulse_time * TAU * PLACE_PULSE_SPEED)
+		# Over its own slot, E would take it off, so it warns in red instead of glowing.
+		if PlayerData.hotbar[place_slot] == node_ids[selected_node]:
+			var tint: float = lerpf(1.0, PLACE_REMOVE_TINT, place_wave)
+			place_ghost.modulate = Color(1.0, tint, tint, 1.0)
+		else:
+			var bright: float = lerpf(1.0, PLACE_PULSE_MAX, place_wave)
+			place_ghost.modulate = Color(bright, bright, bright, 1.0)
+
+# --- HOTBAR PLACING ---
+# Tapping E on an owned ability floats a copy of it over the hotbar. A/D move it, E places it,
+# Q sends it back. The hotbar itself only changes when it's placed.
+func _build_place_overlay() -> void:
+	place_layer = CanvasLayer.new()
+	place_layer.layer = PLACE_LAYER
+	add_child(place_layer)
+	place_ghost = _make_ghost(null, Rect2())
+	place_ghost.visible = false
+
+func _make_ghost(texture: Texture2D, rect: Rect2) -> TextureRect:
+	var ghost: TextureRect = TextureRect.new()
+	ghost.texture = texture
+	ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ghost.stretch_mode = TextureRect.STRETCH_SCALE
+	ghost.position = rect.position
+	ghost.size = rect.size
+	place_layer.add_child(ghost)
+	return ghost
+
+# Where the floating ability hovers: over the slot, lifted by half its height.
+func _hover_rect(slot: int) -> Rect2:
+	var rect: Rect2 = HotbarDisplay.get_slot_screen_rect(slot)
+	rect.position.y -= roundf(rect.size.y / 2.0)
+	return rect
+
+# Moves the copy from wherever it is now, so a new move can start mid-way through the last.
+# on_done can be an empty Callable() for nothing.
+func _move_ghost(to: Rect2, time: float, on_done: Callable) -> void:
+	_kill_place_tween()
+	var from: Rect2 = Rect2(place_ghost.position, place_ghost.size)
+	place_tween = create_tween()
+	place_tween.tween_method(_set_rect.bind(place_ghost, from, to), 0.0, 1.0, time).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if on_done.is_valid():
+		place_tween.tween_callback(on_done)
+
+# Rounded to whole screen pixels, so nothing is drawn between them.
+func _set_rect(t: float, node: Control, from: Rect2, to: Rect2) -> void:
+	node.position = from.position.lerp(to.position, t).round()
+	node.size = from.size.lerp(to.size, t).round()
+
+func _kill_place_tween() -> void:
+	if place_tween != null and place_tween.is_valid():
+		place_tween.kill()
+
+# Always starts on slot 1, the first ability slot. The panel's box fades while the copy flies.
+func _start_placing() -> void:
+	state = PanelState.PLACING
+	place_busy = true
+	place_slot = 1
+	place_pulse_time = 0.0
+	UiFade.modulate(node_boxes[selected_node], HIDDEN)
+	var icon: TextureRect = node_icons[selected_node]
+	var icon_rect: Rect2 = _screen_rect(icon)
+	place_ghost.texture = icon.texture
+	place_ghost.modulate = Color.WHITE
+	place_ghost.position = icon_rect.position
+	place_ghost.size = icon_rect.size
+	place_ghost.visible = true
+	_move_ghost(_hover_rect(place_slot), PLACE_FLY_TIME, _on_place_ready)
+
+func _on_place_ready() -> void:
+	place_busy = false
+
+func _input_placing(event: InputEvent) -> bool:
+	# Tab closes the menu as normal, so this clears up at once and lets the key through.
+	if event.is_action_pressed("open_menu"):
+		_end_placing_instantly()
+		return false
+	if place_busy:
+		return true
+	if event.is_action_pressed("ui_left"):
+		_move_place(-1)
+	elif event.is_action_pressed("ui_right"):
+		_move_place(1)
+	elif event.is_action_pressed("interact"):
+		_confirm_place()
+	elif event.is_action_pressed("ui_cancel"):
+		_cancel_place()
+	# Everything else is swallowed, so number keys and tab shortcuts can't act mid-placement.
+	return true
+
+func _move_place(direction: int) -> void:
+	var new_slot: int = clampi(place_slot + direction, 1, PlayerData.hotbar.size() - 1)
+	if new_slot == place_slot:
+		return
+	place_slot = new_slot
+	_move_ghost(_hover_rect(place_slot), PLACE_MOVE_TIME, Callable())
+
+# The copy settles into the slot. An ability already there slides to where it'll end up, the
+# real one with its badge and numbers, or fades if it's coming off. The real change waits for
+# both to finish.
+func _confirm_place() -> void:
+	place_busy = true
+	var ability_id: String = node_ids[selected_node]
+	# Over its own slot: it comes off the hotbar. The copy settles exactly onto the real icon first,
+	# its red easing off as it goes, then hands over to it, so only one ability is seen fading.
+	if PlayerData.hotbar[place_slot] == ability_id:
+		place_removing = true
+		var tint_tween: Tween = place_ghost.create_tween()
+		tint_tween.tween_property(place_ghost, "modulate", Color.WHITE, PLACE_SETTLE_TIME)
+		_move_ghost(HotbarDisplay.get_slot_screen_rect(place_slot), PLACE_SETTLE_TIME, _remove_from_hotbar)
+		return
+	place_settling = true
+	place_snap.clear()
+	var displaced: String = PlayerData.hotbar[place_slot]
+	if displaced != "" and displaced != ability_id:
+		var to_slot: int = PlayerData.get_displaced_slot(place_slot, ability_id)
+		if to_slot != -1:
+			_slide_displaced(place_slot, to_slot)
+		else:
+			_fade_displaced(displaced)
+	_move_ghost(HotbarDisplay.get_slot_screen_rect(place_slot), PLACE_SETTLE_TIME, _commit_place)
+
+# The real slot slides across, so it reads as one ability moving. Both ends then change at once
+# when the change is made, and the slide snaps home in that same frame, so nothing jumps.
+func _slide_displaced(from_slot: int, to_slot: int) -> void:
+	# Heading for the slot the placed ability is leaving: that one gets out of its way.
+	if PlayerData.hotbar[to_slot] != "":
+		_hide_slot(to_slot)
+	place_slid = from_slot
+	place_snap = [from_slot, to_slot]
+	var distance: float = (to_slot - from_slot) * HotbarDisplay.slot_spacing
+	place_slide_tween = create_tween()
+	place_slide_tween.tween_method(_set_slid_offset, 0.0, distance, PLACE_SETTLE_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func _set_slid_offset(offset: float) -> void:
+	HotbarDisplay.set_slot_offset(place_slid, roundf(offset))
+
+# Nowhere for it to go: a copy fades out under the settling ability while the real one hides.
+func _fade_displaced(ability_id: String) -> void:
+	var slot_rect: Rect2 = HotbarDisplay.get_slot_screen_rect(place_slot)
+	_hide_slot(place_slot)
+	place_displaced = _make_ghost(AbilityDB.get_ability(ability_id).get("icon", null), slot_rect)
+	var tween: Tween = place_displaced.create_tween()
+	tween.tween_property(place_displaced, "modulate:a", 0.0, PLACE_SETTLE_TIME)
+
+func _hide_slot(slot: int) -> void:
+	HotbarDisplay.set_slot_hidden(slot, true)
+	place_hidden.append(slot)
+
+# Makes the change for real. The slide snaps home and the hotbar updates in this same frame,
+# flashing its arrivals, just as the copies disappear. Then the panel's box fades back in.
+func _commit_place() -> void:
+	_apply_place()
+	_clear_place_copies()
+	_refresh_badges(true)
+	_finish_placing()
+
+# The copy vanishes as the hotbar starts fading the real one out, badge and number with it.
+func _remove_from_hotbar() -> void:
+	_apply_remove()
+	_clear_place_copies()
+	_refresh_badges(true)
+	_finish_placing()
+
+func _apply_remove() -> void:
+	place_removing = false
+	place_ghost.visible = false
+	PlayerData.assign_hotbar(place_slot, node_ids[selected_node])
+	HotbarDisplay.refresh()
+
+func _apply_place() -> void:
+	place_settling = false
+	_reset_slide()
+	PlayerData.place_on_hotbar(place_slot, node_ids[selected_node])
+	HotbarDisplay.refresh(place_snap)
+	place_snap.clear()
+
+func _reset_slide() -> void:
+	if place_slide_tween != null and place_slide_tween.is_valid():
+		place_slide_tween.kill()
+	if place_slid != -1:
+		HotbarDisplay.set_slot_offset(place_slid, 0.0)
+		place_slid = -1
+
+# Q: the copy flies back into its icon in the panel. Nothing on the hotbar changes.
+func _cancel_place() -> void:
+	place_busy = true
+	var icon_rect: Rect2 = _screen_rect(node_icons[selected_node])
+	_move_ghost(icon_rect, PLACE_FLY_TIME, _on_cancel_returned)
+
+func _on_cancel_returned() -> void:
+	_clear_place_copies()
+	_finish_placing()
+
+func _finish_placing() -> void:
+	UiFade.modulate(node_boxes[selected_node], Color.WHITE)
+	place_busy = false
+	state = PanelState.TREE_OPEN
+
+func _clear_place_copies() -> void:
+	place_ghost.visible = false
+	place_ghost.modulate = Color.WHITE
+	if is_instance_valid(place_displaced):
+		place_displaced.queue_free()
+	place_displaced = null
+	_reset_slide()
+	for slot: int in place_hidden:
+		HotbarDisplay.set_slot_hidden(slot, false)
+	place_hidden.clear()
+
+# For Tab and leaving the tab. If E was already pressed, that choice is kept. Otherwise the
+# hotbar is exactly as it was.
+func _end_placing_instantly() -> void:
+	if state != PanelState.PLACING:
+		return
+	_kill_place_tween()
+	if place_settling:
+		_apply_place()
+	elif place_removing:
+		_apply_remove()
+	_clear_place_copies()
+	if not node_boxes.is_empty():
+		UiFade.stop(node_boxes[selected_node])
+		node_boxes[selected_node].modulate = Color.WHITE
+	place_busy = false
+	state = PanelState.TREE_OPEN
 
 # --- INFO WINDOW ---
 # Same timings as holding a hotbar key. Let go before the delay and it was a tap, which buys the
 # ability. Hold on and the charge plays, then the info window opens.
 func _process(delta: float) -> void:
 	_pulse_cursor(delta)
+	_refresh_points()
 	if info_hold_timer < 0.0:
 		return
 	if not Input.is_action_pressed("interact") or state != PanelState.TREE_OPEN:
